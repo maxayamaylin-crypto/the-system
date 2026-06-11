@@ -1,7 +1,7 @@
 {
   "name": "THE SYSTEM",
   "short_name": "SYSTEM",
-  "description": "Solo Leveling Life Tracker",
+  "description": "Fitness RPG habit tracker",
   "start_url": "./the-system.html",
   "display": "standalone",
   "background_color": "#050a12",
