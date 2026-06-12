@@ -499,6 +499,32 @@ body::before{
 .live-row strong{color:#f5f8ff;}
 .live-row small{display:block;color:#8fa6ba;font-size:11px;margin-top:2px;}
 .live-row .btn{padding:7px 10px;font-size:11px;white-space:nowrap;}
+.meal-card-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.meal-card{min-height:154px;border:1px solid rgba(80,130,170,.38);border-radius:10px;overflow:hidden;background:#030913;position:relative;box-shadow:0 0 18px rgba(0,0,0,.35);cursor:pointer;text-align:left;}
+.meal-card-img{height:96px;background-size:cover;background-position:center;border-bottom:1px solid rgba(0,170,255,.24);position:relative;}
+.meal-card-img::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 42%,rgba(0,0,0,.72));}
+.meal-card-body{padding:9px;}
+.meal-card-title{color:#f5f8ff;font-weight:900;font-size:12px;line-height:1.2;}
+.meal-card-meta{color:#9cadbd;font-family:monospace;font-size:10px;margin-top:4px;}
+.meal-thumb{width:58px;height:58px;border-radius:9px;background-size:cover;background-position:center;border:1px solid rgba(0,170,255,.35);box-shadow:0 0 12px rgba(0,170,255,.14);flex:0 0 auto;}
+.meal-list-row.visual{gap:10px;align-items:center;}
+.meal-list-row.visual>div:nth-child(2){min-width:0;flex:1;}
+.suggestion-card{background:rgba(0,0,0,0.3);border:1px solid #1a4a7a;border-radius:10px;overflow:hidden;margin-bottom:10px;}
+.suggestion-img{height:124px;background-size:cover;background-position:center;position:relative;}
+.suggestion-img::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(0,0,0,.82));}
+.suggestion-body{padding:12px;}
+.nutrition-tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:0 0 12px;}
+.nutrition-tabs button{padding:8px 4px;font-size:9px;}
+.nutrition-featured{min-height:154px;border:1px solid rgba(153,51,255,.62);border-radius:10px;overflow:hidden;position:relative;background-size:cover;background-position:center;box-shadow:0 0 24px rgba(153,51,255,.16);}
+.nutrition-featured::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(4,8,18,.96) 0 48%,rgba(4,8,18,.32)),linear-gradient(180deg,transparent,rgba(0,0,0,.8));}
+.nutrition-featured>*{position:relative;z-index:1;}
+.macro-ring-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+.macro-ring{text-align:center;border:1px solid rgba(80,130,170,.32);border-radius:10px;background:rgba(0,0,0,.24);padding:10px 4px;}
+.macro-ring-circle{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;margin:0 auto 6px;border:3px solid #13d8ff;box-shadow:0 0 14px rgba(0,170,255,.28);font-family:monospace;font-weight:900;}
+.macro-ring small{display:block;color:#7f9ab4;font-size:9px;font-family:monospace;}
+.scan-showcase{min-height:170px;border-radius:10px;border:1px solid rgba(19,216,255,.42);background-size:cover;background-position:center;position:relative;overflow:hidden;}
+.scan-showcase::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.12),rgba(0,0,0,.75));}
+.scan-showcase-inner{position:absolute;inset:auto 12px 12px;z-index:1;color:#e8f4ff;}
 body.pixel-mode{background:#000;}
 body.pixel-mode #app{max-width:960px;padding:12px 12px 18px;}
 body.pixel-mode #tabs{
@@ -666,6 +692,16 @@ body.pixel-mode .tab-btn.active{border-bottom:0;background:linear-gradient(180de
   <!-- NUTRITION TAB -->
   <div id="tab-nutrition" class="tab-content">
 
+    <div id="nutrition-pixel"></div>
+
+    <div class="nutrition-tabs">
+      <button class="btn" data-nutrition-view="overview" onclick="setNutritionView('overview')">OVERVIEW</button>
+      <button class="btn" data-nutrition-view="archive" onclick="setNutritionView('archive')">ARCHIVE</button>
+      <button class="btn" data-nutrition-view="scan" onclick="setNutritionView('scan')">SCAN</button>
+      <button class="btn" data-nutrition-view="diary" onclick="setNutritionView('diary')">DIARY</button>
+      <button class="btn" data-nutrition-view="progress" onclick="setNutritionView('progress')">PROGRESS</button>
+    </div>
+
     <div class="panel glow p16 mb12" id="nutrition-command">
       <div class="br"></div><div class="bl"></div>
     </div>
@@ -751,6 +787,7 @@ body.pixel-mode .tab-btn.active{border-bottom:0;background:linear-gradient(180de
         <input id="meal-fiber" class="quest-input" type="number" placeholder="fiber (g)" style="flex:1;"/>
         <button class="btn" onclick="addMeal()">+ ADD</button>
       </div>
+      <div class="label-sm mb8">QUICK RECIPES</div>
       <div id="meal-template-row" class="flex gap6 flex-wrap"></div>
     </div>
 
@@ -870,12 +907,28 @@ const SUBSCRIPTION_PLANS = [
   {id:"founder",name:"Founder",price:"£9.99/mo",desc:"Discipline Vault, charity contracts, early features, founder badge."}
 ];
 const MEAL_TEMPLATES = [
+  {name:"Shadow bulk plate",calories:825,protein:54,carbs:88,fat:24,sugar:7,fiber:9},
   {name:"Chicken rice power bowl",calories:750,protein:62,carbs:86,fat:14,sugar:6,fiber:7},
-  {name:"Greek yoghurt protein bowl",calories:420,protein:42,carbs:48,fat:8,sugar:22,fiber:6},
+  {name:"Recovery salmon bowl",calories:590,protein:38,carbs:46,fat:20,sugar:5,fiber:8},
+  {name:"Greek yoghurt recovery bowl",calories:420,protein:42,carbs:48,fat:8,sugar:22,fiber:6},
+  {name:"Protein pancakes",calories:540,protein:32,carbs:72,fat:12,sugar:18,fiber:7},
   {name:"Protein shake finisher",calories:520,protein:48,carbs:62,fat:12,sugar:28,fiber:8},
   {name:"Tuna toast upgrade",calories:460,protein:38,carbs:42,fat:14,sugar:5,fiber:6},
   {name:"Lean bulk wrap stack",calories:850,protein:58,carbs:92,fat:28,sugar:10,fiber:9}
 ];
+const FOOD_IMAGES = {
+  bowl:"https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=900&q=80",
+  chicken:"https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=900&q=80",
+  salmon:"https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=900&q=80",
+  pancakes:"https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=900&q=80",
+  yoghurt:"https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?auto=format&fit=crop&w=900&q=80",
+  shake:"https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=900&q=80",
+  tuna:"https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=900&q=80",
+  wrap:"https://images.unsplash.com/photo-1626700051175-6818013e1d4f?auto=format&fit=crop&w=900&q=80",
+  egg:"https://images.unsplash.com/photo-1482049016688-2d3e1b311543?auto=format&fit=crop&w=900&q=80",
+  salad:"https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=900&q=80",
+  default:"https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80"
+};
 const TRAINING_PLAN_TEMPLATES = [
   {id:"current",name:"Current Split",focus:"Your existing 5-day personalised upper/lower split."},
   {id:"bodybuilding",name:"Bodybuilding Hypertrophy",focus:"High-volume physique split for muscle growth and symmetry."},
@@ -981,6 +1034,7 @@ let state = {
 };
 let activeTrainingDay = "UB1";
 let activeProgressDay = "UB1";
+let activeNutritionView = "overview";
 let currentTab = "hub";
 let editingEx = null; // {dayKey, section, idx}
 let logMode = false;
@@ -1224,6 +1278,19 @@ function displayName(){return state.profile.displayName && state.profile.display
 function formatNum(n){return Number(n||0).toLocaleString();}
 function playerPower(){return Math.max(12860, getPowerScore()*11);}
 function xpBar(widthBase=74){return `<div class="xp-bar-wrap" style="height:7px;"><div class="xp-bar-fill" style="width:${Math.min(100,widthBase)}%;background:linear-gradient(90deg,#10e0ff,#7ddcff);box-shadow:0 0 10px #10e0ff;"></div></div>`;}
+function foodImageFor(name=""){
+  const n = String(name||"").toLowerCase();
+  if(/chicken|rice|power|bowl/.test(n)) return FOOD_IMAGES.chicken;
+  if(/yoghurt|yogurt|greek|berry|berries/.test(n)) return FOOD_IMAGES.yoghurt;
+  if(/shake|smoothie|whey|finisher/.test(n)) return FOOD_IMAGES.shake;
+  if(/tuna|toast|sandwich/.test(n)) return FOOD_IMAGES.tuna;
+  if(/wrap|bulk|shawarma/.test(n)) return FOOD_IMAGES.wrap;
+  if(/egg|avocado|breakfast/.test(n)) return FOOD_IMAGES.egg;
+  if(/salad|quinoa|hummus|veg|fiber|fibre/.test(n)) return FOOD_IMAGES.salad;
+  return FOOD_IMAGES.default;
+}
+function foodBg(name){return `background-image:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.18)),url('${foodImageFor(name)}');`;}
+function mealThumbHTML(name){return `<div class="meal-thumb" style="${foodBg(name)}" aria-hidden="true"></div>`;}
 function screenTitle(subtitle){
   return "";
 }
@@ -1330,7 +1397,7 @@ function economyHeader(){
   </div>`;
 }
 function renderBottomNav(active=currentTab){
-  const nav = [["quests","▤","QUESTS"],["training","▥","TRAIN"],["hub","●●","HUB"],["shop","🛒","SHOP"],["impact","♥","IMPACT"],["status","⬡","PROFILE"]];
+  const nav = [["hub","●●","HUB"],["training","▥","TRAIN"],["quests","▤","QUESTS"],["nutrition","●","NUTRITION"],["shop","🛒","SHOP"],["status","⬡","PROFILE"]];
   const el = document.getElementById("tabs");
   if(!el) return;
   const activeAlias = active==="dungeons" ? "quests" : active;
@@ -1342,7 +1409,7 @@ function updateScreenSubtitle(tab=currentTab){
   if(el) el.textContent = labels[tab] || "HUNTER OS";
 }
 function updatePixelMode(tab=currentTab){
-  document.body.classList.toggle("pixel-mode", ["hub","quests","dungeons","shop","impact"].includes(tab));
+  document.body.classList.toggle("pixel-mode", ["hub","quests","dungeons","shop","impact","nutrition"].includes(tab));
 }
 function showIntro(force=false){
   const intro = document.getElementById("intro-sequence");
@@ -1490,6 +1557,68 @@ function logSmartFinisher(){
   saveNonWorkout();
   renderNutrition();
   showNotif("levelup","SMART FINISHER LOGGED",`${meal.name}\n\n+${meal.calories} kcal · +${meal.protein}g protein`);
+}
+function setNutritionView(view){
+  activeNutritionView = view;
+  renderNutrition();
+}
+function nutritionScreenSrc(){
+  return {
+    overview:"assets/screens/nutrition-overview.jpg",
+    archive:"assets/screens/nutrition-archive.jpg",
+    scan:"assets/screens/nutrition-scan.jpg",
+    diary:"assets/screens/nutrition-diary.jpg",
+    progress:"assets/screens/nutrition-progress.jpg"
+  }[activeNutritionView] || "assets/screens/nutrition-overview.jpg";
+}
+function renderNutritionPixel(){
+  const el = document.getElementById("nutrition-pixel");
+  if(!el) return;
+  const baseNav = [
+    hotspot("Hub",17,91,12,5.5,"switchTab('hub')"),
+    hotspot("Train",33,91,12,5.5,"switchTab('training')"),
+    hotspot("Quests",49,91,12,5.5,"switchTab('quests')"),
+    hotspot("Nutrition",64,91,14,5.5,"switchTab('nutrition')"),
+    hotspot("Profile",82,91,12,5.5,"switchTab('status')")
+  ];
+  const viewHotspots = {
+    overview:[
+      hotspot("View Profile",70,25.5,22,4,"switchTab('status')"),
+      hotspot("Log Meal",15,47.5,12,6,"setNutritionView('diary')"),
+      hotspot("Scan Food",33,47.5,12,6,"setNutritionView('scan')"),
+      hotspot("Voice Log",49,47.5,12,6,"showNotif('quest','VOICE LOG','Voice logging UI is planned. Use manual or scan for this build.')"),
+      hotspot("Plan Meals",65,47.5,12,6,"setNutritionView('archive')"),
+      hotspot("View Diary",82,47.5,12,6,"setNutritionView('diary')")
+    ],
+    archive:[
+      hotspot("All",10,22.5,11,3.2,"showNotif('quest','MEAL FILTER','Showing all recipes.')"),
+      hotspot("Featured Recipe",10,31,80,11,"addMealTemplate(0)"),
+      hotspot("View Plan",17,83,28,4,"showNotif('quest','WEEKLY PLAN','Weekly meal plan builder is active through recipe cards.')"),
+      hotspot("View Grocery List",56,83,28,4,"showNotif('quest','GROCERY LIST','Grocery list will sync planned meals in the launch build.')")
+    ],
+    scan:[
+      hotspot("Barcode",10,18.5,18,4,"setNutritionView('scan')"),
+      hotspot("Photo",31,18.5,18,4,"document.getElementById('food-upload-input')?.click()"),
+      hotspot("Voice",51,18.5,18,4,"showNotif('quest','VOICE LOG','Voice food logging is queued after scan and diary polish.')"),
+      hotspot("Manual",72,18.5,18,4,"setNutritionView('diary')"),
+      hotspot("Confirm Log",43,78,43,4.5,"quickAddSuggestion('Protein Bar',210,20,24,6,8,5)")
+    ],
+    diary:[
+      hotspot("Add Food Breakfast",74,36,14,3.5,"setNutritionView('archive')"),
+      hotspot("Add Food Lunch",74,51,14,3.5,"setNutritionView('archive')"),
+      hotspot("Manual Log",17,83,13,5,"setNutritionView('diary')"),
+      hotspot("Barcode Scan",34,83,13,5,"setNutritionView('scan')"),
+      hotspot("Photo Scan",50,83,13,5,"document.getElementById('food-upload-input')?.click()"),
+      hotspot("Voice Log",66,83,13,5,"showNotif('quest','VOICE LOG','Voice logging coming soon.')"),
+      hotspot("Add Recipe",82,83,13,5,"setNutritionView('archive')")
+    ],
+    progress:[
+      hotspot("Daily",12,18.4,20,3.6,"showNotif('quest','PROGRESS VIEW','Daily nutrition progress selected.')"),
+      hotspot("Weekly",40,18.4,20,3.6,"showNotif('quest','PROGRESS VIEW','Weekly nutrition trend selected.')"),
+      hotspot("Monthly",68,18.4,20,3.6,"showNotif('quest','PROGRESS VIEW','Monthly nutrition trend selected.')")
+    ]
+  }[activeNutritionView] || [];
+  el.innerHTML = pixelScreen(nutritionScreenSrc(), [...baseNav, ...viewHotspots]);
 }
 function getIncompleteObligations(){
   const targets = state.nutritionTargets || NUTRITION_TARGETS;
@@ -2358,6 +2487,12 @@ function renderNutrition(){
     sSet("sl-daily", state.dailyProgress);
     saveNonWorkout();
   }
+  renderNutritionPixel();
+  document.querySelectorAll("[data-nutrition-view]").forEach(btn=>{
+    const active = btn.dataset.nutritionView === activeNutritionView;
+    btn.classList.toggle("btn-gold", active);
+    btn.classList.toggle("btn-ghost", !active);
+  });
   renderNutritionCommand();
 
   document.getElementById("cal-bar").style.width=calPct+"%";
@@ -2388,21 +2523,32 @@ function renderNutrition(){
 
   const templateEl = document.getElementById("meal-template-row");
   if(templateEl){
-    templateEl.innerHTML = MEAL_TEMPLATES.map((m,i)=>`<button class="btn btn-ghost" style="font-size:10px;" onclick="addMealTemplate(${i})">${esc(m.name)}</button>`).join("");
+    templateEl.className = "meal-card-grid";
+    templateEl.innerHTML = MEAL_TEMPLATES.map((m,i)=>`
+      <button class="meal-card" onclick="addMealTemplate(${i})" aria-label="Log ${esc(m.name)}">
+        <div class="meal-card-img" style="${foodBg(m.name)}"></div>
+        <div class="meal-card-body">
+          <div class="meal-card-title">${esc(m.name)}</div>
+          <div class="meal-card-meta">${m.calories} kcal · ${m.protein}g protein</div>
+        </div>
+      </button>`).join("");
   }
 
   const listEl = document.getElementById("meal-list");
   const panelEl = document.getElementById("meal-list-panel");
   panelEl.style.display = meals.length?"block":"none";
   listEl.innerHTML = meals.map((m,i)=>`
-    <div class="meal-list-row">
-      <span style="color:#e8f4ff;font-size:13px;">${esc(m.name||"Unnamed")}</span>
-      <div class="flex gap10 align-center">
-        <span style="color:#00aaff;font-size:12px;font-family:monospace;">${esc(m.calories||0)} kcal</span>
-        <span style="color:#9933ff;font-size:12px;font-family:monospace;">${esc(m.protein||0)}g</span>
-        <span style="color:#4a7a9b;font-size:11px;font-family:monospace;">C${esc(m.carbs||0)} F${esc(m.fat||0)} S${esc(m.sugar||0)}</span>
-        <button onclick="removeMeal(${i})" style="background:transparent;border:none;color:#ff3333;cursor:pointer;font-size:13px;">✕</button>
+    <div class="meal-list-row visual">
+      ${mealThumbHTML(m.name||"Meal")}
+      <div>
+        <div style="color:#e8f4ff;font-size:13px;font-weight:800;">${esc(m.name||"Unnamed")}</div>
+        <div class="flex gap10 align-center flex-wrap" style="margin-top:4px;">
+          <span style="color:#00aaff;font-size:12px;font-family:monospace;">${esc(m.calories||0)} kcal</span>
+          <span style="color:#9933ff;font-size:12px;font-family:monospace;">${esc(m.protein||0)}g protein</span>
+          <span style="color:#4a7a9b;font-size:11px;font-family:monospace;">C${esc(m.carbs||0)} F${esc(m.fat||0)} S${esc(m.sugar||0)}</span>
+        </div>
       </div>
+      <button onclick="removeMeal(${i})" style="background:transparent;border:none;color:#ff3333;cursor:pointer;font-size:15px;">✕</button>
     </div>`).join("");
   document.getElementById("meal-totals").innerHTML = meals.length?`
     <span style="color:#4a7a9b;font-size:11px;font-family:monospace;">TOTAL</span>
@@ -2910,7 +3056,9 @@ function renderMealSuggestions(suggestions, isFallback){
   contentEl.innerHTML =
     `${isFallback ? `<div style="color:#f0c040;font-size:11px;margin-bottom:8px;font-family:monospace;">LOCAL SUGGESTIONS — CONNECT AI ENDPOINT FOR SMARTER PICKS</div>` : ""}` +
     valid.map((s, idx) => `
-      <div style="background:rgba(0,0,0,0.3);border:1px solid #1a4a7a;border-radius:3px;padding:12px;margin-bottom:8px;">
+      <div class="suggestion-card">
+        <div class="suggestion-img" style="${foodBg(s.name)}"></div>
+        <div class="suggestion-body">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
           <span style="color:#e8f4ff;font-weight:700;font-size:14px;">${esc(s.name)}</span>
           <span style="color:#4a7a9b;font-size:10px;font-family:monospace;">${s.easy_to_make ? "⚡ EASY" : "🍳 PREP"}</span>
@@ -2923,6 +3071,7 @@ function renderMealSuggestions(suggestions, isFallback){
         <div style="color:#4a7a9b;font-family:monospace;font-size:10px;margin-bottom:6px;">C${s.carbs} · F${s.fat} · S${s.sugar} · Fi${s.fiber}</div>
         <div style="color:#4a7a9b;font-size:11px;line-height:1.5;">${esc(s.description)}</div>
         <button class="btn btn-green suggestion-add" data-suggestion-idx="${idx}" style="margin-top:8px;width:100%;font-size:11px;">+ LOG THIS MEAL</button>
+        </div>
       </div>`).join("");
   contentEl.querySelectorAll(".suggestion-add").forEach(btn => {
     btn.addEventListener("click", () => {

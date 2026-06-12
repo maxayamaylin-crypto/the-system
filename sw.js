@@ -1,4 +1,4 @@
-const CACHE = "system-v4-2-pixel";
+const CACHE = "system-v4-3-nutrition";
 const FILES = [
   "./",
   "./the-system.html",
@@ -6,7 +6,12 @@ const FILES = [
   "./assets/screens/hub.png",
   "./assets/screens/quests.png",
   "./assets/screens/shop.png",
-  "./assets/screens/impact.png"
+  "./assets/screens/impact.png",
+  "./assets/screens/nutrition-overview.jpg",
+  "./assets/screens/nutrition-archive.jpg",
+  "./assets/screens/nutrition-scan.jpg",
+  "./assets/screens/nutrition-diary.jpg",
+  "./assets/screens/nutrition-progress.jpg"
 ];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
