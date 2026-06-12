@@ -182,7 +182,7 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
   <div id="topbar">
     <div>
       <span class="system-text">◈ THE SYSTEM</span>
-      <span style="color:#4a7a9b;font-size:10px;margin-left:10px;font-family:monospace;letter-spacing:2px;">v3.1 · ONLINE</span>
+      <span style="color:#4a7a9b;font-size:10px;margin-left:10px;font-family:monospace;letter-spacing:2px;">v3.2 · ONLINE</span>
       <div id="clock"></div>
     </div>
     <div class="topbar-right">
@@ -208,6 +208,10 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
         <div style="color:#00ff88;font-size:11px;font-family:monospace;">QUESTS</div>
         <div style="color:#e8f4ff;font-size:18px;font-weight:900;" id="quest-count">0/5</div>
       </div>
+      <div class="quest-count">
+        <div style="color:#f0c040;font-size:11px;font-family:monospace;">STREAK</div>
+        <div style="color:#e8f4ff;font-size:18px;font-weight:900;" id="streak-count">0</div>
+      </div>
     </div>
   </div>
 
@@ -217,6 +221,8 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
     <button class="tab-btn" onclick="switchTab('training')">⚔ TRAINING</button>
     <button class="tab-btn" onclick="switchTab('nutrition')">🍖 NUTRITION</button>
     <button class="tab-btn" onclick="switchTab('progress')">📊 PROGRESS</button>
+    <button class="tab-btn" onclick="switchTab('coach')">◆ COACH</button>
+    <button class="tab-btn" onclick="switchTab('vault')">⬥ VAULT</button>
     <button class="tab-btn" onclick="switchTab('status')">👤 STATUS</button>
   </div>
 
@@ -265,6 +271,7 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
         <div class="xp-bar-wrap" style="height:10px;margin-bottom:4px;"><div class="xp-bar-fill" id="prot-bar" style="background:linear-gradient(90deg,#660099,#9933ff);box-shadow:0 0 8px #9933ff;width:0%;"></div></div>
         <div id="prot-remaining" style="color:#4a7a9b;font-size:11px;"></div>
       </div>
+      <button class="btn btn-gold" style="width:100%;margin-top:14px;" onclick="adaptNutritionTargets()">◆ ADAPT TARGETS FROM WEIGHT TREND</button>
     </div>
 
     <!-- AI Photo Scanner -->
@@ -310,6 +317,7 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
         <input id="meal-prot" class="quest-input" type="number" placeholder="protein (g)" style="flex:1;"/>
         <button class="btn" onclick="addMeal()">+ ADD</button>
       </div>
+      <div id="meal-template-row" class="flex gap6 flex-wrap"></div>
     </div>
 
     <!-- AI Meal suggestions -->
@@ -346,6 +354,16 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
   <div id="tab-progress" class="tab-content">
     <div class="day-tabs" id="progress-day-tabs"></div>
     <div id="progress-content"></div>
+  </div>
+
+  <!-- COACH TAB -->
+  <div id="tab-coach" class="tab-content">
+    <div id="coach-content"></div>
+  </div>
+
+  <!-- DISCIPLINE VAULT TAB -->
+  <div id="tab-vault" class="tab-content">
+    <div id="vault-content"></div>
   </div>
 
   <!-- STATUS TAB -->
@@ -392,12 +410,22 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
 // DATA & CONSTANTS
 // ═══════════════════════════════════════════════════════════
 const RANKS = ["E","D","C","B","A","S"];
+const APP_SCHEMA_VERSION = 4;
 const RANK_THRESHOLDS = {E:0,D:2000,C:6000,B:15000,A:35000,S:80000};
 const RANK_COLORS = {E:"#aaa",D:"#66cc44",C:"#4488ff",B:"#aa44ff",A:"#ffaa00",S:"#ff4400"};
 const NUTRITION_TARGETS = {calories:2900,protein:176};
 const AI_ENDPOINT_URL = window.SYSTEM_AI_ENDPOINT_URL || localStorage.getItem("system-ai-endpoint-url") || "";
 const MUSCLE_COLORS = {CHEST:"#FF6B35",BACK:"#4ECDC4",BICEPS:"#A855F7",TRICEPS:"#EF4444",SHOULDERS:"#F59E0B",QUADS:"#10B981",HAMSTRINGS:"#06B6D4",GLUTES:"#EC4899",CALVES:"#84CC16",ABS:"#FF6EC7"};
 const DAY_ORDER = ["UB1","LB1","UB2","LB2","UB3"];
+const DEFAULT_SETTINGS = {restDays:["Sunday"],graceTokens:2,subscriptionPlan:"founder"};
+const MEAL_TEMPLATES = [
+  {name:"Chicken rice power bowl",calories:750,protein:62},
+  {name:"Greek yoghurt protein bowl",calories:420,protein:42},
+  {name:"Protein shake finisher",calories:520,protein:48},
+  {name:"Tuna toast upgrade",calories:460,protein:38},
+  {name:"Lean bulk wrap stack",calories:850,protein:58}
+];
+const VAULT_CHARITIES = ["Cancer Research UK","British Heart Foundation","Mind","UNICEF","WaterAid","Local food bank","Custom charity"];
 const QUESTS = [
   {id:"dq-water",cat:"VITALITY",icon:"💧",name:"Drink Water",target:4,unit:"litres",xp:80,stat:"VIT",optional:false},
   {id:"dq-steps",cat:"AGILITY",icon:"👟",name:"Daily Steps",target:10000,unit:"steps",xp:150,stat:"AGI",optional:false},
@@ -420,6 +448,13 @@ let state = {
   dailyProgress: {date:"",quests:{}},
   nutritionLog: {date:"",meals:[]},
   weightLog: [{"date":"09/06/2026","weight":81}],
+  meta: {schemaVersion:APP_SCHEMA_VERSION,createdAt:new Date().toISOString(),lastBackupAt:null},
+  settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),
+  streak: {current:0,best:0,lastPerfectDate:null,graceTokens:2,restDaysUsed:[]},
+  dailyHistory: [],
+  auditLog: [],
+  nutritionTargets: {calories:2900,protein:176,mode:"lean bulk",lastAdjusted:null},
+  vaultContracts: [],
 };
 let activeTrainingDay = "UB1";
 let activeProgressDay = "UB1";
@@ -435,6 +470,15 @@ let workoutsDirty = false;
 // ═══════════════════════════════════════════════════════════
 function sGet(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}}
 function sSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
+function dateKey(d=new Date()){return new Date(d).toLocaleDateString("en-CA");}
+function weekKey(d=new Date()){
+  const x = new Date(d);
+  x.setHours(0,0,0,0);
+  x.setDate(x.getDate() + 3 - ((x.getDay() + 6) % 7));
+  const week1 = new Date(x.getFullYear(),0,4);
+  return `${x.getFullYear()}-W${String(1 + Math.round(((x - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7)).padStart(2,"0")}`;
+}
+function daysBetween(a,b){return Math.round((new Date(b)-new Date(a))/86400000);}
 function esc(value){
   return String(value ?? "").replace(/[&<>"']/g, ch => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
@@ -497,21 +541,82 @@ function prepareFoodImage(file, maxSize=1024, quality=0.82){
     reader.readAsDataURL(file);
   });
 }
+function ensureStateShape(){
+  state.meta = {...{schemaVersion:APP_SCHEMA_VERSION,createdAt:new Date().toISOString(),lastBackupAt:null}, ...(state.meta||{}), schemaVersion:APP_SCHEMA_VERSION};
+  state.settings = {...DEFAULT_SETTINGS, ...(state.settings||{})};
+  state.streak = {...{current:0,best:0,lastPerfectDate:null,graceTokens:state.settings.graceTokens,restDaysUsed:[]}, ...(state.streak||{})};
+  state.dailyHistory = Array.isArray(state.dailyHistory) ? state.dailyHistory : [];
+  state.auditLog = Array.isArray(state.auditLog) ? state.auditLog : [];
+  state.nutritionTargets = {...NUTRITION_TARGETS, mode:"lean bulk", lastAdjusted:null, ...(state.nutritionTargets||{})};
+  state.vaultContracts = Array.isArray(state.vaultContracts) ? state.vaultContracts : [];
+  if(!state.dailyProgress.quests) state.dailyProgress.quests = {};
+}
+function addAudit(type, message, extra={}){
+  if(!Array.isArray(state.auditLog)) state.auditLog = [];
+  state.auditLog.unshift({id:Date.now()+"-"+Math.random().toString(16).slice(2),at:new Date().toISOString(),type,message,extra});
+  state.auditLog = state.auditLog.slice(0,120);
+}
+function getFullSave(){
+  ensureStateShape();
+  return {
+    schemaVersion:APP_SCHEMA_VERSION,
+    workouts:state.workouts,
+    sessions:state.sessions,
+    player:state.player,
+    dailyProgress:state.dailyProgress,
+    nutritionLog:state.nutritionLog,
+    weightLog:state.weightLog,
+    meta:state.meta,
+    settings:state.settings,
+    streak:state.streak,
+    dailyHistory:state.dailyHistory,
+    auditLog:state.auditLog,
+    nutritionTargets:state.nutritionTargets,
+    vaultContracts:state.vaultContracts,
+    exportedAt:new Date().toISOString()
+  };
+}
+function restoreExtraState(data){
+  if(data.meta) state.meta = data.meta;
+  if(data.settings) state.settings = data.settings;
+  if(data.streak) state.streak = data.streak;
+  if(data.dailyHistory) state.dailyHistory = data.dailyHistory;
+  if(data.auditLog) state.auditLog = data.auditLog;
+  if(data.nutritionTargets) state.nutritionTargets = data.nutritionTargets;
+  if(data.vaultContracts) state.vaultContracts = data.vaultContracts;
+  ensureStateShape();
+}
 
 function saveAll(){
+  ensureStateShape();
   sSet("sl-workouts",state.workouts);
   sSet("sl-sessions",state.sessions);
   sSet("sl-player",state.player);
   sSet("sl-daily",state.dailyProgress);
   sSet("sl-nutrition",state.nutritionLog);
   sSet("sl-weight",state.weightLog);
+  sSet("sl-meta",state.meta);
+  sSet("sl-settings",state.settings);
+  sSet("sl-streak",state.streak);
+  sSet("sl-history",state.dailyHistory);
+  sSet("sl-audit",state.auditLog);
+  sSet("sl-targets",state.nutritionTargets);
+  sSet("sl-vault",state.vaultContracts);
 }
 function saveNonWorkout(){
+  ensureStateShape();
   sSet("sl-sessions",state.sessions);
   sSet("sl-player",state.player);
   sSet("sl-daily",state.dailyProgress);
   sSet("sl-nutrition",state.nutritionLog);
   sSet("sl-weight",state.weightLog);
+  sSet("sl-meta",state.meta);
+  sSet("sl-settings",state.settings);
+  sSet("sl-streak",state.streak);
+  sSet("sl-history",state.dailyHistory);
+  sSet("sl-audit",state.auditLog);
+  sSet("sl-targets",state.nutritionTargets);
+  sSet("sl-vault",state.vaultContracts);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -525,10 +630,18 @@ function init(){
   const savedDaily = sGet("sl-daily");
   const savedNutrition = sGet("sl-nutrition");
   const savedWeight = sGet("sl-weight");
+  const savedMeta = sGet("sl-meta");
+  const savedSettings = sGet("sl-settings");
+  const savedStreak = sGet("sl-streak");
+  const savedHistory = sGet("sl-history");
+  const savedAudit = sGet("sl-audit");
+  const savedTargets = sGet("sl-targets");
+  const savedVault = sGet("sl-vault");
 
   state.workouts = savedWorkouts || JSON.parse(JSON.stringify(DEFAULT_WORKOUTS));
   state.sessions = savedSessions || {};
   state.weightLog = savedWeight || [];
+  restoreExtraState({meta:savedMeta,settings:savedSettings,streak:savedStreak,dailyHistory:savedHistory,auditLog:savedAudit,nutritionTargets:savedTargets,vaultContracts:savedVault});
 
   // Restore player — use saved if totalXp >= what we know is correct
   if(savedPlayer && savedPlayer.totalXp >= 970){
@@ -541,7 +654,7 @@ function init(){
   if(!savedDaily || savedDaily.date !== today){
     // Apply penalties for yesterday's missed mandatory quests
     if(savedDaily && savedDaily.date){
-      applyMidnightPenalty(savedDaily);
+      closeOutDay(savedDaily, savedNutrition);
     }
     state.dailyProgress = {date:today, quests:{}};
     sSet("sl-daily", state.dailyProgress);
@@ -562,29 +675,80 @@ function init(){
   startMidnightWatcher();
 }
 
-function applyMidnightPenalty(yesterdayProgress){
+function isRestDay(dayName){
+  return (state.settings.restDays||[]).includes(dayName);
+}
+function closeOutDay(yesterdayProgress, yesterdayNutrition){
+  ensureStateShape();
+  const closedDate = yesterdayProgress.date || new Date(Date.now()-86400000).toDateString();
+  const closedKey = dateKey(closedDate);
+  const dayName = new Date(closedDate).toLocaleDateString("en-US",{weekday:"long"});
   const mandatory = QUESTS.filter(q=>!q.optional);
   const missed = mandatory.filter(q=>!yesterdayProgress.quests[q.id]?.completed);
   const nutritionMissed = !yesterdayProgress.nutritionHit;
-  const total = missed.length + (nutritionMissed ? 1 : 0);
-  if(total > 0){
+  const restDay = isRestDay(dayName);
+  const failures = restDay ? missed.filter(q=>q.id!=="dq-workout") : missed;
+  const total = failures.length + (nutritionMissed ? 1 : 0);
+  const perfect = total === 0;
+  let usedGrace = false;
+
+  if(perfect){
+    const last = state.streak.lastPerfectDate;
+    state.streak.current = last && daysBetween(last, closedKey) === 1 ? state.streak.current + 1 : 1;
+    state.streak.best = Math.max(state.streak.best||0, state.streak.current);
+    state.streak.lastPerfectDate = closedKey;
+    addAudit("daily-success", `Perfect day closed: ${closedKey}`, {streak:state.streak.current});
+  } else if(state.streak.graceTokens > 0){
+    state.streak.graceTokens -= 1;
+    usedGrace = true;
+    addAudit("grace-used", `Grace token protected streak on ${closedKey}`, {failures:total});
+  } else {
+    state.streak.current = 0;
+  }
+
+  state.dailyHistory = state.dailyHistory.filter(d=>d.dateKey!==closedKey);
+  state.dailyHistory.push({
+    date:closedDate,
+    dateKey:closedKey,
+    dayName,
+    perfect,
+    usedGrace,
+    restDay,
+    failures:total,
+    missed:failures.map(q=>q.name),
+    nutritionHit:!nutritionMissed,
+    meals:yesterdayNutrition?.meals || []
+  });
+  state.dailyHistory = state.dailyHistory.slice(-120);
+
+  updateVaultContractsForDay(closedKey, perfect || usedGrace);
+
+  if(total > 0 && !usedGrace){
     const penalty = total * 50;
     state.player.xp = Math.max(0, state.player.xp - penalty);
     state.player.totalXp = Math.max(0, state.player.totalXp - penalty);
     sSet("sl-player", state.player);
+    addAudit("penalty", `Penalty applied for ${closedKey}`, {penalty, failures:total});
     // Show penalty notification on next render
     setTimeout(()=>{
-      const lines = [...missed.map(q=>`• ${q.name}`), ...(nutritionMissed?["• Nutrition targets not met"]:[])];
+      const lines = [...failures.map(q=>`• ${q.name}`), ...(nutritionMissed?["• Nutrition targets not met"]:[])];
       showNotif("penalty","MIDNIGHT PENALTY APPLIED",`Yesterday's failures:\n\n${lines.join("\n")}\n\n— ${penalty} XP deducted —\n\nDo not fail again, Player.`);
     }, 800);
+  } else if(usedGrace){
+    setTimeout(()=>showNotif("quest","GRACE TOKEN USED",`A grace token protected your streak for ${closedKey}.\n\nRemaining tokens: ${state.streak.graceTokens}`), 800);
   }
+  saveNonWorkout();
+}
+
+function applyMidnightPenalty(yesterdayProgress){
+  closeOutDay(yesterdayProgress, state.nutritionLog);
 }
 
 function startMidnightWatcher(){
   setInterval(()=>{
     const today = new Date().toDateString();
     if(state.dailyProgress.date !== today){
-      applyMidnightPenalty(state.dailyProgress);
+      closeOutDay(state.dailyProgress, state.nutritionLog);
       state.dailyProgress = {date:today, quests:{}};
       state.nutritionLog = {date:today, meals:[]};
       saveAll();
@@ -620,8 +784,8 @@ function showNotif(type, title, body){
   const btn = document.getElementById("notif-confirm-btn");
   const box = document.getElementById("notif-box");
 
-  typeEl.textContent = type==="penalty" ? "⚠ PENALTY NOTICE ⚠" : type==="levelup" ? "⚠ RANK UP ⚠" : "⚠ SYSTEM NOTIFICATION ⚠";
-  typeEl.style.color = type==="penalty" ? "#ff3333" : "#f0c040";
+  typeEl.textContent = type==="penalty" ? "⚠ PENALTY NOTICE ⚠" : type==="levelup" ? "⚠ RANK UP ⚠" : type==="vault" ? "⬥ VAULT NOTICE ⬥" : "⚠ SYSTEM NOTIFICATION ⚠";
+  typeEl.style.color = type==="penalty" ? "#ff3333" : type==="vault" ? "#f0c040" : "#f0c040";
   titleEl.textContent = title;
   bodyEl.textContent = body;
   btn.style.borderColor = type==="penalty" ? "#ff3333" : "#00aaff";
@@ -669,6 +833,7 @@ function updateQuestProgress(questId, value){
   state.dailyProgress.quests[questId] = {value:newVal, completed: newVal>=quest.target};
   sSet("sl-daily", state.dailyProgress);
   if(justCompleted){
+    addAudit("quest-complete", `Quest complete: ${quest.name}`, {questId, xp:quest.xp});
     addXP(quest.xp, quest.stat);
     showNotif("quest","QUEST COMPLETE",`「${quest.name}」 objective fulfilled.\n\n+${quest.xp} XP earned\n+1 ${quest.stat}`);
   }
@@ -681,7 +846,8 @@ function checkPenalty(){
   const missed = mandatory.filter(q=>!state.dailyProgress.quests[q.id]?.completed);
   const totalCals = (state.nutritionLog.meals||[]).reduce((s,m)=>s+(parseFloat(m.calories)||0),0);
   const totalProt = (state.nutritionLog.meals||[]).reduce((s,m)=>s+(parseFloat(m.protein)||0),0);
-  const nutMissed = totalCals < NUTRITION_TARGETS.calories || totalProt < NUTRITION_TARGETS.protein;
+  const targets = state.nutritionTargets || NUTRITION_TARGETS;
+  const nutMissed = totalCals < targets.calories || totalProt < targets.protein;
   const failures = [...missed.map(q=>`• ${q.name}`), ...(nutMissed?["• Nutrition targets not met"]:[] )];
   if(failures.length===0){
     showNotif("quest","ALL MANDATORY QUESTS COMPLETE","Outstanding, Player. All daily obligations fulfilled.\n\nNo penalties apply.");
@@ -689,6 +855,7 @@ function checkPenalty(){
     const penalty = failures.length * 50;
     state.player.xp = Math.max(0, state.player.xp - penalty);
     state.player.totalXp = Math.max(0, state.player.totalXp - penalty);
+    addAudit("manual-penalty", "Manual penalty check applied", {penalty, failures:failures.length});
     saveNonWorkout();
     renderPlayerStrip();
     showNotif("penalty","PENALTY ENFORCED",`${failures.length} obligation(s) unfulfilled:\n\n${failures.join("\n")}\n\n— ${penalty} XP deducted —\n\nDo not fail again, Player.`);
@@ -718,6 +885,8 @@ function renderPlayerStrip(){
   const done = QUESTS.filter(q=>!q.optional && state.dailyProgress.quests[q.id]?.completed).length;
   const total = QUESTS.filter(q=>!q.optional).length;
   document.getElementById("quest-count").textContent = `${done}/${total}`;
+  const streakEl = document.getElementById("streak-count");
+  if(streakEl) streakEl.textContent = state.streak?.current || 0;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -946,6 +1115,7 @@ function submitLog(){
   const date = new Date().toLocaleDateString("en-GB");
   if(!state.sessions[logDay]) state.sessions[logDay]=[];
   state.sessions[logDay].push({date,exercises});
+  addAudit("session-logged", `Training session logged: ${w.label}`, {day:logDay});
   // Mark gym quest done
   updateQuestProgress("dq-workout",1);
   addXP(200,"STR");
@@ -1045,13 +1215,14 @@ function renderProgressContent(){
 // RENDER NUTRITION
 // ═══════════════════════════════════════════════════════════
 function renderNutrition(){
+  const targets = state.nutritionTargets || NUTRITION_TARGETS;
   const meals = state.nutritionLog.meals||[];
   const totalCal = meals.reduce((s,m)=>s+(parseFloat(m.calories)||0),0);
   const totalProt = meals.reduce((s,m)=>s+(parseFloat(m.protein)||0),0);
-  const calPct = Math.min(100,(totalCal/NUTRITION_TARGETS.calories)*100);
-  const protPct = Math.min(100,(totalProt/NUTRITION_TARGETS.protein)*100);
-  const calDone = totalCal>=NUTRITION_TARGETS.calories;
-  const protDone = totalProt>=NUTRITION_TARGETS.protein;
+  const calPct = Math.min(100,(totalCal/targets.calories)*100);
+  const protPct = Math.min(100,(totalProt/targets.protein)*100);
+  const calDone = totalCal>=targets.calories;
+  const protDone = totalProt>=targets.protein;
   const nutritionHit = calDone && protDone;
   if(state.dailyProgress.nutritionHit !== nutritionHit){
     state.dailyProgress.nutritionHit = nutritionHit;
@@ -1060,12 +1231,17 @@ function renderNutrition(){
 
   document.getElementById("cal-bar").style.width=calPct+"%";
   document.getElementById("prot-bar").style.width=protPct+"%";
-  document.getElementById("cal-label").textContent=`${Math.round(totalCal)} / ${NUTRITION_TARGETS.calories} kcal`;
+  document.getElementById("cal-label").textContent=`${Math.round(totalCal)} / ${targets.calories} kcal`;
   document.getElementById("cal-label").style.color=calDone?"#00ff88":"#00aaff";
-  document.getElementById("prot-label").textContent=`${Math.round(totalProt)} / ${NUTRITION_TARGETS.protein}g`;
+  document.getElementById("prot-label").textContent=`${Math.round(totalProt)} / ${targets.protein}g`;
   document.getElementById("prot-label").style.color=protDone?"#00ff88":"#9933ff";
-  document.getElementById("cal-remaining").textContent=calDone?"✓ TARGET HIT":`${NUTRITION_TARGETS.calories-Math.round(totalCal)} kcal remaining`;
-  document.getElementById("prot-remaining").textContent=protDone?"✓ TARGET HIT":`${NUTRITION_TARGETS.protein-Math.round(totalProt)}g remaining`;
+  document.getElementById("cal-remaining").textContent=calDone?"✓ TARGET HIT":`${targets.calories-Math.round(totalCal)} kcal remaining`;
+  document.getElementById("prot-remaining").textContent=protDone?"✓ TARGET HIT":`${targets.protein-Math.round(totalProt)}g remaining`;
+
+  const templateEl = document.getElementById("meal-template-row");
+  if(templateEl){
+    templateEl.innerHTML = MEAL_TEMPLATES.map((m,i)=>`<button class="btn btn-ghost" style="font-size:10px;" onclick="addMealTemplate(${i})">${esc(m.name)}</button>`).join("");
+  }
 
   const listEl = document.getElementById("meal-list");
   const panelEl = document.getElementById("meal-list-panel");
@@ -1089,6 +1265,38 @@ function renderNutrition(){
   renderWeightDisplay();
 }
 
+function addMealTemplate(idx){
+  const meal = MEAL_TEMPLATES[idx];
+  if(!meal) return;
+  if(!state.nutritionLog.meals) state.nutritionLog.meals=[];
+  state.nutritionLog.meals.push({...meal,id:Date.now()});
+  addAudit("meal-template", `Logged template meal: ${meal.name}`, meal);
+  saveNonWorkout();
+  renderNutrition();
+  showNotif("quest","MEAL TEMPLATE LOGGED",`${meal.name}\n\n+${meal.calories} kcal · +${meal.protein}g protein`);
+}
+
+function adaptNutritionTargets(){
+  const logs = (state.weightLog||[]).slice(-14);
+  if(logs.length < 4){
+    showNotif("quest","ADAPTIVE TARGETS","Log at least 4 weigh-ins before the system adjusts calories.");
+    return;
+  }
+  const first = logs[0].weight;
+  const last = logs[logs.length-1].weight;
+  const weeklyRate = ((last-first)/Math.max(1, logs.length-1))*7;
+  let delta = 0;
+  if(weeklyRate < 0.15) delta = 150;
+  if(weeklyRate > 0.5) delta = -120;
+  state.nutritionTargets.calories = clampNumber((state.nutritionTargets.calories||NUTRITION_TARGETS.calories) + delta, 2200, 4200, NUTRITION_TARGETS.calories);
+  state.nutritionTargets.protein = Math.max(NUTRITION_TARGETS.protein, Math.round((last||81)*2.1));
+  state.nutritionTargets.lastAdjusted = new Date().toISOString();
+  addAudit("nutrition-adjust", `Nutrition targets adjusted by ${delta} kcal`, {weeklyRate, targets:state.nutritionTargets});
+  saveNonWorkout();
+  renderNutrition();
+  showNotif("quest","TARGETS ADJUSTED",`Weekly weight trend: ${weeklyRate.toFixed(2)}kg/week\n\nCalories: ${state.nutritionTargets.calories} kcal\nProtein: ${state.nutritionTargets.protein}g`);
+}
+
 function addMeal(){
   const name = document.getElementById("meal-name").value.trim();
   const cal = clampNumber(document.getElementById("meal-cal").value, 0, 10000, 0);
@@ -1096,6 +1304,7 @@ function addMeal(){
   if(!name && !cal) return;
   if(!state.nutritionLog.meals) state.nutritionLog.meals=[];
   state.nutritionLog.meals.push({name,calories:cal,protein:prot,id:Date.now()});
+  addAudit("meal-logged", `Meal logged: ${name || "Unnamed"}`, {calories:cal,protein:prot});
   sSet("sl-nutrition",state.nutritionLog);
   document.getElementById("meal-name").value="";
   document.getElementById("meal-cal").value="";
@@ -1116,6 +1325,7 @@ function logWeight(){
   state.weightLog = state.weightLog.filter(e=>e.date!==today);
   state.weightLog.push({date:today,weight:val});
   if(state.weightLog.length>60) state.weightLog=state.weightLog.slice(-60);
+  addAudit("weight-logged", `Weight logged: ${val}kg`, {weight:val});
   sSet("sl-weight",state.weightLog);
   document.getElementById("weight-input").value="";
   renderWeightDisplay();
@@ -1176,11 +1386,14 @@ function renderStatus(){
   const totalSessions=Object.values(state.sessions).reduce((a,b)=>a+b.length,0);
   const done=QUESTS.filter(q=>!q.optional&&state.dailyProgress.quests[q.id]?.completed).length;
   const total=QUESTS.filter(q=>!q.optional).length;
+  const activeContracts=(state.vaultContracts||[]).filter(c=>c.status==="active").length;
   document.getElementById("status-summary").innerHTML=[
     {label:"RANK",value:`${p.rank}-Rank`,color:RANK_COLORS[p.rank]},
     {label:"TOTAL XP",value:p.totalXp,color:"#f0c040"},
     {label:"SESSIONS LOGGED",value:totalSessions,color:"#00aaff"},
     {label:"QUESTS TODAY",value:`${done}/${total}`,color:"#00ff88"},
+    {label:"STREAK",value:state.streak.current||0,color:"#f0c040"},
+    {label:"VAULTS ACTIVE",value:activeContracts,color:"#ff3333"},
   ].map(s=>`<div class="summary-card">
     <div style="color:#4a7a9b;font-size:9px;letter-spacing:2px;margin-bottom:4px;">${s.label}</div>
     <div style="color:${s.color};font-size:20px;font-weight:900;font-family:monospace;text-shadow:0 0 8px ${s.color};">${s.value}</div>
@@ -1193,7 +1406,7 @@ function renderStatus(){
 function switchTab(tab){
   currentTab=tab;
   document.querySelectorAll(".tab-btn").forEach((b,i)=>{
-    const tabs=["quests","training","nutrition","progress","status"];
+    const tabs=["quests","training","nutrition","progress","coach","vault","status"];
     b.classList.toggle("active",tabs[i]===tab);
   });
   document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
@@ -1201,6 +1414,8 @@ function switchTab(tab){
   if(tab==="training"){renderTrainingTabs();renderTrainingContent();}
   if(tab==="nutrition") renderNutrition();
   if(tab==="progress"){renderProgressTabs();renderProgressContent();}
+  if(tab==="coach") renderCoach();
+  if(tab==="vault") renderVault();
   if(tab==="status") renderStatus();
 }
 
@@ -1222,7 +1437,9 @@ function handleSave(){
 }
 
 function handleExport(){
-  const data=JSON.stringify({workouts:state.workouts,sessions:state.sessions,player:state.player,dailyProgress:state.dailyProgress,nutritionLog:state.nutritionLog,weightLog:state.weightLog,exportedAt:new Date().toISOString()});
+  state.meta.lastBackupAt = new Date().toISOString();
+  const data=JSON.stringify(getFullSave());
+  saveNonWorkout();
   navigator.clipboard.writeText(data).then(()=>{
     showNotif("quest","SAVE DATA COPIED","Your save data has been copied to clipboard.\n\nPaste it into Notes and keep it safe.\nUse IMPORT to restore next time.");
   }).catch(()=>{
@@ -1245,6 +1462,7 @@ function handleImport(){
     if(data.dailyProgress) state.dailyProgress=data.dailyProgress;
     if(data.nutritionLog) state.nutritionLog=data.nutritionLog;
     if(data.weightLog) state.weightLog=data.weightLog;
+    restoreExtraState(data);
     saveAll();
     renderAll();
     showNotif("levelup","SAVE DATA LOADED","Your data has been restored successfully, Player.");
@@ -1257,6 +1475,7 @@ function handleImport(){
 // RENDER ALL
 // ═══════════════════════════════════════════════════════════
 function renderAll(){
+  ensureStateShape();
   renderPlayerStrip();
   renderQuests();
   renderTrainingTabs();
@@ -1264,6 +1483,8 @@ function renderAll(){
   renderProgressTabs();
   if(currentTab==="nutrition") renderNutrition();
   if(currentTab==="progress") renderProgressContent();
+  if(currentTab==="coach") renderCoach();
+  if(currentTab==="vault") renderVault();
   if(currentTab==="status") renderStatus();
 }
 
@@ -1457,6 +1678,196 @@ function quickAddSuggestion(name, cal, prot) {
   sSet("sl-nutrition", state.nutritionLog);
   renderNutrition();
   showNotif("quest", "MEAL LOGGED", `${name}\n\n+${cal} kcal · +${prot}g protein added to today's log.`);
+}
+
+// ═══════════════════════════════════════════════════════════
+// COACH: STREAKS, BOSS BATTLES, OVERLOAD
+// ═══════════════════════════════════════════════════════════
+function getWeekSessions(){
+  const start = new Date();
+  start.setDate(start.getDate() - ((start.getDay()+6)%7));
+  start.setHours(0,0,0,0);
+  return Object.values(state.sessions||{}).flat().filter(s=>new Date(s.date) >= start);
+}
+function getWeeklyBoss(){
+  const sessions = getWeekSessions();
+  const weekHist = (state.dailyHistory||[]).filter(d=>weekKey(d.dateKey)===weekKey());
+  const stepsDays = weekHist.filter(d=>!d.missed?.includes("Daily Steps")).length + (state.dailyProgress.quests["dq-steps"]?.completed?1:0);
+  const proteinDays = weekHist.filter(d=>d.nutritionHit).length + (state.dailyProgress.nutritionHit?1:0);
+  const gymSessions = sessions.length + (state.dailyProgress.quests["dq-workout"]?.completed && !sessions.length ? 1 : 0);
+  return {
+    id:weekKey(),
+    title:"WEEKLY BOSS: CONSISTENCY TRIAL",
+    goals:[
+      {label:"Gym sessions",value:gymSessions,target:5},
+      {label:"Protein target days",value:proteinDays,target:6},
+      {label:"Step target days",value:stepsDays,target:6}
+    ],
+    reward:900
+  };
+}
+function claimBossReward(){
+  const boss = getWeeklyBoss();
+  const already = state.auditLog.some(a=>a.type==="boss-claimed" && a.extra?.id===boss.id);
+  if(already) return showNotif("quest","BOSS ALREADY CLAIMED","This week's boss reward has already been claimed.");
+  const complete = boss.goals.every(g=>g.value>=g.target);
+  if(!complete) return showNotif("penalty","BOSS NOT CLEARED","Complete every weekly objective before claiming the reward.");
+  addXP(boss.reward,"PER");
+  addAudit("boss-claimed", `Weekly boss cleared: ${boss.id}`, {id:boss.id,reward:boss.reward});
+  saveNonWorkout();
+  renderCoach();
+  showNotif("levelup","BOSS CLEARED",`Weekly trial complete.\n\n+${boss.reward} XP\n+1 PER`);
+}
+function markTodayRestDay(){
+  const key = dateKey();
+  if(!state.streak.restDaysUsed.includes(key)) state.streak.restDaysUsed.push(key);
+  state.dailyProgress.restDay = true;
+  const alreadyDone = state.dailyProgress.quests["dq-workout"]?.completed;
+  state.dailyProgress.quests["dq-workout"] = {value:1,completed:true,restDay:true};
+  if(!alreadyDone) addXP(60,"VIT");
+  addAudit("rest-day", "Planned recovery day logged", {dateKey:key});
+  saveNonWorkout();
+  renderAll();
+  showNotif("quest","RECOVERY LOGGED","Today is marked as a planned recovery day.\n\nGym quest protected.\n+60 XP · +1 VIT");
+}
+function findOverloadAlerts(){
+  const alerts = [];
+  for(const [dayKey, logs] of Object.entries(state.sessions||{})){
+    if(!Array.isArray(logs) || logs.length < 3) continue;
+    const workout = state.workouts?.[dayKey];
+    if(!workout) continue;
+    const exercises = Object.values(workout.sections).flat();
+    exercises.forEach(ex=>{
+      const recent = logs.slice(-3).map(log=>{
+        const sets = log.exercises?.[ex.id]?.sets || [];
+        return Math.max(0, ...sets.map(s=>parseFloat(s.weight)||0));
+      });
+      if(recent.length===3 && recent[2] <= recent[0]){
+        alerts.push({dayKey,name:ex.name,weights:recent});
+      }
+    });
+  }
+  return alerts.slice(0,8);
+}
+function renderCoach(){
+  ensureStateShape();
+  const el = document.getElementById("coach-content");
+  const boss = getWeeklyBoss();
+  const alerts = findOverloadAlerts();
+  const todayName = new Date().toLocaleDateString("en-US",{weekday:"long"});
+  el.innerHTML = `
+    <div class="panel glow p20 mb12"><div class="br"></div><div class="bl"></div>
+      <div style="color:#f0c040;font-size:11px;font-family:monospace;letter-spacing:3px;margin-bottom:14px;">◆ DISCIPLINE ENGINE</div>
+      <div class="summary-grid">
+        ${[
+          {label:"CURRENT STREAK",value:state.streak.current||0,color:"#00ff88"},
+          {label:"BEST STREAK",value:state.streak.best||0,color:"#f0c040"},
+          {label:"GRACE TOKENS",value:state.streak.graceTokens||0,color:"#00aaff"},
+          {label:"TODAY",value:todayName,color:isRestDay(todayName)?"#00ff88":"#4a7a9b"}
+        ].map(s=>`<div class="summary-card"><div class="label-sm">${s.label}</div><div style="color:${s.color};font-size:20px;font-weight:900;font-family:monospace;">${s.value}</div></div>`).join("")}
+      </div>
+      <button class="btn btn-green" style="width:100%;margin-top:12px;" onclick="markTodayRestDay()">✓ LOG PLANNED RECOVERY DAY</button>
+    </div>
+    <div class="panel p16 mb12"><div class="br"></div><div class="bl"></div>
+      <div style="color:#ff3333;font-size:10px;font-family:monospace;letter-spacing:2px;margin-bottom:10px;">◆ ${boss.title}</div>
+      ${boss.goals.map(g=>{const pct=Math.min(100,(g.value/g.target)*100);return`
+        <div style="margin-bottom:10px;">
+          <div class="flex-between"><span style="font-size:12px;color:#e8f4ff;">${g.label}</span><span style="font-family:monospace;color:${pct>=100?"#00ff88":"#00aaff"};">${g.value}/${g.target}</span></div>
+          <div class="xp-bar-wrap"><div class="xp-bar-fill" style="width:${pct}%;background:${pct>=100?"#00ff88":"#00aaff"};"></div></div>
+        </div>`;}).join("")}
+      <button class="btn btn-red" style="width:100%;" onclick="claimBossReward()">CLAIM BOSS REWARD +${boss.reward} XP</button>
+    </div>
+    <div class="panel p16 mb12"><div class="br"></div><div class="bl"></div>
+      <div style="color:#00aaff;font-size:10px;font-family:monospace;letter-spacing:2px;margin-bottom:10px;">◆ PROGRESSIVE OVERLOAD RADAR</div>
+      ${alerts.length?alerts.map(a=>`<div class="meal-list-row"><span style="color:#e8f4ff;">${esc(a.name)}</span><span style="color:#f0c040;font-family:monospace;">${a.weights.join(" → ")}kg</span></div>`).join(""):`<div class="no-data" style="padding:20px;">NO STALLS DETECTED</div>`}
+    </div>
+    <div class="panel p16"><div class="br"></div><div class="bl"></div>
+      <div class="label-sm mb8">RECENT SYSTEM LOG</div>
+      ${(state.auditLog||[]).slice(0,8).map(a=>`<div style="padding:6px 0;border-bottom:1px solid #1a4a7a;"><span style="color:#4a7a9b;font-size:10px;font-family:monospace;">${new Date(a.at).toLocaleString()}</span><br><span style="color:#e8f4ff;font-size:12px;">${esc(a.message)}</span></div>`).join("") || `<div class="no-data" style="padding:20px;">NO EVENTS YET</div>`}
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// DISCIPLINE VAULT
+// ═══════════════════════════════════════════════════════════
+function updateVaultContractsForDay(dayKey, success){
+  ensureStateShape();
+  state.vaultContracts.forEach(c=>{
+    if(c.status!=="active") return;
+    const start = new Date(c.startDate);
+    const end = new Date(c.endDate);
+    const day = new Date(dayKey);
+    if(day < start || day > end) return;
+    if(!c.checkins) c.checkins = {};
+    c.checkins[dayKey] = success ? "success" : "failed";
+    const failed = Object.values(c.checkins).includes("failed");
+    if(failed){
+      c.status = "failed";
+      c.failedAt = new Date().toISOString();
+      addAudit("vault-failed", `Vault contract failed: ${c.name}`, {contractId:c.id});
+    } else if(day >= end){
+      c.status = "completed";
+      c.completedAt = new Date().toISOString();
+      addAudit("vault-complete", `Vault contract completed: ${c.name}`, {contractId:c.id});
+    }
+  });
+}
+function createVaultContract(){
+  const name = document.getElementById("vault-name").value.trim() || "Discipline Contract";
+  const amount = clampNumber(document.getElementById("vault-amount").value, 1, 10000, 0);
+  const days = clampNumber(document.getElementById("vault-days").value, 7, 365, 30);
+  const charity = document.getElementById("vault-charity").value || VAULT_CHARITIES[0];
+  if(!amount) return showNotif("penalty","CONTRACT BLOCKED","Enter a stake amount before creating a contract.");
+  const start = new Date();
+  const end = new Date();
+  end.setDate(start.getDate()+days-1);
+  const contract = {
+    id:Date.now()+"",
+    name,
+    amount,
+    durationDays:days,
+    charity,
+    status:"active",
+    startDate:dateKey(start),
+    endDate:dateKey(end),
+    rules:["Complete mandatory quests","Hit nutrition targets","Use rest days responsibly"],
+    checkins:{},
+    paymentStatus:"integration-ready",
+    subscriptionRevenue:true
+  };
+  state.vaultContracts.unshift(contract);
+  addAudit("vault-created", `Vault contract created: ${name}`, {amount,days,charity});
+  saveNonWorkout();
+  renderVault();
+  showNotif("vault","CONTRACT CREATED",`${name}\n\nStake: £${amount}\nDuration: ${days} days\nFailure destination: ${charity}`);
+}
+function renderVault(){
+  ensureStateShape();
+  const el = document.getElementById("vault-content");
+  el.innerHTML = `
+    <div class="panel glow p20 mb12"><div class="br"></div><div class="bl"></div>
+      <div style="color:#f0c040;font-size:11px;font-family:monospace;letter-spacing:3px;margin-bottom:12px;">⬥ DISCIPLINE VAULT</div>
+      <div style="color:#4a7a9b;font-size:12px;line-height:1.7;margin-bottom:12px;">Stake money on a discipline window. Complete the contract and the stake returns. Fail the rules and the stake is routed to your chosen charity. THE SYSTEM earns from subscription value, not from hoping you fail.</div>
+      <input id="vault-name" class="quest-input w100 mb8" placeholder="Contract name (e.g. 30 Day Lean Bulk Arc)" />
+      <div class="flex gap8 mb8">
+        <input id="vault-amount" class="quest-input" type="number" min="1" placeholder="Stake £" />
+        <input id="vault-days" class="quest-input" type="number" min="7" value="30" placeholder="Days" />
+      </div>
+      <select id="vault-charity" class="quest-input w100 mb8" style="display:block;">
+        ${VAULT_CHARITIES.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("")}
+      </select>
+      <button class="btn btn-gold" style="width:100%;" onclick="createVaultContract()">CREATE CONTRACT</button>
+      <div style="color:#4a7a9b;font-size:10px;margin-top:10px;line-height:1.5;">Payment status: integration-ready. Connect a regulated payment/charity payout provider before collecting live stakes.</div>
+    </div>
+    <div class="panel p16"><div class="br"></div><div class="bl"></div>
+      <div class="label-sm mb8">ACTIVE / PAST CONTRACTS</div>
+      ${state.vaultContracts.length?state.vaultContracts.map(c=>`
+        <div style="border:1px solid ${c.status==="active"?"#00aaff":c.status==="completed"?"#00ff88":"#ff3333"};background:rgba(0,0,0,0.3);padding:12px;margin-bottom:8px;border-radius:3px;">
+          <div class="flex-between"><span style="color:#e8f4ff;font-weight:700;">${esc(c.name)}</span><span style="color:${c.status==="active"?"#00aaff":c.status==="completed"?"#00ff88":"#ff3333"};font-family:monospace;">${c.status.toUpperCase()}</span></div>
+          <div style="color:#4a7a9b;font-size:11px;margin-top:6px;">£${c.amount} · ${c.startDate} to ${c.endDate} · ${esc(c.charity)}</div>
+          <div style="color:#4a7a9b;font-size:10px;margin-top:6px;font-family:monospace;">${Object.keys(c.checkins||{}).length}/${c.durationDays} days checked</div>
+        </div>`).join(""):`<div class="no-data" style="padding:20px;">NO CONTRACTS CREATED YET</div>`}
+    </div>`;
 }
 
 // START
