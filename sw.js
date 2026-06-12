@@ -1,4 +1,4 @@
-const CACHE = "system-v4-7-quest-dungeon-pack";
+const CACHE = "system-v4-8-nutrition-pack";
 const FILES = [
   "./",
   "./the-system.html",
@@ -12,6 +12,16 @@ const FILES = [
   "./assets/screens/nutrition-scan.jpg",
   "./assets/screens/nutrition-diary.jpg",
   "./assets/screens/nutrition-progress.jpg",
+  "./assets/screens/nutrition-n01-overview.jpg",
+  "./assets/screens/nutrition-n02-diary.jpg",
+  "./assets/screens/nutrition-n03-archive.jpg",
+  "./assets/screens/nutrition-n04-recipe-detail.jpg",
+  "./assets/screens/nutrition-n05-barcode-scan.jpg",
+  "./assets/screens/nutrition-n06-barcode-result.jpg",
+  "./assets/screens/nutrition-n07-photo-scan.jpg",
+  "./assets/screens/nutrition-n08-voice-log.jpg",
+  "./assets/screens/nutrition-n09-confirmation.jpg",
+  "./assets/screens/nutrition-n10-progress.jpg",
   "./assets/screens/training-workout.jpg",
   "./assets/screens/profile-command.jpg",
   "./assets/screens/train-t01-main.jpg",

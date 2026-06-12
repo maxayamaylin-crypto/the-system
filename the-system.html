@@ -1914,7 +1914,7 @@ function systemChatSend(){
 }
 
 function openNutritionScanFromHub(){
-  activeNutritionView = "scan";
+  activeNutritionView = "barcode";
   switchTab("nutrition");
 }
 
@@ -2053,66 +2053,162 @@ function logSmartFinisher(){
   showNotif("levelup","SMART FINISHER LOGGED",`${meal.name}\n\n+${meal.calories} kcal · +${meal.protein}g protein`);
 }
 function setNutritionView(view){
+  if(view==="scan") view="barcode";
   activeNutritionView = view;
   renderNutrition();
 }
 function nutritionScreenSrc(){
   return {
-    overview:"assets/screens/nutrition-overview.jpg",
-    archive:"assets/screens/nutrition-archive.jpg",
-    scan:"assets/screens/nutrition-scan.jpg",
-    diary:"assets/screens/nutrition-diary.jpg",
-    progress:"assets/screens/nutrition-progress.jpg"
-  }[activeNutritionView] || "assets/screens/nutrition-overview.jpg";
+    overview:"assets/screens/nutrition-n01-overview.jpg",
+    diary:"assets/screens/nutrition-n02-diary.jpg",
+    archive:"assets/screens/nutrition-n03-archive.jpg",
+    recipe:"assets/screens/nutrition-n04-recipe-detail.jpg",
+    barcode:"assets/screens/nutrition-n05-barcode-scan.jpg",
+    result:"assets/screens/nutrition-n06-barcode-result.jpg",
+    photo:"assets/screens/nutrition-n07-photo-scan.jpg",
+    voice:"assets/screens/nutrition-n08-voice-log.jpg",
+    confirm:"assets/screens/nutrition-n09-confirmation.jpg",
+    progress:"assets/screens/nutrition-n10-progress.jpg"
+  }[activeNutritionView] || "assets/screens/nutrition-n01-overview.jpg";
 }
-function renderNutritionPixel(){
-  const el = document.getElementById("nutrition-pixel");
-  if(!el) return;
-  const baseNav = [
+function nutritionBottomHotspots(){
+  return [
     hotspot("Hub",17,91,12,5.5,"switchTab('hub')"),
     hotspot("Train",33,91,12,5.5,"switchTab('training')"),
     hotspot("Quests",49,91,12,5.5,"switchTab('quests')"),
     hotspot("Nutrition",64,91,14,5.5,"switchTab('nutrition')"),
     hotspot("Profile",82,91,12,5.5,"switchTab('status')")
   ];
+}
+function nutritionStatePanel(){
+  const totals = getNutritionTotals();
+  const targets = state.nutritionTargets || NUTRITION_TARGETS;
+  const base = `${Math.round(totals.calories)} / ${targets.calories} kcal · ${Math.round(totals.protein)} / ${targets.protein}g protein`;
+  const panels = {
+    overview:`${liveHeader("NUTRITION COMMAND",base)}<div class="action-grid"><button class="btn" onclick="setNutritionView('diary')">LOG MEAL</button><button class="btn" onclick="setNutritionView('barcode')">SCAN FOOD</button><button class="btn" onclick="setNutritionView('voice')">VOICE LOG</button><button class="btn" onclick="setNutritionView('archive')">PLAN MEALS</button><button class="btn" onclick="setNutritionView('progress')">INSIGHTS</button></div>`,
+    archive:`${liveHeader("MEAL ARCHIVE","Search, plan and log high quality meals.")}<div class="action-grid"><button class="btn cta-blue" onclick="setNutritionView('recipe')">VIEW FEATURED</button><button class="btn" onclick="addMealTemplate(0)">ADD BULK PLATE</button><button class="btn" onclick="setNutritionView('diary')">VIEW PLAN</button></div>`,
+    recipe:`${liveHeader("RECIPE DETAIL","Shadow Bulk Plate · 825 kcal · 54g protein")}<div class="action-grid"><button class="btn" onclick="setNutritionView('archive')">BACK</button><button class="btn" onclick="showNotif('quest','SAVED','Recipe saved to favourites.')">SAVE</button><button class="btn cta-blue" onclick="logNutritionRecipe()">LOG MEAL</button></div>`,
+    barcode:`${liveHeader("FOOD SCANNER","Barcode mode ready.")}<div class="action-grid"><button class="btn" onclick="setNutritionView('result')">SIMULATE SCAN</button><button class="btn" onclick="setNutritionView('photo')">PHOTO</button><button class="btn" onclick="setNutritionView('voice')">VOICE</button><button class="btn" onclick="setNutritionView('diary')">MANUAL</button></div>`,
+    result:`${liveHeader("SCANNER RESULT","Protein Bar detected · 95% confidence.")}<div class="action-grid"><button class="btn" onclick="setNutritionView('confirm')">EDIT SERVING</button><button class="btn btn-gold" onclick="logProteinBar()">CONFIRM LOG</button><button class="btn" onclick="setNutritionView('barcode')">SCAN AGAIN</button></div>`,
+    photo:`${liveHeader("PHOTO MEAL SCAN","Salmon bowl detected · 92% confidence.")}<div class="action-grid"><button class="btn" onclick="setNutritionView('barcode')">RETAKE</button><button class="btn" onclick="setNutritionView('confirm')">EDIT ITEMS</button><button class="btn btn-gold" onclick="logPhotoMeal()">CONFIRM LOG</button></div>`,
+    voice:`${liveHeader("VOICE LOG","Parsed grilled chicken, rice and Greek yogurt.")}<div class="action-grid"><button class="btn btn-green" onclick="logVoiceMeal()">CONFIRM LOG</button><button class="btn" onclick="setNutritionView('confirm')">EDIT ITEMS</button><button class="btn btn-ghost" onclick="setNutritionView('overview')">CANCEL</button></div>`,
+    diary:`${liveHeader("FUEL DIARY",base)}<div class="action-grid"><button class="btn" onclick="setNutritionView('confirm')">MANUAL LOG</button><button class="btn" onclick="setNutritionView('barcode')">BARCODE</button><button class="btn" onclick="setNutritionView('photo')">PHOTO</button><button class="btn" onclick="setNutritionView('voice')">VOICE</button><button class="btn" onclick="setNutritionView('archive')">ADD RECIPE</button></div>`,
+    confirm:`${liveHeader("FOOD CONFIRMATION","Edit serving, slot and notes before saving.")}<div class="action-grid"><button class="btn cta-blue" onclick="saveConfirmedNutrition()">SAVE TO DIARY</button><button class="btn" onclick="duplicateConfirmedNutrition()">DUPLICATE</button><button class="btn btn-green" onclick="logNutritionRecipe();setNutritionView('archive')">ADD ANOTHER</button><button class="btn btn-red" onclick="setNutritionView('diary')">CANCEL</button></div>`,
+    progress:`${liveHeader("NUTRITION PROGRESS","Weekly macro trends and AI insights.")}<div class="action-grid"><button class="btn" onclick="showNotif('quest','DAILY VIEW','Daily nutrition progress selected.')">DAILY</button><button class="btn cta-blue" onclick="showNotif('quest','WEEKLY VIEW','Weekly nutrition progress selected.')">WEEKLY</button><button class="btn" onclick="showNotif('quest','MONTHLY VIEW','Monthly nutrition progress selected.')">MONTHLY</button><button class="btn btn-gold" onclick="adaptNutritionTargets()">ADAPT TARGETS</button></div>`
+  };
+  return panels[activeNutritionView] || panels.overview;
+}
+function renderNutritionPixel(){
+  const el = document.getElementById("nutrition-pixel");
+  if(!el) return;
+  const baseNav = nutritionBottomHotspots();
   const viewHotspots = {
     overview:[
       hotspot("View Profile",70,25.5,22,4,"switchTab('status')"),
       hotspot("Log Meal",15,47.5,12,6,"setNutritionView('diary')"),
-      hotspot("Scan Food",33,47.5,12,6,"setNutritionView('scan')"),
-      hotspot("Voice Log",49,47.5,12,6,"showNotif('quest','VOICE LOG','Voice logging UI is planned. Use manual or scan for this build.')"),
+      hotspot("Scan Food",33,47.5,12,6,"setNutritionView('barcode')"),
+      hotspot("Voice Log",49,47.5,12,6,"setNutritionView('voice')"),
       hotspot("Plan Meals",65,47.5,12,6,"setNutritionView('archive')"),
-      hotspot("View Diary",82,47.5,12,6,"setNutritionView('diary')")
+      hotspot("View Diary",82,47.5,12,6,"setNutritionView('diary')"),
+      hotspot("Meal Card Breakfast",16,68,17,12,"setNutritionView('confirm')"),
+      hotspot("Meal Card Lunch",34,68,17,12,"setNutritionView('confirm')"),
+      hotspot("Insights",67,82,20,7,"setNutritionView('progress')")
     ],
     archive:[
       hotspot("All",10,22.5,11,3.2,"showNotif('quest','MEAL FILTER','Showing all recipes.')"),
-      hotspot("Featured Recipe",10,31,80,11,"addMealTemplate(0)"),
+      hotspot("Featured Recipe",10,31,80,11,"setNutritionView('recipe')"),
+      hotspot("Recipe Card 1",10,55,18,12,"setNutritionView('recipe')"),
+      hotspot("Recipe Card 2",30,55,18,12,"setNutritionView('recipe')"),
+      hotspot("Add To Plan",12,66,17,3,"addMealTemplate(0)"),
+      hotspot("Add To Plan 2",31,66,17,3,"addMealTemplate(1)"),
       hotspot("View Plan",17,83,28,4,"showNotif('quest','WEEKLY PLAN','Weekly meal plan builder is active through recipe cards.')"),
       hotspot("View Grocery List",56,83,28,4,"showNotif('quest','GROCERY LIST','Grocery list will sync planned meals in the launch build.')")
     ],
-    scan:[
-      hotspot("Barcode",10,18.5,18,4,"setNutritionView('scan')"),
-      hotspot("Photo",31,18.5,18,4,"document.getElementById('food-upload-input')?.click()"),
-      hotspot("Voice",51,18.5,18,4,"showNotif('quest','VOICE LOG','Voice food logging is queued after scan and diary polish.')"),
+    recipe:[
+      hotspot("Back Archive",16,14,7,5,"setNutritionView('archive')"),
+      hotspot("Favorite Recipe",78,17,8,6,"showNotif('quest','RECIPE SAVED','Shadow Bulk Plate saved to favourites.')"),
+      hotspot("Serving Minus",42,39.5,8,4,"showNotif('quest','SERVING','Serving decreased.')"),
+      hotspot("Serving Plus",55,39.5,8,4,"showNotif('quest','SERVING','Serving increased.')"),
+      hotspot("Add To Plan",15,76,16,7,"showNotif('quest','ADDED TO PLAN','Shadow Bulk Plate added to weekly plan.')"),
+      hotspot("Add To Grocery List",34,76,16,7,"showNotif('quest','GROCERY LIST','Ingredients added to grocery list.')"),
+      hotspot("Save Recipe",53,76,16,7,"showNotif('quest','RECIPE SAVED','Recipe saved.')"),
+      hotspot("Log Meal",72,76,16,7,"logNutritionRecipe()")
+    ],
+    barcode:[
+      hotspot("Barcode",10,18.5,18,4,"setNutritionView('barcode')"),
+      hotspot("Photo",31,18.5,18,4,"setNutritionView('photo')"),
+      hotspot("Voice",51,18.5,18,4,"setNutritionView('voice')"),
       hotspot("Manual",72,18.5,18,4,"setNutritionView('diary')"),
-      hotspot("Confirm Log",43,78,43,4.5,"quickAddSuggestion('Protein Bar',210,20,24,6,8,5)")
+      hotspot("Scan Barcode",18,28,66,38,"setNutritionView('result')"),
+      hotspot("Recent Protein Bar",17,79,20,10,"setNutritionView('result')"),
+      hotspot("Recent Chicken",39,79,20,10,"quickAddSuggestion('Chicken Breast',165,34,0,3,0,0)")
+    ],
+    result:[
+      hotspot("Barcode",10,18.5,18,4,"setNutritionView('barcode')"),
+      hotspot("Photo",31,18.5,18,4,"setNutritionView('photo')"),
+      hotspot("Voice",51,18.5,18,4,"setNutritionView('voice')"),
+      hotspot("Manual",72,18.5,18,4,"setNutritionView('diary')"),
+      hotspot("Add Breakfast",14,69,16,6,"logProteinBar('Breakfast')"),
+      hotspot("Add Lunch",34,69,16,6,"logProteinBar('Lunch')"),
+      hotspot("Add Dinner",54,69,16,6,"logProteinBar('Dinner')"),
+      hotspot("Add Snacks",74,69,16,6,"logProteinBar('Snack')"),
+      hotspot("Edit Serving",16,77,28,5,"setNutritionView('confirm')"),
+      hotspot("Confirm Log",47,77,39,5,"logProteinBar()")
+    ],
+    photo:[
+      hotspot("Barcode",10,18.5,18,4,"setNutritionView('barcode')"),
+      hotspot("Photo",31,18.5,18,4,"setNutritionView('photo')"),
+      hotspot("Voice",51,18.5,18,4,"setNutritionView('voice')"),
+      hotspot("Manual",72,18.5,18,4,"setNutritionView('diary')"),
+      hotspot("Retake Photo",17,78,17,6,"setNutritionView('photo')"),
+      hotspot("Edit Items",36,78,17,6,"setNutritionView('confirm')"),
+      hotspot("Choose Meal Slot",55,78,17,6,"setNutritionView('confirm')"),
+      hotspot("Confirm Log",73,78,17,6,"logPhotoMeal()")
+    ],
+    voice:[
+      hotspot("Barcode",10,18.5,18,4,"setNutritionView('barcode')"),
+      hotspot("Photo",31,18.5,18,4,"setNutritionView('photo')"),
+      hotspot("Voice",51,18.5,18,4,"setNutritionView('voice')"),
+      hotspot("Manual",72,18.5,18,4,"setNutritionView('diary')"),
+      hotspot("Cancel Voice",17,82,14,6,"setNutritionView('overview')"),
+      hotspot("Edit Voice Items",34,82,17,6,"setNutritionView('confirm')"),
+      hotspot("Add To Lunch",54,82,18,6,"logVoiceMeal('Lunch')"),
+      hotspot("Confirm Voice Log",74,82,18,6,"logVoiceMeal()")
     ],
     diary:[
+      hotspot("Back Overview",16,18,7,5,"setNutritionView('overview')"),
+      hotspot("Week View",67,18,20,5,"setNutritionView('progress')"),
       hotspot("Add Food Breakfast",74,36,14,3.5,"setNutritionView('archive')"),
       hotspot("Add Food Lunch",74,51,14,3.5,"setNutritionView('archive')"),
-      hotspot("Manual Log",17,83,13,5,"setNutritionView('diary')"),
-      hotspot("Barcode Scan",34,83,13,5,"setNutritionView('scan')"),
-      hotspot("Photo Scan",50,83,13,5,"document.getElementById('food-upload-input')?.click()"),
-      hotspot("Voice Log",66,83,13,5,"showNotif('quest','VOICE LOG','Voice logging coming soon.')"),
+      hotspot("Edit Meal",72,39,8,5,"setNutritionView('confirm')"),
+      hotspot("Delete Meal",82,39,8,5,"removeMeal(0)"),
+      hotspot("Manual Log",17,83,13,5,"setNutritionView('confirm')"),
+      hotspot("Barcode Scan",34,83,13,5,"setNutritionView('barcode')"),
+      hotspot("Photo Scan",50,83,13,5,"setNutritionView('photo')"),
+      hotspot("Voice Log",66,83,13,5,"setNutritionView('voice')"),
       hotspot("Add Recipe",82,83,13,5,"setNutritionView('archive')")
+    ],
+    confirm:[
+      hotspot("Portion Minus",19,35,8,5,"showNotif('quest','PORTION','Portion decreased.')"),
+      hotspot("Portion Plus",48,35,8,5,"showNotif('quest','PORTION','Portion increased.')"),
+      hotspot("Serving Unit",65,35,22,6,"showNotif('quest','SERVING UNIT','Serving unit selector opened.')"),
+      hotspot("Calories Field",18,46,16,7,"showNotif('quest','EDITABLE FACTS','Nutrition facts can be adjusted before saving.')"),
+      hotspot("Meal Slot",58,56,27,6,"showNotif('quest','MEAL SLOT','Meal slot selector opened.')"),
+      hotspot("Save To Diary",18,80,34,6,"saveConfirmedNutrition()"),
+      hotspot("Duplicate Item",54,80,34,6,"duplicateConfirmedNutrition()"),
+      hotspot("Cancel Confirm",18,86,34,6,"setNutritionView('diary')"),
+      hotspot("Add Another Food",54,86,34,6,"logNutritionRecipe();setNutritionView('archive')")
     ],
     progress:[
       hotspot("Daily",12,18.4,20,3.6,"showNotif('quest','PROGRESS VIEW','Daily nutrition progress selected.')"),
       hotspot("Weekly",40,18.4,20,3.6,"showNotif('quest','PROGRESS VIEW','Weekly nutrition trend selected.')"),
-      hotspot("Monthly",68,18.4,20,3.6,"showNotif('quest','PROGRESS VIEW','Monthly nutrition trend selected.')")
+      hotspot("Monthly",68,18.4,20,3.6,"showNotif('quest','PROGRESS VIEW','Monthly nutrition trend selected.')"),
+      hotspot("Trend",74,28,15,4,"adaptNutritionTargets()"),
+      hotspot("Protein Insight",15,72,14,12,"showNotif('quest','PROTEIN INSIGHT','Protein consistency is trending upward.')"),
+      hotspot("Weekly Summary",18,86,65,6,"showNotif('levelup','WEEKLY DIGEST','6/7 days hit · 92% goal average · S rank performance.')")
     ]
   }[activeNutritionView] || [];
-  el.innerHTML = pixelScreen(nutritionScreenSrc(), [...baseNav, ...viewHotspots]);
+  el.innerHTML = pixelScreen(nutritionScreenSrc(), [...baseNav, ...viewHotspots], nutritionStatePanel());
 }
 function getIncompleteObligations(){
   const targets = state.nutritionTargets || NUTRITION_TARGETS;
@@ -3330,6 +3426,41 @@ function addMealTemplate(idx){
   saveNonWorkout();
   renderNutrition();
   showNotif("quest","MEAL TEMPLATE LOGGED",`${meal.name}\n\n+${meal.calories} kcal · +${meal.protein}g protein`);
+}
+
+function logNutritionMealObject(meal, source="nutrition"){
+  if(!state.nutritionLog.meals) state.nutritionLog.meals=[];
+  state.nutritionLog.meals.push({...meal,id:Date.now(),source});
+  addAudit("meal-logged", `Meal logged: ${meal.name}`, meal);
+  saveNonWorkout();
+  activeNutritionView = "diary";
+  renderNutrition();
+  showNotif("quest","MEAL LOGGED",`${meal.name}\n\n+${meal.calories} kcal · +${meal.protein}g protein`);
+}
+
+function logNutritionRecipe(){
+  const meal = MEAL_TEMPLATES[0] || {name:"Shadow Bulk Plate",calories:825,protein:54,carbs:86,fat:28,sugar:7,fiber:9};
+  logNutritionMealObject({...meal,name:"Shadow Bulk Plate"},"recipe");
+}
+
+function logProteinBar(slot="Snack"){
+  logNutritionMealObject({name:`Protein Bar${slot?` (${slot})`:""}`,calories:210,protein:20,carbs:24,fat:6,sugar:8,fiber:5},"barcode");
+}
+
+function logPhotoMeal(){
+  logNutritionMealObject({name:"Salmon Photo Scan Bowl",calories:720,protein:48,carbs:58,fat:28,sugar:5,fiber:11},"photo-scan");
+}
+
+function logVoiceMeal(slot="Lunch"){
+  logNutritionMealObject({name:`Voice Log: Chicken Rice Yogurt (${slot})`,calories:635,protein:64,carbs:51,fat:6,sugar:12,fiber:4},"voice");
+}
+
+function saveConfirmedNutrition(){
+  logNutritionMealObject({name:"Grilled Chicken Power Bowl",calories:420,protein:38,carbs:45,fat:10,sugar:4,fiber:7},"confirmation");
+}
+
+function duplicateConfirmedNutrition(){
+  logNutritionMealObject({name:"Grilled Chicken Power Bowl Copy",calories:420,protein:38,carbs:45,fat:10,sugar:4,fiber:7},"confirmation-duplicate");
 }
 
 function adaptNutritionTargets(){
