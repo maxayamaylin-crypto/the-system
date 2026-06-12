@@ -1040,6 +1040,7 @@ let editingEx = null; // {dayKey, section, idx}
 let activeTrainingScreen = "main";
 let activeTrainingTemplate = "upper";
 let editingSection = null;
+let activeHubScreen = "main";
 let logMode = false;
 let logDay = null;
 let logData = {};
@@ -1333,6 +1334,8 @@ function hubLivePanel(){
       <button class="btn btn-green" onclick="addHunter()">ADD HUNTER</button>
       <button class="btn" onclick="switchTab('dungeons')">VIEW RAID</button>
       <button class="btn" onclick="switchTab('impact')">CHARITY IMPACT</button>
+      <button class="btn" onclick="setHubScreen('confirmation')">CONFIRMATION</button>
+      <button class="btn" onclick="setHubScreen('sync')">SYNC STATUS</button>
     </div>
     <div class="two-col">
       <div class="system-card p12"><div class="label-sm mb8">TOP HUNTERS</div><div class="live-list">${MOCK_HUNTERS.map(h=>`<div class="live-row"><div><strong>#${h.rank} ${esc(h.name)}</strong><small>Power ${formatNum(h.score)}</small></div><button class="btn btn-ghost" onclick="showNotif('quest','${esc(h.name)}','Weekly score: ${formatNum(h.score)}')">VIEW</button></div>`).join("")}</div></div>
@@ -1463,6 +1466,227 @@ function addHunter(){
   saveNonWorkout();
   refreshCurrentView();
   showNotif("quest","HUNTER ADDED",`${recruit.name} joined ${state.social.guildName}.\n\nGuild Points +250\nPartner Push ${state.social.partnerPush}/30`);
+}
+
+const HUB_SCREEN_IMAGES = {
+  main:"assets/screens/hub.png",
+  notifications:"assets/screens/hub-g02-notifications.jpg",
+  raidDetail:"assets/screens/hub-g02-raid-detail.jpg",
+  messages:"assets/screens/hub-g03-messages.jpg",
+  systemChat:"assets/screens/hub-g03-system-chat.jpg",
+  quickActions:"assets/screens/hub-g04-quick-actions.jpg",
+  missionComplete:"assets/screens/hub-g05-mission-complete.jpg",
+  confirmation:"assets/screens/hub-g06-confirmation.jpg",
+  purchase:"assets/screens/hub-g06-purchase-confirmation.jpg",
+  sync:"assets/screens/hub-g09-sync-complete.jpg"
+};
+
+function setHubScreen(screen){
+  activeHubScreen = screen || "main";
+  renderHub();
+}
+
+function hubBottomHotspots(){
+  return [
+    hotspot("Quests",18,89.5,12,6,"switchTab('quests')"),
+    hotspot("Train",32,89.5,14,6,"switchTab('training')"),
+    hotspot("Hub",47,89.5,13,6,"switchTab('hub')"),
+    hotspot("Shop",62,89.5,14,6,"switchTab('shop')"),
+    hotspot("Profile",78,89.5,14,6,"switchTab('status')")
+  ];
+}
+
+function hubHotspots(screen=activeHubScreen){
+  const nav = hubBottomHotspots();
+  if(screen==="notifications") return [
+    ...nav,
+    hotspot("Close Notifications",76,18.5,8,5,"setHubScreen('main')"),
+    hotspot("All Notifications",20,21.8,18,4,"showNotif('quest','NOTIFICATIONS','All system alerts are visible.')"),
+    hotspot("Quest Alerts",38,21.8,18,4,"showNotif('quest','QUEST ALERTS','Daily quest and streak alerts are active.')"),
+    hotspot("Social Alerts",55,21.8,18,4,"showNotif('quest','SOCIAL ALERTS','Friend and guild alerts are active.')"),
+    hotspot("Raid Alerts",71,21.8,18,4,"setHubScreen('raidDetail')"),
+    hotspot("View Streak Warning",66,31.5,16,4,"switchTab('quests')"),
+    hotspot("View Raid",63,43.0,20,5,"setHubScreen('raidDetail')"),
+    hotspot("Accept Friend",64,53.4,19,5,"acceptFriendRequest()"),
+    hotspot("View Item",64,64.1,19,5,"setHubScreen('purchase')"),
+    hotspot("View Impact",62,74.6,21,5,"switchTab('impact')"),
+    hotspot("Log Meal",64,85.2,19,5,"switchTab('nutrition')"),
+    hotspot("Mark All Read",20,91.2,60,4,"markHubNotificationsRead()")
+  ];
+  if(screen==="raidDetail") return [
+    ...nav,
+    hotspot("Back Notifications",17,14.5,10,5,"setHubScreen('notifications')"),
+    hotspot("Join Raid",19,65.0,33,6,"joinHubRaid()"),
+    hotspot("View Guild",54,65.0,33,6,"showGuildHall()"),
+    hotspot("Raid Members",19,84.5,64,8,"showGuildHall()")
+  ];
+  if(screen==="messages") return [
+    ...nav,
+    hotspot("Notifications",69,14.5,7,5,"setHubScreen('notifications')"),
+    hotspot("System Chat",19,30.0,64,13,"setHubScreen('systemChat')"),
+    hotspot("Guild Message",19,44.0,64,10,"showGuildHall()"),
+    hotspot("Nightstride Message",19,55.0,64,10,"showFriendMessage('NIGHTSTRIDE')"),
+    hotspot("Beastmode Message",19,66.0,64,10,"showFriendMessage('BEASTMODE')"),
+    hotspot("Impact Team",19,77.0,64,10,"switchTab('impact')"),
+    hotspot("Archived Messages",19,88.0,64,5,"showNotif('quest','ARCHIVED MESSAGES','Archived guild and system messages will be stored after account sync.')")
+  ];
+  if(screen==="systemChat") return [
+    ...nav,
+    hotspot("Notifications",69,14.5,7,5,"setHubScreen('notifications')"),
+    hotspot("Messages",76,14.5,8,5,"setHubScreen('messages')"),
+    hotspot("View Training Plan",58,60.5,24,5,"switchTab('training')"),
+    hotspot("Ask Training",20,77.0,31,4,"switchTab('training')"),
+    hotspot("Ask Protein",52,77.0,31,4,"switchTab('nutrition')"),
+    hotspot("Quest Progress",20,82.0,31,4,"switchTab('quests')"),
+    hotspot("Recovery Day",52,82.0,31,4,"showNotif('quest','RECOVERY DAY','Recovery recommendation saved. Hydration, protein and sleep are priority today.')"),
+    hotspot("Send Command",75,88.0,8,5,"systemChatSend()")
+  ];
+  if(screen==="quickActions") return [
+    ...nav,
+    hotspot("Close Quick Actions",76,48.0,8,5,"setHubScreen('main')"),
+    hotspot("Log Workout",20,56.0,29,10,"switchTab('training')"),
+    hotspot("Log Meal",52,56.0,29,10,"switchTab('nutrition')"),
+    hotspot("Scan Food",20,66.0,29,10,"openNutritionScanFromHub()"),
+    hotspot("Start Quest",52,66.0,29,10,"switchTab('quests')"),
+    hotspot("View Shop",20,76.0,29,10,"switchTab('shop')"),
+    hotspot("Open Vault",52,76.0,29,10,"switchTab('vault')"),
+    hotspot("Add Hunter",20,86.5,62,8,"addHunter()")
+  ];
+  if(screen==="missionComplete") return [
+    ...nav,
+    hotspot("Claim Rewards",28,61.5,44,5.5,"claimHubMissionRewards()"),
+    hotspot("View Summary",28,67.5,44,5,"showNotif('quest','MISSION SUMMARY','Rewards: +500 XP · +250 Gold · +120 Guild XP · +50 Impact Points · Wolf Initiate badge.')")
+  ];
+  if(screen==="confirmation") return [
+    ...nav,
+    hotspot("Cancel Save",27,34.0,24,5.5,"setHubScreen('main')"),
+    hotspot("Confirm Save",52,34.0,24,5.5,"confirmHubSave()"),
+    hotspot("Cancel Discard",27,69.0,24,5.5,"setHubScreen('main')"),
+    hotspot("Discard Changes",52,69.0,24,5.5,"discardHubChanges()")
+  ];
+  if(screen==="purchase") return [
+    ...nav,
+    hotspot("Close Purchase",76,36.5,8,5,"setHubScreen('main')"),
+    hotspot("Buy Shadow Key",22,74.5,58,6,"buyShadowKey()"),
+    hotspot("Cancel Purchase",22,80.8,58,5,"setHubScreen('main')")
+  ];
+  if(screen==="sync") return [
+    ...nav,
+    hotspot("Return To Hub",27,79.5,46,6,"setHubScreen('main')"),
+    hotspot("View Backup",36,86.0,28,5,"handleExport()")
+  ];
+  return [
+    ...nav,
+    hotspot("Notifications",69,5.1,7,5,"setHubScreen('notifications')"),
+    hotspot("Messages",76,5.1,8,5,"setHubScreen('messages')"),
+    hotspot("View License",70,18.1,18,4.5,"switchTab('status')"),
+    hotspot("Friends",17,24.2,21,3.8,"showFriendsPanel()"),
+    hotspot("Leaderboard",40,24.2,22,3.8,"showNotif('quest','LEADERBOARD','Weekly rankings update from quest, raid, guild and impact activity.')"),
+    hotspot("Guild Hall",64,24.2,22,3.8,"showGuildHall()"),
+    hotspot("View Raid",66,35.4,20,4,"setHubScreen('raidDetail')"),
+    hotspot("Double XP Details",64,41.8,21,4,"setHubScreen('systemChat')"),
+    hotspot("Full Leaderboard",20,61.1,30,3.4,"showNotif('quest','LEADERBOARD','Full leaderboard coming through account sync. Current local ranks are active in this build.')"),
+    hotspot("Guild Hall Card",58,62.8,28,3.3,"showGuildHall()"),
+    hotspot("Invite Friends",17,68.4,22,5,"inviteFriend()"),
+    hotspot("Add Hunter",17,75,22,5,"addHunter()"),
+    hotspot("Partner Push",40,68.0,46,12,"setHubScreen('missionComplete')"),
+    hotspot("Quick Actions",82,74.0,10,10,"setHubScreen('quickActions')"),
+    hotspot("Impact",17,81.6,69,6.4,"switchTab('impact')")
+  ];
+}
+
+function hubStatePanel(screen=activeHubScreen){
+  if(screen==="notifications") return `${liveHeader("SYSTEM NOTIFICATIONS","Streak, raid, social, shop, impact and nutrition alerts.")}
+    <div class="action-grid mb12"><button class="btn" onclick="switchTab('quests')">VIEW STREAK</button><button class="btn" onclick="setHubScreen('raidDetail')">VIEW RAID</button><button class="btn btn-green" onclick="acceptFriendRequest()">ACCEPT FRIEND</button><button class="btn" onclick="markHubNotificationsRead()">MARK ALL READ</button></div>`;
+  if(screen==="raidDetail") return `${liveHeader("SHADOW COLOSSEUM RAID","Weekly guild raid detail and participation state.")}
+    <div class="action-grid"><button class="btn cta-blue" onclick="joinHubRaid()">JOIN RAID</button><button class="btn" onclick="showGuildHall()">VIEW GUILD</button><button class="btn btn-ghost" onclick="setHubScreen('notifications')">BACK</button></div>`;
+  if(screen==="messages") return `${liveHeader("MESSAGES","System, guild, friends and impact team threads.")}
+    <div class="action-grid"><button class="btn" onclick="setHubScreen('systemChat')">SYSTEM AI</button><button class="btn" onclick="showGuildHall()">GUILD</button><button class="btn" onclick="showFriendsPanel()">FRIENDS</button><button class="btn btn-ghost" onclick="setHubScreen('main')">BACK</button></div>`;
+  if(screen==="systemChat") return `${liveHeader("SYSTEM CHAT","AI companion shortcuts route to real app areas.")}
+    <div class="action-grid"><button class="btn" onclick="switchTab('training')">TRAIN TODAY</button><button class="btn" onclick="switchTab('nutrition')">HIT PROTEIN</button><button class="btn" onclick="switchTab('quests')">QUEST PROGRESS</button><button class="btn" onclick="systemChatSend()">SEND COMMAND</button></div>`;
+  if(screen==="quickActions") return `${liveHeader("QUICK ACTIONS","Fast routes into the core systems.")}
+    <div class="action-grid"><button class="btn" onclick="switchTab('training')">LOG WORKOUT</button><button class="btn btn-green" onclick="switchTab('nutrition')">LOG MEAL</button><button class="btn btn-gold" onclick="openNutritionScanFromHub()">SCAN FOOD</button><button class="btn" onclick="switchTab('quests')">START QUEST</button><button class="btn btn-gold" onclick="switchTab('shop')">SHOP</button><button class="btn" onclick="switchTab('vault')">VAULT</button></div>`;
+  if(screen==="missionComplete") return `${liveHeader("MISSION COMPLETE","Rewards staged for claim.")}
+    <div class="social-strip mb12"><div><small>XP</small><b>+500</b></div><div><small>GOLD</small><b>+250</b></div><div><small>GUILD XP</small><b>+120</b></div><div><small>IMPACT</small><b>+50</b></div></div><button class="btn cta-blue" style="width:100%;" onclick="claimHubMissionRewards()">CLAIM REWARDS</button>`;
+  if(screen==="confirmation") return `${liveHeader("CONFIRM ACTION","Reusable save/discard confirmation state.")}
+    <div class="action-grid"><button class="btn" onclick="confirmHubSave()">CONFIRM SAVE</button><button class="btn btn-red" onclick="discardHubChanges()">DISCARD</button><button class="btn btn-ghost" onclick="setHubScreen('main')">CANCEL</button></div>`;
+  if(screen==="purchase") return `${liveHeader("PURCHASE CONFIRMATION","Shadow Key purchase preview.")}
+    <div class="action-grid"><button class="btn btn-gold" onclick="buyShadowKey()">BUY NOW</button><button class="btn btn-ghost" onclick="setHubScreen('main')">CANCEL</button></div>`;
+  if(screen==="sync") return `${liveHeader("SYSTEM SYNC COMPLETE","Local state saved and backend summary is current.")}
+    <div class="action-grid"><button class="btn cta-blue" onclick="setHubScreen('main')">RETURN TO HUB</button><button class="btn" onclick="handleExport()">VIEW BACKUP</button></div>`;
+  return hubLivePanel();
+}
+
+function markHubNotificationsRead(){
+  addAudit("notifications-read","All hub notifications marked as read",{});
+  saveNonWorkout();
+  setHubScreen("main");
+  showNotif("quest","NOTIFICATIONS CLEAR","All visible system alerts marked as read.");
+}
+
+function acceptFriendRequest(){
+  addHunter();
+  activeHubScreen = "notifications";
+}
+
+function joinHubRaid(){
+  state.social.guildPoints = (state.social.guildPoints||0) + 6890;
+  addAudit("guild-raid-joined","Joined Shadow Colosseum raid",{guildPoints:6890});
+  saveNonWorkout();
+  setHubScreen("missionComplete");
+}
+
+function showFriendMessage(name){
+  showNotif("quest",name,`${name} is ready for a co-op challenge. Partner Push progress can be improved from the Hub.`);
+}
+
+function systemChatSend(){
+  addAudit("system-chat","System chat command sent",{screen:"hub"});
+  saveNonWorkout();
+  showNotif("quest","SYSTEM AI","Command received. Recommended route: Train today, log protein, then clear daily quests.");
+}
+
+function openNutritionScanFromHub(){
+  activeNutritionView = "scan";
+  switchTab("nutrition");
+}
+
+function claimHubMissionRewards(){
+  const key = `hub-mission-${dateKey()}`;
+  state.meta.claimedRewards = state.meta.claimedRewards || {};
+  if(state.meta.claimedRewards[key]) return showNotif("quest","ALREADY CLAIMED","This mission reward has already been claimed today.");
+  state.meta.claimedRewards[key] = true;
+  addXP(500,"PER");
+  addGold(250,"Hub mission complete");
+  state.social.guildPoints = (state.social.guildPoints||0) + 120;
+  addImpact(50,"Hub mission complete");
+  if(!state.unlocks.achievements.includes("wolf-initiate")) state.unlocks.achievements.push("wolf-initiate");
+  addAudit("hub-mission-complete","Hub mission rewards claimed",{xp:500,gold:250,guildXp:120,impact:50});
+  saveNonWorkout();
+  setHubScreen("sync");
+}
+
+function confirmHubSave(){
+  saveAll();
+  setHubScreen("sync");
+}
+
+function discardHubChanges(){
+  addAudit("changes-discarded","Discard confirmation acknowledged",{});
+  saveNonWorkout();
+  setHubScreen("main");
+}
+
+function buyShadowKey(){
+  const itemId = "shadow-key";
+  const price = 1200000;
+  if(ownsItem(itemId)) return showNotif("quest","ALREADY OWNED","Shadow Key is already stored in your Vault.");
+  if(!spendGold(price,"Shadow Key")) return showNotif("penalty","INSUFFICIENT GOLD","Shadow Key costs 1,200,000 Gold. Keep raiding and completing missions.");
+  state.inventory.owned.push({id:itemId,qty:1,acquiredAt:new Date().toISOString(),vault:true});
+  state.inventory.purchaseHistory.unshift({id:Date.now()+"-"+itemId,itemId,name:"Shadow Key",price,at:new Date().toISOString(),rarity:"EPIC"});
+  addAudit("shop-buy","Purchased Shadow Key",{item:itemId,price});
+  saveNonWorkout();
+  setHubScreen("sync");
 }
 function completeImpactMission(){
   addImpact(250,"Impact mission");
@@ -3919,26 +4143,8 @@ function claimWorldBoss(){
 function renderHub(){
   ensureStateShape();
   const el = document.getElementById("hub-content");
-  const h = [
-    hotspot("Quests",18,89.5,12,6,"switchTab('quests')"),
-    hotspot("Train",32,89.5,14,6,"switchTab('training')"),
-    hotspot("Hub",47,89.5,13,6,"switchTab('hub')"),
-    hotspot("Shop",62,89.5,14,6,"switchTab('shop')"),
-    hotspot("Profile",78,89.5,14,6,"switchTab('status')"),
-    hotspot("Notifications",69,5.1,7,5,"showNotif('quest','NOTIFICATIONS','No new system alerts.')"),
-    hotspot("Messages",76,5.1,8,5,"showNotif('quest','MESSAGES','Guild chat and friend messages will live here.')"),
-    hotspot("View License",70,18.1,18,4.5,"switchTab('status')"),
-    hotspot("Friends",17,24.2,21,3.8,"showFriendsPanel()"),
-    hotspot("Leaderboard",40,24.2,22,3.8,"showNotif('quest','LEADERBOARD','Weekly rankings update from quest, raid, guild and impact activity.')"),
-    hotspot("Guild Hall",64,24.2,22,3.8,"showGuildHall()"),
-    hotspot("View Raid",66,35.4,20,4,"switchTab('dungeons')"),
-    hotspot("Full Leaderboard",20,61.1,30,3.4,"showNotif('quest','LEADERBOARD','Full leaderboard coming through account sync. Current local ranks are active in this build.')"),
-    hotspot("Guild Hall Card",58,62.8,28,3.3,"showGuildHall()"),
-    hotspot("Invite Friends",17,68.4,22,5,"inviteFriend()"),
-    hotspot("Add Hunter",17,75,22,5,"addHunter()"),
-    hotspot("Impact",17,81.6,69,6.4,"switchTab('impact')")
-  ];
-  el.innerHTML = pixelScreen("assets/screens/hub.png",h,hubLivePanel());
+  const screen = activeHubScreen || "main";
+  el.innerHTML = pixelScreen(HUB_SCREEN_IMAGES[screen] || HUB_SCREEN_IMAGES.main,hubHotspots(screen),hubStatePanel(screen));
   return;
   el.innerHTML = `
     ${screenTitle("SOCIAL HUB")}

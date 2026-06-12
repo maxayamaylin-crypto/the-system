@@ -1,4 +1,4 @@
-const CACHE = "system-v4-5-train-pack";
+const CACHE = "system-v4-6-hub-global-pack";
 const FILES = [
   "./",
   "./the-system.html",
@@ -23,7 +23,16 @@ const FILES = [
   "./assets/screens/train-t07-custom-builder.jpg",
   "./assets/screens/train-t08-edit-section.jpg",
   "./assets/screens/train-t09-edit-exercise.jpg",
-  "./assets/screens/train-t10-session-complete.jpg"
+  "./assets/screens/train-t10-session-complete.jpg",
+  "./assets/screens/hub-g02-notifications.jpg",
+  "./assets/screens/hub-g02-raid-detail.jpg",
+  "./assets/screens/hub-g03-messages.jpg",
+  "./assets/screens/hub-g03-system-chat.jpg",
+  "./assets/screens/hub-g04-quick-actions.jpg",
+  "./assets/screens/hub-g05-mission-complete.jpg",
+  "./assets/screens/hub-g06-confirmation.jpg",
+  "./assets/screens/hub-g06-purchase-confirmation.jpg",
+  "./assets/screens/hub-g09-sync-complete.jpg"
 ];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
