@@ -175,6 +175,201 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
 .gap6{gap:6px;} .gap8{gap:8px;} .gap10{gap:10px;}
 .w100{width:100%;}
 .bold{font-weight:700;}
+
+/* V4 Hunter OS visual shell */
+body{
+  background:
+    radial-gradient(circle at 12% 20%,rgba(0,120,255,.28),transparent 22%),
+    radial-gradient(circle at 88% 22%,rgba(0,170,255,.22),transparent 24%),
+    radial-gradient(circle at 50% 100%,rgba(153,51,255,.16),transparent 26%),
+    linear-gradient(180deg,#02050b 0%,#06101f 44%,#02040a 100%);
+}
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(108deg,transparent 0 18%,rgba(0,170,255,.35) 18.3%,transparent 18.8% 100%),
+    linear-gradient(252deg,transparent 0 72%,rgba(0,120,255,.24) 72.2%,transparent 72.7% 100%),
+    radial-gradient(circle at 0 50%,rgba(0,170,255,.18),transparent 16%),
+    radial-gradient(circle at 100% 58%,rgba(0,170,255,.18),transparent 16%);
+  filter:blur(.2px);
+  opacity:.72;
+}
+#app{
+  width:min(100%,460px);
+  min-height:100vh;
+  padding:18px 14px 96px;
+  position:relative;
+  background:linear-gradient(180deg,rgba(2,7,15,.92),rgba(4,12,24,.96));
+  border-left:1px solid rgba(0,170,255,.22);
+  border-right:1px solid rgba(0,170,255,.22);
+  box-shadow:0 0 44px rgba(0,120,255,.22),inset 0 0 30px rgba(0,0,0,.7);
+}
+#topbar{
+  border-bottom:0;
+  margin-bottom:12px;
+}
+.system-text{
+  display:inline-block;
+  font-size:28px;
+  line-height:1;
+  letter-spacing:1px;
+  font-family:'Arial Black','Segoe UI',sans-serif;
+  font-style:italic;
+  color:#fff;
+  background:linear-gradient(90deg,#fff 0 33%,#12d9ff 33% 69%,#f4f8ff 69%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  text-shadow:0 0 18px rgba(0,170,255,.55);
+}
+#screen-subtitle{
+  display:block;
+  color:#15ddff!important;
+  margin:4px 0 0 3px!important;
+  font-size:11px!important;
+  letter-spacing:5px!important;
+}
+.topbar-right .btn:not(#save-btn),#clock{display:none;}
+#player-strip{
+  border-radius:12px;
+  border-color:#0baeff;
+  background:linear-gradient(135deg,rgba(0,170,255,.14),rgba(4,10,20,.86));
+}
+.panel{
+  border-radius:10px;
+  border-color:rgba(0,170,255,.48);
+  background:linear-gradient(180deg,rgba(5,17,32,.94),rgba(2,9,18,.94));
+  box-shadow:inset 0 0 22px rgba(0,170,255,.05),0 0 20px rgba(0,0,0,.62);
+  overflow:hidden;
+}
+.panel::before,.panel::after,.panel .br,.panel .bl{display:none;}
+.panel.glow{
+  border-color:#14c8ff;
+  box-shadow:0 0 22px rgba(0,170,255,.24),inset 0 0 30px rgba(0,90,170,.16);
+}
+.btn{
+  border-radius:7px;
+  padding:9px 12px;
+  background:linear-gradient(180deg,rgba(0,170,255,.24),rgba(0,70,140,.22));
+  box-shadow:inset 0 0 14px rgba(0,170,255,.12),0 0 12px rgba(0,170,255,.06);
+}
+#tabs{
+  position:fixed;
+  left:50%;
+  bottom:0;
+  transform:translateX(-50%);
+  width:min(100%,460px);
+  height:78px;
+  margin:0;
+  padding:6px 6px 8px;
+  gap:0;
+  z-index:900;
+  overflow-x:auto;
+  border-top:1px solid rgba(0,170,255,.35);
+  border-bottom:0;
+  background:linear-gradient(180deg,rgba(6,16,29,.94),rgba(2,7,14,.99));
+  box-shadow:0 -10px 30px rgba(0,0,0,.7),inset 0 1px 0 rgba(0,170,255,.18);
+}
+.tab-btn{
+  min-width:82px;
+  border:0;
+  border-left:1px solid rgba(74,122,155,.22);
+  border-radius:0;
+  padding:9px 8px;
+  white-space:normal;
+  color:#7f9ab4;
+  font-size:10px;
+  line-height:1.25;
+}
+.tab-btn.active{
+  color:#18d8ff;
+  border-bottom:2px solid #0ac8ff;
+  background:linear-gradient(180deg,rgba(0,170,255,.18),rgba(0,70,140,.2));
+  box-shadow:inset 0 0 20px rgba(0,170,255,.15),0 0 18px rgba(0,170,255,.28);
+}
+.screen-title{
+  margin:2px 2px 16px;
+  font-family:'Arial Black','Segoe UI',sans-serif;
+  font-style:italic;
+  letter-spacing:1px;
+  color:#fff;
+  text-shadow:0 0 18px rgba(0,170,255,.55);
+}
+.screen-title div{
+  font-size:30px;
+  line-height:1;
+}
+.screen-title span{color:#f5f8ff;}
+.screen-title div::first-letter{color:#f5f8ff;}
+.screen-title small{
+  display:block;
+  margin-top:4px;
+  color:#13d8ff;
+  font-family:monospace;
+  font-size:13px;
+  font-style:normal;
+  letter-spacing:5px;
+}
+.avatar-ring{
+  width:86px;
+  height:86px;
+  flex:0 0 86px;
+  border-radius:50%;
+  border:3px solid #12d8ff;
+  background:
+    radial-gradient(circle,rgba(0,170,255,.28),transparent 58%),
+    linear-gradient(135deg,#06182c,#020710);
+  box-shadow:0 0 22px rgba(0,170,255,.75),inset 0 0 24px rgba(0,170,255,.25);
+  position:relative;
+}
+.avatar-ring::after{
+  content:"";
+  position:absolute;
+  inset:18px 22px 12px;
+  background:linear-gradient(145deg,#05090f,#0e2a45);
+  clip-path:polygon(48% 0,72% 14%,84% 44%,100% 100%,0 100%,18% 44%,27% 13%);
+  opacity:.9;
+  filter:drop-shadow(0 0 8px #00aaff);
+}
+.avatar-ring img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:50%;
+  position:relative;
+  z-index:2;
+}
+.hunter-card::after{
+  content:"◇";
+  position:absolute;
+  right:18px;
+  top:18px;
+  color:#18d8ff;
+  font-size:46px;
+  opacity:.24;
+  text-shadow:0 0 18px #00aaff;
+}
+.progress-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+.summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+.quest-grid{grid-template-columns:1fr;}
+.progress-card,.summary-card{
+  border:1px solid rgba(0,170,255,.35);
+  border-radius:9px;
+  background:linear-gradient(180deg,rgba(0,16,32,.74),rgba(0,0,0,.34));
+}
+.xp-bar-wrap{border-radius:9px;height:8px;}
+.xp-bar-fill{border-radius:9px;}
+@media (max-width:420px){
+  #app{padding-left:10px;padding-right:10px;}
+  .screen-title div{font-size:25px;}
+  .progress-grid,.summary-grid{grid-template-columns:1fr;}
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .nutrition-targets{grid-template-columns:1fr;}
+  .tab-btn{min-width:74px;font-size:9px;}
+}
 </style>
 </head>
 <body>
@@ -182,7 +377,7 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
   <div id="topbar">
     <div>
       <span class="system-text">◈ THE SYSTEM</span>
-      <span style="color:#4a7a9b;font-size:10px;margin-left:10px;font-family:monospace;letter-spacing:2px;">v3.7 · ONLINE</span>
+      <span style="color:#4a7a9b;font-size:10px;margin-left:10px;font-family:monospace;letter-spacing:2px;" id="screen-subtitle">v4.0 · HUNTER OS</span>
       <div id="clock"></div>
     </div>
     <div class="topbar-right">
@@ -218,8 +413,12 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
 
   <!-- Tabs -->
   <div id="tabs">
-    <button class="tab-btn active" onclick="switchTab('quests')">◈ DAILY QUESTS</button>
+    <button class="tab-btn active" onclick="switchTab('hub')">👥 HUB</button>
+    <button class="tab-btn" onclick="switchTab('quests')">◈ DAILY QUESTS</button>
     <button class="tab-btn" onclick="switchTab('training')">⚔ TRAINING</button>
+    <button class="tab-btn" onclick="switchTab('dungeons')">☠ DUNGEONS</button>
+    <button class="tab-btn" onclick="switchTab('shop')">🛒 SHOP</button>
+    <button class="tab-btn" onclick="switchTab('impact')">💙 IMPACT</button>
     <button class="tab-btn" onclick="switchTab('nutrition')">🍖 NUTRITION</button>
     <button class="tab-btn" onclick="switchTab('progress')">📊 PROGRESS</button>
     <button class="tab-btn" onclick="switchTab('coach')">◆ COACH</button>
@@ -229,8 +428,13 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
     <button class="tab-btn" onclick="switchTab('settings')">⚙ SETTINGS</button>
   </div>
 
+  <!-- SOCIAL HUB TAB -->
+  <div id="tab-hub" class="tab-content active">
+    <div id="hub-content"></div>
+  </div>
+
   <!-- QUESTS TAB -->
-  <div id="tab-quests" class="tab-content active">
+  <div id="tab-quests" class="tab-content">
     <div id="mission-control"></div>
     <div class="flex-between mb16 flex-wrap gap8">
       <div>
@@ -250,6 +454,21 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
     <div class="day-tabs" id="day-tabs"></div>
     <div id="training-content"></div>
     <div class="footer-hint">[ tap exercise to edit · changes save with SAVE button ]</div>
+  </div>
+
+  <!-- DUNGEONS TAB -->
+  <div id="tab-dungeons" class="tab-content">
+    <div id="dungeons-content"></div>
+  </div>
+
+  <!-- SHOP TAB -->
+  <div id="tab-shop" class="tab-content">
+    <div id="shop-content"></div>
+  </div>
+
+  <!-- IMPACT TAB -->
+  <div id="tab-impact" class="tab-content">
+    <div id="impact-content"></div>
   </div>
 
   <!-- NUTRITION TAB -->
@@ -440,7 +659,7 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
 // DATA & CONSTANTS
 // ═══════════════════════════════════════════════════════════
 const RANKS = ["E","D","C","B","A","S"];
-const APP_SCHEMA_VERSION = 5;
+const APP_SCHEMA_VERSION = 6;
 const RANK_THRESHOLDS = {E:0,D:2000,C:6000,B:15000,A:35000,S:80000};
 const RANK_COLORS = {E:"#aaa",D:"#66cc44",C:"#4488ff",B:"#aa44ff",A:"#ffaa00",S:"#ff4400"};
 const NUTRITION_TARGETS = {calories:2900,protein:176,carbs:360,fat:80,sugar:75,fiber:30};
@@ -467,6 +686,31 @@ const TRAINING_PLAN_TEMPLATES = [
   {id:"strength",name:"Strength Foundation",focus:"Lower-rep compound priority with accessories for strength."},
   {id:"athletic",name:"Athletic Performance",focus:"Power, speed, unilateral strength and conditioning."},
   {id:"combat",name:"Combat Conditioning",focus:"Strength endurance, shoulders, core, posterior chain and work capacity."}
+];
+const SHOP_ITEMS = [
+  {id:"shadow-cloak",name:"Shadow Cloak",cat:"cosmetics",rarity:"EPIC",price:500,desc:"Cosmetic aura for your player card.",bonus:"+ profile aura"},
+  {id:"hunter-frame",name:"Hunter Frame",cat:"cosmetics",rarity:"RARE",price:750,desc:"Electric cyan profile frame.",bonus:"+ frame"},
+  {id:"focus-ring",name:"Focus Ring",cat:"gear",rarity:"RARE",price:900,desc:"Badge for deep work and study discipline.",bonus:"+ focus badge"},
+  {id:"training-elixir",name:"Training Elixir",cat:"boosts",rarity:"UNCOMMON",price:1000,desc:"+10% XP on your next completed quest.",bonus:"+10% XP next quest",consumable:true},
+  {id:"iron-boots",name:"Iron Boots",cat:"gear",rarity:"RARE",price:1250,desc:"Steps quest cosmetic and movement badge.",bonus:"+ movement badge"},
+  {id:"d-rank-emblem",name:"D-Rank Emblem",cat:"badges",rarity:"RARE",price:1500,desc:"Profile badge unlocked at D Rank.",bonus:"D-Rank badge",rank:"D"},
+  {id:"shadow-katana",name:"Void Katana",cat:"gear",rarity:"LEGENDARY",price:5000,desc:"Legendary cosmetic weapon for your license.",bonus:"+ legendary loadout"},
+  {id:"guild-banner",name:"Guild Banner",cat:"cosmetics",rarity:"EPIC",price:2500,desc:"Guild profile banner cosmetic.",bonus:"+ guild style"},
+  {id:"protein-core",name:"Protein Core",cat:"badges",rarity:"UNCOMMON",price:800,desc:"Nutrition discipline badge.",bonus:"+ nutrition badge"},
+  {id:"dungeon-key",name:"Dungeon Key",cat:"boosts",rarity:"RARE",price:1200,desc:"Unlocks a special challenge slot.",bonus:"+ special challenge"}
+];
+const DUNGEONS = [
+  {id:"iron-gate",name:"Iron Gate",rank:"E",difficulty:"Beginner",color:"#00aaff",xp:100,gold:50,missions:["Complete any 3 daily quests","Drink 2L water","Log nutrition today"]},
+  {id:"wolf-den",name:"Wolf Den",rank:"D",difficulty:"Intermediate",color:"#9933ff",xp:250,gold:120,missions:["Complete a lower-body workout","Hit 10,000 steps","Hit protein target"]},
+  {id:"void-gate",name:"Void Gate",rank:"C",difficulty:"Advanced",color:"#ff3333",xp:500,gold:250,missions:["Complete full gym session","Complete cardio or steps equivalent","Complete study/coding quest"]}
+];
+const IMPACT_CAMPAIGN = {cause:"Education for All",desc:"Help fund learning programs for young people.",daysLeft:14,conversion:"Every 100 Impact Points = £1 potential donation",communityTotal:2784920};
+const MOCK_HUNTERS = [
+  {name:"IRONWILL",score:98760,rank:1},
+  {name:"BEASTMODE",score:87420,rank:2},
+  {name:"HUNTER PRIME",score:78550,rank:3},
+  {name:"NIGHTSTRIDE",score:65330,rank:4},
+  {name:"FLEXMASTER",score:61870,rank:5}
 ];
 const VAULT_CHARITIES = ["Cancer Research UK","British Heart Foundation","Mind","UNICEF","WaterAid","Local food bank","Custom charity"];
 const TITLE_RULES = [
@@ -522,10 +766,14 @@ let state = {
   vaultContracts: [],
   unlocks: {titles:["initiate"],activeTitle:"E-Rank Initiate",skills:[],achievements:[]},
   profile: JSON.parse(JSON.stringify(DEFAULT_PROFILE)),
+  economy: {gold:6890,impactPoints:0},
+  inventory: {owned:[],equipped:{}},
+  dungeons: {active:null,completed:[]},
+  social: {guildName:"Iron Wolves",guildLevel:7,guildPoints:128450,friends:24},
 };
 let activeTrainingDay = "UB1";
 let activeProgressDay = "UB1";
-let currentTab = "quests";
+let currentTab = "hub";
 let editingEx = null; // {dayKey, section, idx}
 let logMode = false;
 let logDay = null;
@@ -626,6 +874,10 @@ function ensureStateShape(){
     if(!Array.isArray(c.proofs)) c.proofs = [];
   });
   state.unlocks = {...{titles:["initiate"],activeTitle:"E-Rank Initiate",skills:[],achievements:[]}, ...(state.unlocks||{})};
+  state.economy = {...{gold:0,impactPoints:0}, ...(state.economy||{})};
+  state.inventory = {...{owned:[],equipped:{}}, ...(state.inventory||{})};
+  state.dungeons = {...{active:null,completed:[]}, ...(state.dungeons||{})};
+  state.social = {...{guildName:"Iron Wolves",guildLevel:7,guildPoints:128450,friends:24}, ...(state.social||{})};
   if(!state.dailyProgress.quests) state.dailyProgress.quests = {};
 }
 function addAudit(type, message, extra={}){
@@ -652,6 +904,10 @@ function getFullSave(){
     vaultContracts:state.vaultContracts,
     unlocks:state.unlocks,
     profile:state.profile,
+    economy:state.economy,
+    inventory:state.inventory,
+    dungeons:state.dungeons,
+    social:state.social,
     exportedAt:new Date().toISOString()
   };
 }
@@ -665,6 +921,10 @@ function restoreExtraState(data){
   if(data.vaultContracts) state.vaultContracts = data.vaultContracts;
   if(data.unlocks) state.unlocks = data.unlocks;
   if(data.profile) state.profile = data.profile;
+  if(data.economy) state.economy = data.economy;
+  if(data.inventory) state.inventory = data.inventory;
+  if(data.dungeons) state.dungeons = data.dungeons;
+  if(data.social) state.social = data.social;
   ensureStateShape();
 }
 
@@ -673,6 +933,27 @@ function getMealCount(){return (state.dailyHistory||[]).reduce((sum,d)=>sum+(d.m
 function getPowerScore(){
   const s = state.player.stats || {};
   return Math.round((state.player.totalXp/100) + (s.STR||0)*8 + (s.AGI||0)*6 + (s.INT||0)*7 + (s.VIT||0)*6 + (s.PER||0)*5 + (state.streak.best||0)*12);
+}
+function addGold(amount, reason="reward"){
+  ensureStateShape();
+  state.economy.gold = Math.max(0, (state.economy.gold||0) + amount);
+  addAudit("gold", `Gold ${amount>=0?"+":""}${amount}: ${reason}`, {amount,reason});
+}
+function canAfford(amount){return (state.economy.gold||0) >= amount;}
+function spendGold(amount, reason="purchase"){
+  if(!canAfford(amount)) return false;
+  state.economy.gold -= amount;
+  addAudit("gold-spent", `Gold -${amount}: ${reason}`, {amount,reason});
+  return true;
+}
+function addImpact(amount, reason="quest"){
+  ensureStateShape();
+  state.economy.impactPoints = Math.max(0, (state.economy.impactPoints||0) + amount);
+  addAudit("impact", `Impact +${amount}: ${reason}`, {amount,reason});
+}
+function questGoldReward(quest){
+  const map = {"dq-water":20,"dq-steps":30,"dq-coding":35,"dq-sleep":25,"dq-workout":75,"dq-boxing":45,"dq-basketball":40,"dq-reading":30};
+  return map[quest.id] || Math.max(10, Math.round((quest.xp||50)/5));
 }
 function getNutritionTotals(){
   const meals = state.nutritionLog.meals || [];
@@ -762,6 +1043,10 @@ function saveAll(){
   sSet("sl-vault",state.vaultContracts);
   sSet("sl-unlocks",state.unlocks);
   sSet("sl-profile",state.profile);
+  sSet("sl-economy",state.economy);
+  sSet("sl-inventory",state.inventory);
+  sSet("sl-dungeons",state.dungeons);
+  sSet("sl-social",state.social);
 }
 function saveNonWorkout(){
   ensureStateShape();
@@ -779,6 +1064,10 @@ function saveNonWorkout(){
   sSet("sl-vault",state.vaultContracts);
   sSet("sl-unlocks",state.unlocks);
   sSet("sl-profile",state.profile);
+  sSet("sl-economy",state.economy);
+  sSet("sl-inventory",state.inventory);
+  sSet("sl-dungeons",state.dungeons);
+  sSet("sl-social",state.social);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -801,11 +1090,15 @@ function init(){
   const savedVault = sGet("sl-vault");
   const savedUnlocks = sGet("sl-unlocks");
   const savedProfile = sGet("sl-profile");
+  const savedEconomy = sGet("sl-economy");
+  const savedInventory = sGet("sl-inventory");
+  const savedDungeons = sGet("sl-dungeons");
+  const savedSocial = sGet("sl-social");
 
   state.workouts = savedWorkouts || JSON.parse(JSON.stringify(DEFAULT_WORKOUTS));
   state.sessions = savedSessions || {};
   state.weightLog = savedWeight || [];
-  restoreExtraState({meta:savedMeta,settings:savedSettings,streak:savedStreak,dailyHistory:savedHistory,auditLog:savedAudit,nutritionTargets:savedTargets,vaultContracts:savedVault,unlocks:savedUnlocks,profile:savedProfile});
+  restoreExtraState({meta:savedMeta,settings:savedSettings,streak:savedStreak,dailyHistory:savedHistory,auditLog:savedAudit,nutritionTargets:savedTargets,vaultContracts:savedVault,unlocks:savedUnlocks,profile:savedProfile,economy:savedEconomy,inventory:savedInventory,dungeons:savedDungeons,social:savedSocial});
 
   // Restore player — use saved if totalXp >= what we know is correct
   if(savedPlayer && savedPlayer.totalXp >= 970){
@@ -1000,8 +1293,11 @@ function updateQuestProgress(questId, value){
   sSet("sl-daily", state.dailyProgress);
   if(justCompleted){
     addAudit("quest-complete", `Quest complete: ${quest.name}`, {questId, xp:quest.xp});
+    const gold = questGoldReward(quest);
+    addGold(gold, quest.name);
+    addImpact(quest.optional?8:10, quest.name);
     addXP(quest.xp, quest.stat);
-    showNotif("quest","QUEST COMPLETE",`「${quest.name}」 objective fulfilled.\n\n+${quest.xp} XP earned\n+1 ${quest.stat}`);
+    showNotif("quest","QUEST COMPLETE",`「${quest.name}」 objective fulfilled.\n\n+${quest.xp} XP · +${gold} Gold\n+1 ${quest.stat}`);
   }
   renderQuestCard(questId);
   renderPlayerStrip();
@@ -1369,13 +1665,15 @@ function submitLog(){
   if(!state.sessions[logDay]) state.sessions[logDay]=[];
   state.sessions[logDay].push({date,exercises});
   addAudit("session-logged", `Training session logged: ${w.label}`, {day:logDay});
+  addGold(75, "Training session");
+  addImpact(50, "Training session");
   // Mark gym quest done
   updateQuestProgress("dq-workout",1);
   addXP(200,"STR");
   logMode=false; logDay=null; logData={};
   saveNonWorkout();
   renderTrainingContent();
-  showNotif("quest","TRAINING SESSION LOGGED","+200 XP awarded.\n+1 STR");
+  showNotif("quest","TRAINING SESSION LOGGED","+200 XP · +75 Gold\n+50 Impact Points\n+1 STR");
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1697,12 +1995,17 @@ function renderStatus(){
 function switchTab(tab){
   currentTab=tab;
   document.querySelectorAll(".tab-btn").forEach((b,i)=>{
-    const tabs=["quests","training","nutrition","progress","coach","awakening","vault","status","settings"];
+    const tabs=["hub","quests","training","dungeons","shop","impact","nutrition","progress","coach","awakening","vault","status","settings"];
     b.classList.toggle("active",tabs[i]===tab);
   });
   document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
   document.getElementById(`tab-${tab}`).classList.add("active");
+  if(tab==="hub") renderHub();
+  if(tab==="quests") renderQuests();
   if(tab==="training"){renderTrainingTabs();renderTrainingContent();}
+  if(tab==="dungeons") renderDungeons();
+  if(tab==="shop") renderShop();
+  if(tab==="impact") renderImpact();
   if(tab==="nutrition") renderNutrition();
   if(tab==="progress"){renderProgressTabs();renderProgressContent();}
   if(tab==="coach") renderCoach();
@@ -1774,6 +2077,11 @@ function renderAll(){
   renderTrainingTabs();
   renderTrainingContent();
   renderProgressTabs();
+  if(currentTab==="hub") renderHub();
+  if(currentTab==="quests") renderQuests();
+  if(currentTab==="dungeons") renderDungeons();
+  if(currentTab==="shop") renderShop();
+  if(currentTab==="impact") renderImpact();
   if(currentTab==="nutrition") renderNutrition();
   if(currentTab==="progress") renderProgressContent();
   if(currentTab==="coach") renderCoach();
@@ -2295,6 +2603,180 @@ function renderVault(){
 }
 
 // ═══════════════════════════════════════════════════════════
+// SHOP / INVENTORY
+// ═══════════════════════════════════════════════════════════
+function ownsItem(id){return (state.inventory.owned||[]).some(i=>i.id===id);}
+function buyItem(id){
+  const item = SHOP_ITEMS.find(i=>i.id===id);
+  if(!item) return;
+  if(item.rank && RANKS.indexOf(state.player.rank) < RANKS.indexOf(item.rank)) return showNotif("penalty","ITEM LOCKED",`${item.name} unlocks at ${item.rank}-Rank.`);
+  if(ownsItem(id) && !item.consumable) return showNotif("quest","ALREADY OWNED",`${item.name} is already in your inventory.`);
+  if(!spendGold(item.price, item.name)) return showNotif("penalty","INSUFFICIENT GOLD",`${item.name} costs ${item.price} Gold.`);
+  state.inventory.owned.push({id:item.id,qty:item.consumable?1:undefined,acquiredAt:new Date().toISOString()});
+  addAudit("shop-buy", `Purchased ${item.name}`, {item:id});
+  saveNonWorkout();
+  renderAll();
+  showNotif("levelup","ITEM ACQUIRED",`${item.name}\n\n${item.desc}`);
+}
+function equipItem(id){
+  const item = SHOP_ITEMS.find(i=>i.id===id);
+  if(!item || !ownsItem(id)) return;
+  const slot = item.cat==="badges"?"badge":item.cat==="cosmetics"?"cosmetic":item.cat==="gear"?"gear":"boost";
+  state.inventory.equipped[slot] = id;
+  addAudit("item-equipped", `Equipped ${item.name}`, {item:id,slot});
+  saveNonWorkout();
+  renderAll();
+}
+function renderShop(){
+  ensureStateShape();
+  const el = document.getElementById("shop-content");
+  const featured = SHOP_ITEMS.find(i=>i.id==="shadow-katana") || SHOP_ITEMS[0];
+  const owned = new Set((state.inventory.owned||[]).map(i=>i.id));
+  el.innerHTML = `
+    <div class="screen-title"><div><span>THE</span> SYSTEM</div><small>HUNTER SHOP</small></div>
+    <div class="panel glow p16 mb12">
+      <div class="flex-between">
+        <div><div class="label-sm">GOLD</div><div style="color:#f0c040;font-size:24px;font-weight:900;font-family:monospace;">${state.economy.gold||0}</div></div>
+        <div><div class="label-sm">XP</div><div style="color:#9933ff;font-size:18px;font-weight:900;font-family:monospace;">${state.player.totalXp}</div></div>
+      </div>
+    </div>
+    <div class="panel p20 mb12" style="border-color:#f0c040;background:linear-gradient(135deg,rgba(240,192,64,.12),rgba(0,0,0,.5));">
+      <div class="flex-between mb8"><span style="color:#f0c040;font-family:monospace;font-size:11px;">★ FEATURED · ${featured.rarity}</span><span class="rank-badge" style="color:#f0c040;border:1px solid #f0c040;">${featured.cat.toUpperCase()}</span></div>
+      <div style="font-size:24px;font-weight:900;font-style:italic;color:#e8f4ff;">${esc(featured.name)}</div>
+      <div style="color:#4a7a9b;font-size:12px;line-height:1.6;margin:8px 0;">${esc(featured.desc)}</div>
+      <div style="color:#00aaff;font-family:monospace;margin-bottom:12px;">${esc(featured.bonus)}</div>
+      <button class="btn btn-gold" style="width:100%;font-size:16px;" onclick="buyItem('${featured.id}')">BUY · ${featured.price} GOLD</button>
+    </div>
+    <div class="progress-grid mb12">
+      ${SHOP_ITEMS.filter(i=>i.id!==featured.id).map(i=>`<div class="progress-card" style="border-color:${i.rarity==="LEGENDARY"?"#f0c040":i.rarity==="EPIC"?"#9933ff":i.rarity==="RARE"?"#00aaff":"#00ff88"};">
+        <span class="muscle-tag" style="background:rgba(0,0,0,.4);color:${i.rarity==="LEGENDARY"?"#f0c040":i.rarity==="EPIC"?"#9933ff":i.rarity==="RARE"?"#00aaff":"#00ff88"};">${i.rarity}</span>
+        <div class="progress-ex-name">${esc(i.name)}</div>
+        <div style="color:#4a7a9b;font-size:11px;line-height:1.5;min-height:45px;">${esc(i.desc)}</div>
+        <div style="color:#f0c040;font-family:monospace;margin:8px 0;">${i.price} Gold</div>
+        <button class="btn ${owned.has(i.id)?"btn-green":"btn-gold"}" style="width:100%;" onclick="${owned.has(i.id)&&!i.consumable?`equipItem('${i.id}')`:`buyItem('${i.id}')`}">${owned.has(i.id)&&!i.consumable?"EQUIP":"BUY"}</button>
+      </div>`).join("")}
+    </div>
+    <div class="panel p16"><div class="label-sm mb8">MY LOADOUT</div>
+      <div class="flex gap8 flex-wrap">${Object.entries(state.inventory.equipped||{}).map(([slot,id])=>{const item=SHOP_ITEMS.find(i=>i.id===id);return `<div class="summary-card"><div class="label-sm">${slot.toUpperCase()}</div><div style="color:#e8f4ff;font-weight:800;">${esc(item?.name||id)}</div></div>`;}).join("") || `<div class="no-data" style="padding:20px;">NO ITEMS EQUIPPED</div>`}</div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// DUNGEON RAIDS
+// ═══════════════════════════════════════════════════════════
+function dungeonUnlocked(d){return RANKS.indexOf(state.player.rank) >= RANKS.indexOf(d.rank);}
+function dungeonMissionProgress(d){
+  const q = state.dailyProgress.quests || {};
+  const nutritionHit = !!state.dailyProgress.nutritionHit;
+  const any3 = Object.values(q).filter(x=>x.completed).length >= 3;
+  const water2 = (q["dq-water"]?.value||0) >= 2;
+  const lowerWorkout = q["dq-workout"]?.completed;
+  const steps = q["dq-steps"]?.completed;
+  const protein = nutritionHit;
+  const gym = q["dq-workout"]?.completed;
+  const study = q["dq-coding"]?.completed;
+  const map = {
+    "iron-gate":[any3,water2,(state.nutritionLog.meals||[]).length>0],
+    "wolf-den":[lowerWorkout,steps,protein],
+    "void-gate":[gym,steps,study]
+  };
+  return map[d.id] || [];
+}
+function startDungeon(id){
+  const d = DUNGEONS.find(x=>x.id===id);
+  if(!d || !dungeonUnlocked(d)) return showNotif("penalty","DUNGEON LOCKED",`${d?.name||"Dungeon"} requires ${d?.rank}-Rank.`);
+  state.dungeons.active = {id,startedAt:new Date().toISOString(),date:dateKey()};
+  addAudit("dungeon-start", `Entered dungeon: ${d.name}`, {id});
+  saveNonWorkout();
+  renderDungeons();
+}
+function claimDungeon(id){
+  const d = DUNGEONS.find(x=>x.id===id);
+  if(!d) return;
+  const prog = dungeonMissionProgress(d);
+  if(!prog.every(Boolean)) return showNotif("penalty","DUNGEON INCOMPLETE","Clear every dungeon mission before claiming the reward.");
+  const key = `${id}-${dateKey()}`;
+  if(state.dungeons.completed.includes(key)) return showNotif("quest","ALREADY CLEARED","This dungeon has already been cleared today.");
+  state.dungeons.completed.push(key);
+  addXP(d.xp,"PER");
+  addGold(d.gold,d.name);
+  addImpact(100,d.name);
+  addAudit("dungeon-clear", `Dungeon cleared: ${d.name}`, {id,xp:d.xp,gold:d.gold});
+  saveNonWorkout();
+  renderAll();
+  showNotif("levelup","DUNGEON CLEARED",`${d.name}\n\n+${d.xp} XP · +${d.gold} Gold\n+100 Impact Points`);
+}
+function renderDungeons(){
+  ensureStateShape();
+  const el = document.getElementById("dungeons-content");
+  el.innerHTML = `
+    <div class="screen-title"><div><span>THE</span> SYSTEM</div><small>DUNGEON RAIDS</small></div>
+    <div class="flex-between mb12"><h2 style="color:#e8f4ff;font-size:20px;">DUNGEON RAIDS</h2><span style="color:#9933ff;font-family:monospace;font-size:12px;">BOSS REFRESH IN 2D 14H</span></div>
+    <div class="progress-grid mb12">
+      ${DUNGEONS.map(d=>{const unlocked=dungeonUnlocked(d);const prog=dungeonMissionProgress(d);const pct=Math.round((prog.filter(Boolean).length/prog.length)*100);return`
+        <div class="panel progress-card" style="border-color:${unlocked?d.color:"#333"};background:linear-gradient(180deg,${d.color}22,rgba(0,0,0,.5));">
+          <div style="font-size:20px;font-weight:900;font-style:italic;color:#e8f4ff;">${esc(d.name)}</div>
+          <div style="color:${d.color};font-size:12px;margin-bottom:10px;">${d.difficulty} · ${d.rank}-Rank</div>
+          ${d.missions.map((m,i)=>`<div class="meal-list-row"><span style="color:#e8f4ff;font-size:12px;">${prog[i]?"✓":"◇"} ${esc(m)}</span></div>`).join("")}
+          <div class="flex-between" style="margin:10px 0;"><span style="color:#f0c040;font-family:monospace;">XP ${d.xp}</span><span style="color:#f0c040;font-family:monospace;">Gold ${d.gold}</span></div>
+          <div class="xp-bar-wrap mb8"><div class="xp-bar-fill" style="width:${pct}%;background:${d.color};"></div></div>
+          <button class="btn ${unlocked?"":"btn-red"}" style="width:100%;border-color:${d.color};color:${unlocked?d.color:"#ff3333"};" onclick="${unlocked?`startDungeon('${d.id}');claimDungeon('${d.id}')`:""}">${unlocked?"ENTER / CLAIM":`LOCKED ${d.rank}`}</button>
+        </div>`;}).join("")}
+    </div>
+    <div class="panel p16" style="border-color:#ff3333;"><div class="flex-between"><div><div style="color:#ff3333;font-size:10px;font-family:monospace;">WORLD BOSS</div><div style="color:#e8f4ff;font-weight:900;font-style:italic;">THE VOID BEAST</div></div><button class="btn btn-red">COMING SOON</button></div></div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SOCIAL HUB + IMPACT
+// ═══════════════════════════════════════════════════════════
+function renderHub(){
+  ensureStateShape();
+  const el = document.getElementById("hub-content");
+  const userScore = getPowerScore();
+  el.innerHTML = `
+    <div class="screen-title"><div><span>THE</span> SYSTEM</div><small>SOCIAL HUB</small></div>
+    <div class="panel glow p20 mb12 hunter-card">
+      <div class="flex gap10" style="align-items:center;">
+        <div class="avatar-ring">${state.profile.avatar?`<img src="${state.profile.avatar}"/>`:""}</div>
+        <div style="flex:1;"><div style="color:#e8f4ff;font-size:20px;font-weight:900;">${esc(state.profile.displayName||"HUNTER PRIME")}</div><div style="color:#00aaff;font-family:monospace;">LEVEL ${Math.max(1,Math.floor(state.player.totalXp/1000)+1)}</div><div style="color:#4a7a9b;font-size:12px;">${state.player.totalXp} XP · ${state.economy.gold||0} Gold</div></div>
+        <div style="text-align:center;"><div class="rank-badge" style="font-size:20px;">${state.player.rank}</div><div class="label-sm">RANK</div></div>
+      </div>
+    </div>
+    <div class="panel p16 mb12" style="border-color:#9933ff;background:linear-gradient(90deg,rgba(153,51,255,.18),rgba(0,0,0,.45));"><div style="color:#9933ff;font-size:11px;font-family:monospace;">WEEKLY GUILD RAID</div><div style="font-size:22px;color:#e8f4ff;font-weight:900;font-style:italic;">SHADOW COLOSSEUM</div><div style="color:#4a7a9b;">Defeat the Colossus. Earn glory.</div><button class="btn" style="margin-top:10px;border-color:#9933ff;color:#d7a3ff;">VIEW RAID</button></div>
+    <div class="summary-grid mb12">
+      <div class="panel p16"><div class="label-sm mb8">TOP HUNTERS</div>${MOCK_HUNTERS.map(h=>`<div class="meal-list-row"><span style="color:${h.rank===3?"#00aaff":"#e8f4ff"};">${h.rank}. ${esc(h.name)}</span><span style="color:#f0c040;font-family:monospace;">${h.score.toLocaleString()}</span></div>`).join("")}</div>
+      <div class="panel p16"><div class="label-sm mb8">MY GUILD</div><div style="text-align:center;font-size:28px;">◇</div><div style="text-align:center;color:#e8f4ff;font-size:20px;font-weight:900;">${esc(state.social.guildName)}</div><div style="text-align:center;color:#4a7a9b;">LEVEL ${state.social.guildLevel}</div><div style="text-align:center;color:#9933ff;font-size:22px;font-weight:900;margin-top:12px;">${state.social.guildPoints.toLocaleString()}</div><button class="btn" style="width:100%;margin-top:12px;border-color:#9933ff;color:#d7a3ff;">GUILD HALL</button></div>
+    </div>
+    <div class="summary-grid mb12">
+      <div class="panel p16"><div style="color:#00aaff;font-weight:900;">INVITE FRIENDS</div><div style="color:#4a7a9b;font-size:12px;">Grow your squad</div></div>
+      <div class="panel p16"><div style="color:#00aaff;font-weight:900;">ADD HUNTER</div><div style="color:#4a7a9b;font-size:12px;">Find new partners</div></div>
+    </div>
+    <div class="panel p16"><div class="label-sm mb8">SOCIAL PROGRESSION</div><div class="summary-grid">${[
+      ["FRIENDS",state.social.friends,"#00aaff"],["WORKOUTS TOGETHER",156,"#00aaff"],["TOTAL MINUTES",4320,"#f0c040"],["SOCIAL RANK","B","#00aaff"]
+    ].map(([l,v,c])=>`<div class="summary-card"><div class="label-sm">${l}</div><div style="color:${c};font-size:22px;font-weight:900;">${v}</div></div>`).join("")}</div></div>`;
+}
+function renderImpact(){
+  ensureStateShape();
+  const el = document.getElementById("impact-content");
+  const personal = state.economy.impactPoints||0;
+  const target = 25000;
+  const pct = Math.min(100, Math.round((personal/target)*100));
+  el.innerHTML = `
+    <div class="screen-title"><div><span>THE</span> SYSTEM</div><small>HUNTERS FOR GOOD</small></div>
+    <div class="panel glow p20 mb12" style="min-height:190px;background:linear-gradient(120deg,rgba(0,170,255,.12),rgba(20,20,80,.3));">
+      <span class="rank-badge" style="color:#9bdcff;border:1px solid #1a4a7a;">THIS MONTH'S CAUSE</span>
+      <div style="font-size:30px;color:#e8f4ff;font-weight:900;font-style:italic;margin-top:14px;">${esc(IMPACT_CAMPAIGN.cause).toUpperCase()}</div>
+      <div style="color:#b8c8d8;font-size:14px;line-height:1.6;max-width:60%;">${esc(IMPACT_CAMPAIGN.desc)}</div>
+      <div style="float:right;margin-top:-50px;border:1px solid #00aaff;border-radius:6px;padding:12px;text-align:center;color:#e8f4ff;"><div style="color:#00aaff;font-size:10px;">DAYS LEFT</div><div style="font-size:28px;font-weight:900;">${IMPACT_CAMPAIGN.daysLeft}</div><div>DAYS</div></div>
+    </div>
+    <div class="panel p20 mb12"><div style="color:#00aaff;font-size:13px;font-weight:900;">YOUR IMPACT</div><div style="color:#e8f4ff;margin:8px 0;">Work out. Complete quests. Change lives.</div><div style="color:#00aaff;font-size:28px;font-weight:900;">${personal.toLocaleString()} <span style="color:#4a7a9b;font-size:18px;">/ ${target.toLocaleString()} IMPACT POINTS</span></div><div class="xp-bar-wrap" style="height:10px;margin:10px 0;"><div class="xp-bar-fill" style="width:${pct}%;background:#00aaff;box-shadow:0 0 8px #00aaff;"></div></div><div style="color:#4a7a9b;font-size:12px;">${IMPACT_CAMPAIGN.conversion}</div></div>
+    <div class="panel p16 mb12" style="border-color:#00ff88;"><div class="flex-between"><div><div style="color:#00ff88;font-size:12px;">COMMUNITY TOTAL</div><div style="color:#e8f4ff;font-size:26px;font-weight:900;">${IMPACT_CAMPAIGN.communityTotal.toLocaleString()} <span style="font-size:14px;color:#00aaff;">IMPACT POINTS</span></div><div style="color:#4a7a9b;">Demo total until backend sponsor pool is connected.</div></div><button class="btn">VIEW IMPACT</button></div></div>
+    <div class="panel p16 mb12"><div class="label-sm mb8">GUILD CONTRIBUTIONS</div>${["IRON WOLVES","DAWN SENTINELS","ELITE AWAKENED","PHANTOM LEGION"].map((g,i)=>`<div class="meal-list-row"><span style="color:#e8f4ff;">${i+1}. ${g}</span><span style="color:#e8f4ff;font-family:monospace;">${(562480-i*92140).toLocaleString()} PTS</span></div>`).join("")}</div>
+    <div class="summary-grid mb12"><div class="panel p16"><div class="label-sm">YOUR CONTRIBUTION</div><div style="color:#00aaff;font-size:28px;font-weight:900;">${personal.toLocaleString()}</div><div style="color:#4a7a9b;">RANK #42 · TOP 12%</div></div><div class="panel p16"><div class="label-sm">IMPACT REWARDS</div><div style="color:#e8f4ff;font-weight:900;">First Step · Heart of a Hunter · Legacy Builder</div><button class="btn" style="width:100%;margin-top:12px;">VIEW ALL REWARDS</button></div></div>
+    <button class="btn" style="width:100%;font-size:20px;padding:16px;background:linear-gradient(90deg,#0066aa,#00aaff);color:#e8f4ff;">COMPLETE MISSION</button>`;
+}
+
+// ═══════════════════════════════════════════════════════════
 // SETTINGS / PUBLIC LAUNCH FOUNDATION
 // ═══════════════════════════════════════════════════════════
 function saveSettings(){
@@ -2311,7 +2793,7 @@ function saveSettings(){
   const fiber = clampNumber(document.getElementById("set-fiber")?.value, 5, 100, NUTRITION_TARGETS.fiber);
   const restDays = Array.from(document.querySelectorAll(".rest-day-check:checked")).map(i=>i.value);
   const aiEndpoint = document.getElementById("set-ai-endpoint")?.value.trim() || "";
-  state.profile = {displayName:name,goal,heightCm:height,weightKg:weight,trainingLevel:level};
+  state.profile = {displayName:name,goal,heightCm:height,weightKg:weight,trainingLevel:level,avatar:state.profile.avatar||null};
   state.nutritionTargets.calories = calories;
   state.nutritionTargets.protein = protein;
   state.nutritionTargets.carbs = carbs;
