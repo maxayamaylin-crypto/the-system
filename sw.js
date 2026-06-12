@@ -1,4 +1,4 @@
-const CACHE = "system-v4-8-nutrition-pack";
+const CACHE = "system-v4-9-social-pack";
 const FILES = [
   "./",
   "./the-system.html",
@@ -43,6 +43,16 @@ const FILES = [
   "./assets/screens/hub-g06-confirmation.jpg",
   "./assets/screens/hub-g06-purchase-confirmation.jpg",
   "./assets/screens/hub-g09-sync-complete.jpg",
+  "./assets/screens/hub-h02-friends.jpg",
+  "./assets/screens/hub-h03-add-hunter.jpg",
+  "./assets/screens/hub-h04-friend-profile.jpg",
+  "./assets/screens/hub-h05-leaderboard.jpg",
+  "./assets/screens/hub-h06-guild-hall.jpg",
+  "./assets/screens/hub-h07-guild-members.jpg",
+  "./assets/screens/hub-h08-raid-detail.jpg",
+  "./assets/screens/hub-h09-coop-challenge.jpg",
+  "./assets/screens/hub-h10-license.jpg",
+  "./assets/screens/hub-h11-create-guild.jpg",
   "./assets/screens/quest-q03-detail.jpg",
   "./assets/screens/quest-q04-add-progress.jpg",
   "./assets/screens/quest-q04-advanced-progress.jpg",

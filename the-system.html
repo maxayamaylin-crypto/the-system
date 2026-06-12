@@ -1705,11 +1705,11 @@ function showFriendsPanel(){
   ensureStateShape();
   state.social.friends = Math.max(state.social.friends||24,state.social.friendsList.length);
   saveNonWorkout();
-  showNotif("quest","FRIENDS",`${state.social.friends} hunters connected.\n\n${state.social.friendsList.slice(0,4).map(f=>`${f.name} · LVL ${f.level} · ${f.status}`).join("\n")}`);
+  setHubScreen("friends");
 }
 function showGuildHall(){
   ensureStateShape();
-  showNotif("quest","GUILD HALL",`${state.social.guildName}\n\nLevel ${state.social.guildLevel} · ${formatNum(state.social.guildPoints)} Guild Points\n\n${state.social.guildMembers.slice(0,5).map(m=>`${m.name} · ${m.role} · ${formatNum(m.contribution)} pts`).join("\n")}`);
+  setHubScreen("guildHall");
 }
 function inviteFriend(){
   ensureStateShape();
@@ -1735,10 +1735,88 @@ function addHunter(){
   showNotif("quest","HUNTER ADDED",`${recruit.name} joined ${state.social.guildName}.\n\nGuild Points +250\nPartner Push ${state.social.partnerPush}/30`);
 }
 
+function socialFriendChallenge(name="NIGHTSTRIDE"){
+  state.social.partnerPush = Math.min(30,(state.social.partnerPush||18)+1);
+  addAudit("friend-challenge",`Challenge invite sent to ${name}`,{name});
+  saveNonWorkout();
+  setHubScreen("coop");
+  showNotif("quest","CO-OP CHALLENGE",`${name} invited to Partner Push.\n\nPartner progress ${state.social.partnerPush}/30`);
+}
+
+function sendSocialMessage(name="NIGHTSTRIDE"){
+  addAudit("social-message",`Message opened with ${name}`,{name});
+  saveNonWorkout();
+  setHubScreen("messages");
+  showNotif("quest","MESSAGE READY",`Opening thread with ${name}.`);
+}
+
+function joinFeaturedGuild(name="IRON WOLVES"){
+  state.social.guildName = name;
+  state.social.guildLevel = Math.max(state.social.guildLevel||7,7);
+  state.social.guildPoints = Math.max(state.social.guildPoints||0,128450);
+  addAudit("guild-joined",`Joined guild: ${name}`,{name});
+  saveNonWorkout();
+  setHubScreen("guildHall");
+  showNotif("levelup","GUILD JOINED",`${name} is now your active guild.`);
+}
+
+function createGuildFromPack(){
+  const name = "Prime Hunters";
+  state.social.guildName = name;
+  state.social.guildLevel = 1;
+  state.social.guildPoints = Math.max(state.social.guildPoints||0,5000);
+  state.economy.gold = Math.max(0,(state.economy.gold||0)-100);
+  addAudit("guild-created",`Created guild: ${name}`,{name,cost:100});
+  saveNonWorkout();
+  setHubScreen("guildHall");
+  showNotif("levelup","GUILD CREATED",`${name} created.\n\n-100 Gold · Guild Hall unlocked.`);
+}
+
+function invitePartner(){
+  state.social.invitesSent = (state.social.invitesSent||0) + 1;
+  addAudit("partner-invite","Partner Push invite sent",{invites:state.social.invitesSent});
+  saveNonWorkout();
+  setHubScreen("addHunter");
+  showNotif("quest","PARTNER INVITE",`Invite sent. Total invites: ${state.social.invitesSent}`);
+}
+
+function startPartnerSession(){
+  state.social.partnerPush = Math.min(30,(state.social.partnerPush||18)+1);
+  addXP(120,"Partner Push session");
+  addGold(40,"Partner Push session");
+  addAudit("partner-session","Started Partner Push session",{progress:state.social.partnerPush});
+  saveNonWorkout();
+  refreshCurrentView();
+  showNotif("levelup","PARTNER SESSION STARTED",`Partner Push ${state.social.partnerPush}/30\n\n+120 XP · +40 Gold`);
+}
+
+function claimPartnerRewards(){
+  const key = `partner-push-${dateKey()}`;
+  state.meta.claimedRewards = state.meta.claimedRewards || {};
+  if(state.meta.claimedRewards[key]) return showNotif("quest","ALREADY CLAIMED","Partner Push rewards already claimed today.");
+  state.meta.claimedRewards[key] = true;
+  addXP(400,"Partner Push reward");
+  addGold(120,"Partner Push reward");
+  state.social.guildPoints = (state.social.guildPoints||0) + 250;
+  addAudit("partner-reward","Partner Push rewards claimed",{xp:400,gold:120,guild:250});
+  saveNonWorkout();
+  refreshCurrentView();
+  showNotif("levelup","PARTNER REWARDS CLAIMED","+400 XP · +120 Gold · +250 Guild Points");
+}
+
 const HUB_SCREEN_IMAGES = {
   main:"assets/screens/hub.png",
+  friends:"assets/screens/hub-h02-friends.jpg",
+  addHunter:"assets/screens/hub-h03-add-hunter.jpg",
+  friendProfile:"assets/screens/hub-h04-friend-profile.jpg",
+  leaderboard:"assets/screens/hub-h05-leaderboard.jpg",
+  guildHall:"assets/screens/hub-h06-guild-hall.jpg",
+  guildMembers:"assets/screens/hub-h07-guild-members.jpg",
+  raidDetail:"assets/screens/hub-h08-raid-detail.jpg",
+  coop:"assets/screens/hub-h09-coop-challenge.jpg",
+  license:"assets/screens/hub-h10-license.jpg",
+  createGuild:"assets/screens/hub-h11-create-guild.jpg",
   notifications:"assets/screens/hub-g02-notifications.jpg",
-  raidDetail:"assets/screens/hub-g02-raid-detail.jpg",
   messages:"assets/screens/hub-g03-messages.jpg",
   systemChat:"assets/screens/hub-g03-system-chat.jpg",
   quickActions:"assets/screens/hub-g04-quick-actions.jpg",
@@ -1757,7 +1835,7 @@ function hubBottomHotspots(){
   return [
     hotspot("Quests",18,89.5,12,6,"switchTab('quests')"),
     hotspot("Train",32,89.5,14,6,"switchTab('training')"),
-    hotspot("Hub",47,89.5,13,6,"switchTab('hub')"),
+    hotspot("Hub",47,89.5,13,6,"activeHubScreen='main';switchTab('hub')"),
     hotspot("Shop",62,89.5,14,6,"switchTab('shop')"),
     hotspot("Profile",78,89.5,14,6,"switchTab('status')")
   ];
@@ -1765,6 +1843,142 @@ function hubBottomHotspots(){
 
 function hubHotspots(screen=activeHubScreen){
   const nav = hubBottomHotspots();
+  if(screen==="friends") return [
+    ...nav,
+    hotspot("Notifications",69,16.5,7,5,"setHubScreen('notifications')"),
+    hotspot("Messages",77,16.5,8,5,"setHubScreen('messages')"),
+    hotspot("View License",68,29.5,20,5,"setHubScreen('license')"),
+    hotspot("All Friends",18,40.5,18,4,"showNotif('quest','FRIEND FILTER','Showing all hunters.')"),
+    hotspot("Online Friends",37,40.5,18,4,"showNotif('quest','FRIEND FILTER','Showing online hunters.')"),
+    hotspot("Guild Friends",56,40.5,18,4,"setHubScreen('guildMembers')"),
+    hotspot("Recent Friends",75,40.5,18,4,"showNotif('quest','FRIEND FILTER','Showing recent hunters.')"),
+    hotspot("Friend Search",28,45,51,4,"showNotif('quest','FRIEND SEARCH','Search is ready for live account sync.')"),
+    hotspot("Friend Profile",56,51,13,7,"setHubScreen('friendProfile')"),
+    hotspot("Friend Challenge",69,51,13,7,"socialFriendChallenge('IRONWILL')"),
+    hotspot("Friend Message",82,51,13,7,"sendSocialMessage('IRONWILL')"),
+    hotspot("Friend Profile 2",56,60,13,7,"setHubScreen('friendProfile')"),
+    hotspot("Friend Challenge 2",69,60,13,7,"socialFriendChallenge('BEASTMODE')"),
+    hotspot("Friend Message 2",82,60,13,7,"sendSocialMessage('BEASTMODE')"),
+    hotspot("Nightstride Profile",56,69,13,7,"setHubScreen('friendProfile')"),
+    hotspot("Nightstride Challenge",69,69,13,7,"socialFriendChallenge('NIGHTSTRIDE')"),
+    hotspot("Nightstride Message",82,69,13,7,"sendSocialMessage('NIGHTSTRIDE')")
+  ];
+  if(screen==="addHunter") return [
+    ...nav,
+    hotspot("How It Works",67,36,21,4,"showNotif('quest','ADD HUNTER','Find allies by rank, power, guild or suggested synergy.')"),
+    hotspot("Search Hunters",27,40,54,4,"showNotif('quest','HUNTER SEARCH','Search will connect to account sync in the public build.')"),
+    hotspot("All Hunters",18,45,13,4,"showNotif('quest','HUNTER FILTER','Showing all suggestions.')"),
+    hotspot("Rank Filter",34,45,13,4,"showNotif('quest','RANK FILTER','Rank filter opened.')"),
+    hotspot("Region Filter",50,45,13,4,"showNotif('quest','REGION FILTER','Region filter opened.')"),
+    hotspot("Guildless Filter",65,45,16,4,"showNotif('quest','GUILDLESS','Showing guildless hunters.')"),
+    hotspot("Suggested Filter",82,45,17,4,"showNotif('quest','SUGGESTED','Showing suggested allies.')"),
+    hotspot("Add Shadowblade",73,54,22,4,"addHunter()"),
+    hotspot("View Shadowblade",73,58,22,4,"setHubScreen('friendProfile')"),
+    hotspot("Add Voidwalker",73,62,22,4,"addHunter()"),
+    hotspot("View Voidwalker",73,66,22,4,"setHubScreen('friendProfile')"),
+    hotspot("Add Stormreaper",73,70,22,4,"addHunter()"),
+    hotspot("Invite Nightfang",73,78,22,4,"socialFriendChallenge('NIGHTFANG')"),
+    hotspot("More Hunters",28,78,34,4,"showNotif('quest','MORE HUNTERS','More hunter suggestions loaded locally.')"),
+    hotspot("Review Requests",18,89,32,5,"setHubScreen('notifications')"),
+    hotspot("View Pending",57,89,32,5,"setHubScreen('messages')")
+  ];
+  if(screen==="friendProfile") return [
+    ...nav,
+    hotspot("Back Friends",16,17,8,5,"setHubScreen('friends')"),
+    hotspot("Notifications",69,17,7,5,"setHubScreen('notifications')"),
+    hotspot("Messages",77,17,8,5,"setHubScreen('messages')"),
+    hotspot("Message Friend",17,38,18,5,"sendSocialMessage('NIGHTSTRIDE')"),
+    hotspot("Invite Challenge",37,38,24,5,"socialFriendChallenge('NIGHTSTRIDE')"),
+    hotspot("Compare Stats",61,38,20,5,"setHubScreen('leaderboard')"),
+    hotspot("Add To Party",82,38,16,5,"socialFriendChallenge('NIGHTSTRIDE')"),
+    hotspot("View Workouts",18,58,30,4,"switchTab('training')"),
+    hotspot("View Clears",56,58,30,4,"switchTab('dungeons')"),
+    hotspot("View Badges",18,78,30,4,"setHubScreen('license')"),
+    hotspot("View History",56,78,30,4,"setHubScreen('coop')"),
+    hotspot("View Full Stats",30,87,40,4,"setHubScreen('leaderboard')")
+  ];
+  if(screen==="leaderboard") return [
+    ...nav,
+    hotspot("Back Hub",16,16,8,5,"setHubScreen('main')"),
+    hotspot("Notifications",69,16,7,5,"setHubScreen('notifications')"),
+    hotspot("Messages",77,16,8,5,"setHubScreen('messages')"),
+    hotspot("Weekly Leaderboard",20,20,20,4,"showNotif('quest','LEADERBOARD','Weekly leaderboard selected.')"),
+    hotspot("Friends Leaderboard",40,20,20,4,"showNotif('quest','LEADERBOARD','Friends leaderboard selected.')"),
+    hotspot("Guild Leaderboard",60,20,20,4,"showNotif('quest','LEADERBOARD','Guild leaderboard selected.')"),
+    hotspot("Global Leaderboard",80,20,20,4,"showNotif('quest','LEADERBOARD','Global leaderboard selected.')"),
+    hotspot("Top Hunter Profile",50,38,24,18,"setHubScreen('friendProfile')"),
+    hotspot("View Full Global",19,67,68,4,"showNotif('quest','GLOBAL LEADERBOARD','Full global leaderboard will unlock with account sync.')"),
+    hotspot("Weekly Rewards",18,76,68,10,"claimHubMissionRewards()"),
+    hotspot("Rank Progress",18,87,68,8,"showNotif('levelup','RANK PROGRESS','11,450 power to next social rank.')")
+  ];
+  if(screen==="guildHall") return [
+    ...nav,
+    hotspot("Notifications",69,17,7,5,"setHubScreen('notifications')"),
+    hotspot("Messages",77,17,8,5,"setHubScreen('messages')"),
+    hotspot("View License",68,29,20,5,"setHubScreen('license')"),
+    hotspot("Friends Tab",19,36,22,4,"setHubScreen('friends')"),
+    hotspot("Leaderboard Tab",44,36,24,4,"setHubScreen('leaderboard')"),
+    hotspot("Guild Hall Tab",70,36,24,4,"setHubScreen('guildHall')"),
+    hotspot("Guild Missions",20,54,32,10,"switchTab('quests')"),
+    hotspot("Weekly Raid",58,54,32,10,"setHubScreen('raidDetail')"),
+    hotspot("Guild Upgrades",20,66,32,10,"showNotif('quest','GUILD UPGRADES','Guild upgrade tree will spend guild points for shared bonuses.')"),
+    hotspot("Shared Vault",58,66,32,10,"switchTab('vault')"),
+    hotspot("Guild Event",50,77,72,8,"setHubScreen('coop')"),
+    hotspot("Activity Feed",18,87,68,8,"setHubScreen('messages')"),
+    hotspot("Members",34,45,18,5,"setHubScreen('guildMembers')")
+  ];
+  if(screen==="guildMembers") return [
+    ...nav,
+    hotspot("Back Guild Hall",16,18,8,5,"setHubScreen('guildHall')"),
+    hotspot("Notifications",69,18,7,5,"setHubScreen('notifications')"),
+    hotspot("Messages",77,18,8,5,"setHubScreen('messages')"),
+    hotspot("Guild Hall Button",70,29,20,5,"setHubScreen('guildHall')"),
+    hotspot("Members Tab",22,36,25,4,"showNotif('quest','GUILD MEMBERS','Showing guild members.')"),
+    hotspot("Officers Tab",50,36,25,4,"showNotif('quest','OFFICERS','Showing guild officers.')"),
+    hotspot("Requests Tab",76,36,25,4,"setHubScreen('addHunter')"),
+    hotspot("Leader Profile",30,51,40,8,"setHubScreen('friendProfile')"),
+    hotspot("Message Leader",74,51,10,8,"sendSocialMessage('IRONWILL')"),
+    hotspot("Officer Profile",30,62,40,8,"setHubScreen('friendProfile')"),
+    hotspot("Message Officer",74,62,10,8,"sendSocialMessage('BEASTMODE')"),
+    hotspot("Member Profile",30,76,40,8,"setHubScreen('friendProfile')"),
+    hotspot("Message Member",74,76,10,8,"sendSocialMessage('FLEXMASTER')")
+  ];
+  if(screen==="coop") return [
+    ...nav,
+    hotspot("Back Hub",16,17,8,5,"setHubScreen('main')"),
+    hotspot("Notifications",69,17,7,5,"setHubScreen('notifications')"),
+    hotspot("Messages",77,17,8,5,"setHubScreen('messages')"),
+    hotspot("Partner Profile",63,39,24,18,"setHubScreen('friendProfile')"),
+    hotspot("Private Room",56,67,30,15,"setHubScreen('messages')"),
+    hotspot("Invite Partner",18,82,35,5,"invitePartner()"),
+    hotspot("Start Session",55,82,35,5,"startPartnerSession()"),
+    hotspot("Claim Partner Rewards",18,89,70,5,"claimPartnerRewards()")
+  ];
+  if(screen==="license") return [
+    ...nav,
+    hotspot("Back Hub",16,14,8,5,"setHubScreen('main')"),
+    hotspot("Share License",75,14,8,6,"showNotif('quest','PROFILE SHARED','Hunter license share card prepared.')"),
+    hotspot("Share Profile",18,48,68,5,"showNotif('quest','PROFILE SHARED','Hunter profile share card prepared.')"),
+    hotspot("View Rewards",21,70,25,5,"setHubScreen('leaderboard')"),
+    hotspot("View Achievements",55,70,30,5,"switchTab('awakening')"),
+    hotspot("View Perks",18,84,68,5,"switchTab('shop')")
+  ];
+  if(screen==="createGuild") return [
+    ...nav,
+    hotspot("Back Hub",17,24,8,5,"setHubScreen('main')"),
+    hotspot("Discover Guilds",26,32,32,5,"showNotif('quest','DISCOVER GUILDS','Featured guild discovery active.')"),
+    hotspot("Create Guild Tab",63,32,32,5,"showNotif('quest','CREATE GUILD','Guild creation form active.')"),
+    hotspot("Search Guilds",28,37,31,4,"showNotif('quest','GUILD SEARCH','Guild search is ready for live sync.')"),
+    hotspot("Filter Guilds",46,37,16,4,"showNotif('quest','GUILD FILTER','Guild filter opened.')"),
+    hotspot("Join Iron Wolves",47,48,10,4,"joinFeaturedGuild('IRON WOLVES')"),
+    hotspot("Join Shadow Legion",47,57,10,4,"joinFeaturedGuild('SHADOW LEGION')"),
+    hotspot("Join Prime Hunters",47,66,10,4,"joinFeaturedGuild('PRIME HUNTERS')"),
+    hotspot("View All Guilds",20,77,30,5,"showNotif('quest','GUILD DIRECTORY','More guilds loaded locally.')"),
+    hotspot("Crest Previous",58,48,8,6,"showNotif('quest','CREST','Previous crest selected.')"),
+    hotspot("Crest Next",82,48,8,6,"showNotif('quest','CREST','Next crest selected.')"),
+    hotspot("Minimum Rank",60,58,25,5,"showNotif('quest','MINIMUM RANK','Minimum rank selector opened.')"),
+    hotspot("Create Guild",58,75,28,7,"createGuildFromPack()")
+  ];
   if(screen==="notifications") return [
     ...nav,
     hotspot("Close Notifications",76,18.5,8,5,"setHubScreen('main')"),
@@ -1846,23 +2060,41 @@ function hubHotspots(screen=activeHubScreen){
     ...nav,
     hotspot("Notifications",69,5.1,7,5,"setHubScreen('notifications')"),
     hotspot("Messages",76,5.1,8,5,"setHubScreen('messages')"),
-    hotspot("View License",70,18.1,18,4.5,"switchTab('status')"),
+    hotspot("View License",70,18.1,18,4.5,"setHubScreen('license')"),
     hotspot("Friends",17,24.2,21,3.8,"showFriendsPanel()"),
-    hotspot("Leaderboard",40,24.2,22,3.8,"showNotif('quest','LEADERBOARD','Weekly rankings update from quest, raid, guild and impact activity.')"),
+    hotspot("Leaderboard",40,24.2,22,3.8,"setHubScreen('leaderboard')"),
     hotspot("Guild Hall",64,24.2,22,3.8,"showGuildHall()"),
     hotspot("View Raid",66,35.4,20,4,"setHubScreen('raidDetail')"),
     hotspot("Double XP Details",64,41.8,21,4,"setHubScreen('systemChat')"),
-    hotspot("Full Leaderboard",20,61.1,30,3.4,"showNotif('quest','LEADERBOARD','Full leaderboard coming through account sync. Current local ranks are active in this build.')"),
+    hotspot("Full Leaderboard",20,61.1,30,3.4,"setHubScreen('leaderboard')"),
     hotspot("Guild Hall Card",58,62.8,28,3.3,"showGuildHall()"),
-    hotspot("Invite Friends",17,68.4,22,5,"inviteFriend()"),
-    hotspot("Add Hunter",17,75,22,5,"addHunter()"),
-    hotspot("Partner Push",40,68.0,46,12,"setHubScreen('missionComplete')"),
+    hotspot("Invite Friends",17,68.4,22,5,"setHubScreen('addHunter')"),
+    hotspot("Add Hunter",17,75,22,5,"setHubScreen('addHunter')"),
+    hotspot("Partner Push",40,68.0,46,12,"setHubScreen('coop')"),
     hotspot("Quick Actions",82,74.0,10,10,"setHubScreen('quickActions')"),
     hotspot("Impact",17,81.6,69,6.4,"switchTab('impact')")
   ];
 }
 
 function hubStatePanel(screen=activeHubScreen){
+  if(screen==="friends") return `${liveHeader("FRIEND NETWORK",`${state.social.friends||24} friends · ${state.social.partnerPush||18}/30 partner push`)}
+    <div class="action-grid"><button class="btn cta-blue" onclick="setHubScreen('addHunter')">ADD HUNTER</button><button class="btn" onclick="setHubScreen('friendProfile')">OPEN PROFILE</button><button class="btn" onclick="setHubScreen('leaderboard')">LEADERBOARD</button><button class="btn" onclick="setHubScreen('guildMembers')">GUILD MEMBERS</button></div>`;
+  if(screen==="addHunter") return `${liveHeader("ADD HUNTER","Find new allies and build your squad.")}
+    <div class="action-grid"><button class="btn btn-green" onclick="addHunter()">ADD SUGGESTED</button><button class="btn" onclick="socialFriendChallenge('NIGHTFANG')">INVITE CO-OP</button><button class="btn" onclick="setHubScreen('notifications')">REQUESTS</button><button class="btn btn-ghost" onclick="setHubScreen('friends')">BACK</button></div>`;
+  if(screen==="friendProfile") return `${liveHeader("FRIEND PROFILE","Nightstride · Rank E · Iron Wolves")}
+    <div class="action-grid"><button class="btn" onclick="sendSocialMessage('NIGHTSTRIDE')">MESSAGE</button><button class="btn cta-blue" onclick="socialFriendChallenge('NIGHTSTRIDE')">CHALLENGE</button><button class="btn" onclick="setHubScreen('leaderboard')">COMPARE</button><button class="btn btn-ghost" onclick="setHubScreen('friends')">BACK</button></div>`;
+  if(screen==="leaderboard") return `${liveHeader("TOP HUNTERS","Weekly rank, rewards and power progress.")}
+    <div class="action-grid"><button class="btn" onclick="setHubScreen('friends')">FRIENDS</button><button class="btn" onclick="setHubScreen('guildHall')">GUILD</button><button class="btn btn-gold" onclick="claimHubMissionRewards()">CLAIM RANK REWARD</button><button class="btn btn-ghost" onclick="setHubScreen('main')">BACK</button></div>`;
+  if(screen==="guildHall") return `${liveHeader("GUILD HALL",`${esc(state.social.guildName)} · Level ${state.social.guildLevel} · ${formatNum(state.social.guildPoints)} points`)}
+    <div class="action-grid"><button class="btn" onclick="setHubScreen('guildMembers')">MEMBERS</button><button class="btn cta-blue" onclick="setHubScreen('raidDetail')">WEEKLY RAID</button><button class="btn" onclick="switchTab('vault')">SHARED VAULT</button><button class="btn" onclick="setHubScreen('createGuild')">CREATE / JOIN</button></div>`;
+  if(screen==="guildMembers") return `${liveHeader("GUILD MEMBERS",`${state.social.guildMembers.length + 24} / 30 members · ${formatNum(state.social.guildPoints)} guild power`)}
+    <div class="action-grid"><button class="btn" onclick="setHubScreen('guildHall')">GUILD HALL</button><button class="btn" onclick="setHubScreen('addHunter')">REQUESTS</button><button class="btn" onclick="sendSocialMessage('IRONWILL')">MESSAGE LEADER</button><button class="btn btn-ghost" onclick="setHubScreen('guildHall')">BACK</button></div>`;
+  if(screen==="coop") return `${liveHeader("PARTNER PUSH",`${state.social.partnerPush||18} / 30 workouts complete`)}
+    <div class="action-grid"><button class="btn" onclick="invitePartner()">INVITE PARTNER</button><button class="btn cta-blue" onclick="startPartnerSession()">START SESSION</button><button class="btn btn-gold" onclick="claimPartnerRewards()">CLAIM REWARDS</button><button class="btn btn-ghost" onclick="setHubScreen('main')">BACK</button></div>`;
+  if(screen==="license") return `${liveHeader("HUNTER LICENSE","Shareable social profile, achievements and perks.")}
+    <div class="action-grid"><button class="btn" onclick="showNotif('quest','PROFILE SHARED','Hunter license share card prepared.')">SHARE PROFILE</button><button class="btn" onclick="switchTab('awakening')">ACHIEVEMENTS</button><button class="btn" onclick="switchTab('shop')">PERKS</button><button class="btn btn-ghost" onclick="setHubScreen('main')">BACK</button></div>`;
+  if(screen==="createGuild") return `${liveHeader("CREATE OR JOIN GUILD","Discover guilds or launch your own.")}
+    <div class="action-grid"><button class="btn cta-blue" onclick="joinFeaturedGuild('IRON WOLVES')">JOIN IRON WOLVES</button><button class="btn" onclick="joinFeaturedGuild('SHADOW LEGION')">JOIN SHADOW LEGION</button><button class="btn btn-gold" onclick="createGuildFromPack()">CREATE GUILD</button><button class="btn btn-ghost" onclick="setHubScreen('guildHall')">BACK</button></div>`;
   if(screen==="notifications") return `${liveHeader("SYSTEM NOTIFICATIONS","Streak, raid, social, shop, impact and nutrition alerts.")}
     <div class="action-grid mb12"><button class="btn" onclick="switchTab('quests')">VIEW STREAK</button><button class="btn" onclick="setHubScreen('raidDetail')">VIEW RAID</button><button class="btn btn-green" onclick="acceptFriendRequest()">ACCEPT FRIEND</button><button class="btn" onclick="markHubNotificationsRead()">MARK ALL READ</button></div>`;
   if(screen==="raidDetail") return `${liveHeader("SHADOW COLOSSEUM RAID","Weekly guild raid detail and participation state.")}
