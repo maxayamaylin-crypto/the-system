@@ -500,7 +500,31 @@ body::before{
 .live-row small{display:block;color:#8fa6ba;font-size:11px;margin-top:2px;}
 .live-row .btn{padding:7px 10px;font-size:11px;white-space:nowrap;}
 body.pixel-mode{background:#000;}
-body.pixel-mode #app{max-width:960px;padding:12px;padding-bottom:80px;}
+body.pixel-mode #app{max-width:960px;padding:12px 12px 18px;}
+body.pixel-mode #tabs{
+  position:sticky;
+  top:0;
+  left:auto;
+  bottom:auto;
+  transform:none;
+  width:100%;
+  height:auto;
+  margin:0 0 12px;
+  padding:5px;
+  border:1px solid rgba(0,170,255,.35);
+  border-radius:9px;
+  background:linear-gradient(180deg,rgba(4,16,31,.96),rgba(1,7,15,.96));
+  box-shadow:0 0 22px rgba(0,120,255,.18),inset 0 0 18px rgba(0,170,255,.08);
+}
+body.pixel-mode .tab-btn{
+  min-height:34px;
+  padding:7px 5px;
+  font-size:9px;
+  border-left:0;
+  border-radius:7px;
+}
+body.pixel-mode .tab-btn small{display:none;}
+body.pixel-mode .tab-btn.active{border-bottom:0;background:linear-gradient(180deg,rgba(0,170,255,.24),rgba(0,70,140,.24));}
 @media (max-width:420px){
   .license-grid{grid-template-columns:80px 1fr 58px;}
   .license-emblem{width:52px;height:52px;font-size:30px;}
