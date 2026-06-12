@@ -153,9 +153,9 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
 .rank-road-xp{font-size:8px;margin-top:3px;color:#4a7a9b;font-family:monospace;}
 
 /* Notification overlay */
-#notif-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;align-items:center;justify-content:center;}
+#notif-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.42);z-index:1000;align-items:center;justify-content:center;pointer-events:none;}
 #notif-overlay.show{display:flex;}
-#notif-box{max-width:420px;width:90%;padding:28px 24px;text-align:center;}
+#notif-box{max-width:420px;width:90%;padding:28px 24px;text-align:center;pointer-events:auto;}
 .notif-type{font-size:11px;letter-spacing:4px;font-family:monospace;margin-bottom:12px;}
 .notif-title{font-size:18px;font-weight:900;color:#e8f4ff;margin-bottom:14px;line-height:1.4;letter-spacing:1px;}
 .notif-body{font-size:13px;color:#4a7a9b;margin-bottom:22px;line-height:1.7;white-space:pre-line;}
@@ -490,9 +490,9 @@ body::before{
 .pixel-hotspot{position:absolute;display:block;border:0;background:rgba(0,0,0,0);color:transparent;cursor:pointer;padding:0;z-index:4;}
 .pixel-hotspot:focus{outline:1px solid rgba(19,216,255,.8);outline-offset:2px;}
 .pixel-live{position:absolute;left:50%;top:7.3%;transform:translateX(-50%);z-index:3;min-width:120px;padding:3px 8px;border:1px solid rgba(19,216,255,.55);border-radius:999px;background:rgba(0,5,14,.72);color:#13d8ff;font-family:monospace;font-size:10px;line-height:1.2;text-align:center;box-shadow:0 0 12px rgba(0,170,255,.28);pointer-events:none;}
-body:has(.pixel-screen){background:#000;}
-body:has(.pixel-screen) #app{width:min(100vw,520px);max-width:520px;padding:0;background:transparent;border:0;box-shadow:none;}
-body:has(.pixel-screen) #topbar,body:has(.pixel-screen) #tabs,body:has(.pixel-screen) #player-strip{display:none!important;}
+body.pixel-mode{background:#000;}
+body.pixel-mode #app{width:min(100vw,520px);max-width:520px;padding:0;background:transparent;border:0;box-shadow:none;}
+body.pixel-mode #topbar,body.pixel-mode #tabs,body.pixel-mode #player-strip{display:none!important;}
 @media (max-width:420px){
   .license-grid{grid-template-columns:80px 1fr 58px;}
   .license-emblem{width:52px;height:52px;font-size:30px;}
@@ -528,7 +528,7 @@ body:has(.pixel-screen) #topbar,body:has(.pixel-screen) #tabs,body:has(.pixel-sc
       <div>[ DAILY QUEST ENGINE ONLINE ]</div>
       <div>[ HUNTER LICENSE ISSUED ]</div>
     </div>
-    <button class="btn cta-blue" onclick="completeIntro()">ENTER SYSTEM</button>
+    <button id="intro-enter" class="btn cta-blue" onclick="completeIntro()">ENTER SYSTEM</button>
   </div>
 </div>
 <div id="app">
@@ -951,12 +951,56 @@ let logMode = false;
 let logDay = null;
 let logData = {};
 let workoutsDirty = false;
+let notifTimer = null;
 
 // ═══════════════════════════════════════════════════════════
 // STORAGE
 // ═══════════════════════════════════════════════════════════
 function sGet(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}}
 function sSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
+const API_BASE = `${location.origin}/api`;
+let backendSaveTimer = null;
+let backendHydrated = false;
+async function apiRequest(path, options={}){
+  if(!/^https?:$/.test(location.protocol)) return null;
+  try{
+    const res = await fetch(`${API_BASE}${path}`, {
+      headers:{"Content-Type":"application/json", ...(options.headers||{})},
+      ...options
+    });
+    if(!res.ok) throw new Error(`API ${res.status}`);
+    return await res.json();
+  }catch(err){
+    return null;
+  }
+}
+function queueBackendSave(reason="state"){
+  clearTimeout(backendSaveTimer);
+  backendSaveTimer = setTimeout(async()=>{
+    const appState = getFullSave();
+    const result = await apiRequest("/state", {method:"PUT", body:JSON.stringify({reason,appState})});
+    if(result?.ok) localStorage.setItem("system-api-revision", String(result.revision||""));
+  }, 350);
+}
+async function recordBackendEvent(type,message,data={}){
+  await apiRequest("/events", {method:"POST", body:JSON.stringify({type,message,data})});
+}
+async function hydrateFromBackend(){
+  if(backendHydrated) return;
+  backendHydrated = true;
+  const remote = await apiRequest("/state");
+  if(!remote?.appState) return;
+  const data = remote.appState;
+  if(data.workouts) state.workouts=data.workouts;
+  if(data.sessions) state.sessions=data.sessions;
+  if(data.player) state.player=data.player;
+  if(data.dailyProgress?.date === state.dailyProgress.date) state.dailyProgress=data.dailyProgress;
+  if(data.nutritionLog?.date === state.nutritionLog.date) state.nutritionLog=data.nutritionLog;
+  if(data.weightLog) state.weightLog=data.weightLog;
+  restoreExtraState(data);
+  saveAll();
+  renderAll();
+}
 function dateKey(d=new Date()){return new Date(d).toLocaleDateString("en-CA");}
 function weekKey(d=new Date()){
   const x = new Date(d);
@@ -1063,6 +1107,7 @@ function addAudit(type, message, extra={}){
   if(!Array.isArray(state.auditLog)) state.auditLog = [];
   state.auditLog.unshift({id:Date.now()+"-"+Math.random().toString(16).slice(2),at:new Date().toISOString(),type,message,extra});
   state.auditLog = state.auditLog.slice(0,120);
+  recordBackendEvent(type,message,extra);
 }
 function getFullSave(){
   ensureStateShape();
@@ -1188,12 +1233,15 @@ function renderBottomNav(active=currentTab){
   const el = document.getElementById("tabs");
   if(!el) return;
   const activeAlias = active==="dungeons" ? "quests" : active;
-  el.innerHTML = nav.map(([tab,icon,label])=>`<button class="tab-btn ${tab===activeAlias?"active":""}" onclick="switchTab('${tab}')"><small>${icon}</small>${label}</button>`).join("");
+  el.innerHTML = nav.map(([tab,icon,label])=>`<button class="tab-btn ${tab===activeAlias?"active":""}" data-tab="${tab}" aria-label="${label}" onclick="switchTab('${tab}')"><small>${icon}</small>${label}</button>`).join("");
 }
 function updateScreenSubtitle(tab=currentTab){
   const labels = {hub:"SOCIAL HUB",quests:"QUESTS",training:"TRAIN",dungeons:"DUNGEONS",shop:"HUNTER SHOP",impact:"HUNTERS FOR GOOD",status:"PROFILE",nutrition:"NUTRITION",progress:"PROGRESS",coach:"COACH",awakening:"AWAKENING",vault:"VAULT",settings:"SETTINGS"};
   const el = document.getElementById("screen-subtitle");
   if(el) el.textContent = labels[tab] || "HUNTER OS";
+}
+function updatePixelMode(tab=currentTab){
+  document.body.classList.toggle("pixel-mode", ["hub","quests","dungeons","shop","impact"].includes(tab));
 }
 function showIntro(force=false){
   const intro = document.getElementById("intro-sequence");
@@ -1344,6 +1392,7 @@ function saveAll(){
   sSet("sl-inventory",state.inventory);
   sSet("sl-dungeons",state.dungeons);
   sSet("sl-social",state.social);
+  queueBackendSave("saveAll");
 }
 function saveNonWorkout(){
   ensureStateShape();
@@ -1365,6 +1414,7 @@ function saveNonWorkout(){
   sSet("sl-inventory",state.inventory);
   sSet("sl-dungeons",state.dungeons);
   sSet("sl-social",state.social);
+  queueBackendSave("saveNonWorkout");
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1425,6 +1475,7 @@ function init(){
   }
 
   renderAll();
+  hydrateFromBackend();
   startClock();
   startMidnightWatcher();
   showIntro(false);
@@ -1523,7 +1574,7 @@ function startClock(){
     const s = String(now.getSeconds()).padStart(2,"0");
     const el = document.getElementById("clock");
     if(el) el.textContent = `${h}:${m}:${s}`;
-    if(currentTab==="quests" && s==="00") renderMissionControl();
+    if(currentTab==="quests" && !document.body.classList.contains("pixel-mode")) renderMissionControl();
   }
   tick();
   setInterval(tick, 1000);
@@ -1548,8 +1599,13 @@ function showNotif(type, title, body){
   btn.style.color = type==="penalty" ? "#ff3333" : "#00aaff";
   btn.style.background = type==="penalty" ? "rgba(122,0,0,0.3)" : "rgba(0,100,180,0.3)";
   overlay.classList.add("show");
+  clearTimeout(notifTimer);
+  notifTimer = setTimeout(closeNotif, type==="penalty" || type==="vault" ? 5200 : 2400);
 }
-function closeNotif(){document.getElementById("notif-overlay").classList.remove("show");}
+function closeNotif(){
+  clearTimeout(notifTimer);
+  document.getElementById("notif-overlay").classList.remove("show");
+}
 
 // ═══════════════════════════════════════════════════════════
 // XP & RANK
@@ -1581,11 +1637,12 @@ function addXP(amount, statKey){
 // ═══════════════════════════════════════════════════════════
 // QUEST LOGIC
 // ═══════════════════════════════════════════════════════════
-function updateQuestProgress(questId, value){
+function updateQuestProgress(questId, value, mode="add"){
   const quest = QUESTS.find(q=>q.id===questId);
   if(!quest) return;
   const prev = state.dailyProgress.quests[questId] || {value:0,completed:false};
-  const newVal = Math.min(quest.target, parseFloat(value)||0);
+  const amount = parseFloat(value)||0;
+  const newVal = Math.min(quest.target, mode==="set" ? amount : (parseFloat(prev.value)||0) + amount);
   const justCompleted = !prev.completed && newVal >= quest.target;
   state.dailyProgress.quests[questId] = {value:newVal, completed: newVal>=quest.target};
   sSet("sl-daily", state.dailyProgress);
@@ -1596,6 +1653,8 @@ function updateQuestProgress(questId, value){
     addImpact(quest.optional?8:10, quest.name);
     addXP(quest.xp, quest.stat);
     showNotif("quest","QUEST COMPLETE",`「${quest.name}」 objective fulfilled.\n\n+${quest.xp} XP · +${gold} Gold\n+1 ${quest.stat}`);
+  }else{
+    saveNonWorkout();
   }
   renderQuestCard(questId);
   renderPlayerStrip();
@@ -2384,6 +2443,7 @@ function renderHunterProfile(){
 // ═══════════════════════════════════════════════════════════
 function switchTab(tab){
   currentTab=tab;
+  updatePixelMode(tab);
   updateScreenSubtitle(tab);
   renderBottomNav(tab);
   document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
@@ -2460,6 +2520,7 @@ function handleImport(){
 // ═══════════════════════════════════════════════════════════
 function renderAll(){
   ensureStateShape();
+  updatePixelMode(currentTab);
   updateScreenSubtitle(currentTab);
   renderBottomNav(currentTab);
   renderPlayerStrip();
@@ -3197,7 +3258,8 @@ function renderHub(){
     hotspot("Full Leaderboard",20,61.1,30,3.4,"showNotif('quest','LEADERBOARD','Full leaderboard coming through account sync. Current local ranks are active in this build.')"),
     hotspot("Guild Hall Card",58,62.8,28,3.3,"showGuildHall()"),
     hotspot("Invite Friends",17,68.4,22,5,"inviteFriend()"),
-    hotspot("Add Hunter",17,75,22,5,"addHunter()")
+    hotspot("Add Hunter",17,75,22,5,"addHunter()"),
+    hotspot("Impact",17,81.6,69,6.4,"switchTab('impact')")
   ];
   el.innerHTML = pixelScreen("assets/screens/hub.png",h,`Friends ${state.social.friends} · Guild ${formatNum(state.social.guildPoints)}`);
   return;

@@ -1,4 +1,4 @@
-const CACHE = "system-v4-1-pixel";
+const CACHE = "system-v4-2-pixel";
 const FILES = [
   "./",
   "./the-system.html",
