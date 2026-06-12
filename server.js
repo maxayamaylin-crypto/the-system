@@ -55,6 +55,16 @@ function readBody(req) {
   });
 }
 
+function parseJsonBody(body) {
+  try {
+    return JSON.parse(body || "{}");
+  } catch {
+    const err = new Error("Invalid JSON body");
+    err.statusCode = 400;
+    throw err;
+  }
+}
+
 function send(res, status, data, headers = {}) {
   const isBuffer = Buffer.isBuffer(data);
   res.writeHead(status, {
@@ -98,6 +108,53 @@ function emptyState() {
   };
 }
 
+function getMealsToday(appState) {
+  const meals = appState?.nutritionLog?.meals;
+  return Array.isArray(meals) ? meals : [];
+}
+
+function buildSummary(state) {
+  const appState = state.appState || {};
+  const meals = getMealsToday(appState);
+  const sessions = appState.sessions && typeof appState.sessions === "object"
+    ? Object.values(appState.sessions).reduce((sum,items) => sum + (Array.isArray(items) ? items.length : 0), 0)
+    : 0;
+  const totals = meals.reduce((sum, meal) => ({
+    calories: sum.calories + Number(meal.calories || 0),
+    protein: sum.protein + Number(meal.protein || 0),
+    carbs: sum.carbs + Number(meal.carbs || 0),
+    fat: sum.fat + Number(meal.fat || 0),
+    sugar: sum.sugar + Number(meal.sugar || 0),
+    fiber: sum.fiber + Number(meal.fiber || 0)
+  }), { calories: 0, protein: 0, carbs: 0, fat: 0, sugar: 0, fiber: 0 });
+  return {
+    id: state.id,
+    revision: state.revision || 0,
+    updatedAt: state.updatedAt,
+    player: {
+      name: appState.profile?.displayName || "Hunter Prime",
+      level: appState.player?.level || 1,
+      rank: appState.player?.rank || "E",
+      totalXp: appState.player?.totalXp || 0,
+      streak: appState.streak?.current || 0
+    },
+    counts: {
+      mealsToday: meals.length,
+      trainingSessions: sessions,
+      ownedItems: appState.inventory?.owned?.length || 0,
+      dungeonsCleared: appState.dungeons?.raidHistory?.length || 0,
+      activeVaults: (appState.vaultContracts || []).filter(contract => contract.status === "active").length
+    },
+    nutrition: totals,
+    economy: {
+      gold: appState.economy?.gold || 0,
+      impactPoints: appState.economy?.impactPoints || 0,
+      guildPoints: appState.social?.guildPoints || 0
+    },
+    recentEvents: (state.events || []).slice(0, 10)
+  };
+}
+
 async function handleApi(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const state = readJson(STATE_FILE, emptyState());
@@ -112,9 +169,14 @@ async function handleApi(req, res) {
     return;
   }
 
+  if (req.method === "GET" && url.pathname === "/api/summary") {
+    send(res, 200, buildSummary(state));
+    return;
+  }
+
   if (req.method === "PUT" && url.pathname === "/api/state") {
     const body = await readBody(req);
-    const payload = JSON.parse(body || "{}");
+    const payload = parseJsonBody(body);
     const next = {
       ...state,
       updatedAt: new Date().toISOString(),
@@ -128,7 +190,7 @@ async function handleApi(req, res) {
 
   if (req.method === "POST" && url.pathname === "/api/events") {
     const body = await readBody(req);
-    const payload = JSON.parse(body || "{}");
+    const payload = parseJsonBody(body);
     const event = {
       id: crypto.randomUUID(),
       at: new Date().toISOString(),
@@ -154,7 +216,7 @@ const server = http.createServer(async (req, res) => {
     }
     serveStatic(req, res);
   } catch (err) {
-    send(res, 500, { ok: false, error: err.message || "Server error" });
+    send(res, err.statusCode || 500, { ok: false, error: err.message || "Server error" });
   }
 });
 

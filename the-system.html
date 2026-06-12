@@ -1409,7 +1409,7 @@ function updateScreenSubtitle(tab=currentTab){
   if(el) el.textContent = labels[tab] || "HUNTER OS";
 }
 function updatePixelMode(tab=currentTab){
-  document.body.classList.toggle("pixel-mode", ["hub","quests","dungeons","shop","impact","nutrition"].includes(tab));
+  document.body.classList.toggle("pixel-mode", ["hub","quests","dungeons","shop","impact","nutrition","training","status"].includes(tab));
 }
 function showIntro(force=false){
   const intro = document.getElementById("intro-sequence");
@@ -2163,11 +2163,77 @@ function setTrainingDay(k){
   renderTrainingContent();
 }
 
+function trainingHotspots(){
+  return [
+    hotspot("UB1",9.5,17.0,14.5,3.4,"setTrainingDay('UB1')"),
+    hotspot("LB1",25.0,17.0,14.5,3.4,"setTrainingDay('LB1')"),
+    hotspot("UB2",40.4,17.0,14.5,3.4,"setTrainingDay('UB2')"),
+    hotspot("LB2",55.9,17.0,14.5,3.4,"setTrainingDay('LB2')"),
+    hotspot("UB3",71.2,17.0,14.5,3.4,"setTrainingDay('UB3')"),
+    hotspot("Upper Lower",10.4,21.0,13.5,5.0,"showNotif('quest','SPLIT TEMPLATE','Upper/Lower selected. Use the live editor below to customize movements.')"),
+    hotspot("Push Pull Legs",24.2,21.0,13.5,5.0,"applyTrainingTemplate('ppl')"),
+    hotspot("Arnold Split",38.1,21.0,13.5,5.0,"applyTrainingTemplate('arnold')"),
+    hotspot("Full Body",52.0,21.0,13.5,5.0,"applyTrainingTemplate('fullbody')"),
+    hotspot("Custom Split",66.0,21.0,13.5,5.0,"showNotif('quest','CUSTOM SPLIT','Edit exercises below. Changes autosave to the local API.')"),
+    hotspot("Log Session",14.3,31.5,43.0,5.3,`startLogSession('${activeTrainingDay}')`),
+    hotspot("Add Chest Exercise",38.0,52.2,28.0,3.0,"addExerciseToSection('CHEST')"),
+    hotspot("Add Back Exercise",38.0,63.6,28.0,3.0,"addExerciseToSection('BACK')"),
+    hotspot("Add Biceps Exercise",38.0,74.6,28.0,3.0,"addExerciseToSection('BICEPS')"),
+    hotspot("Add Triceps Exercise",38.0,84.2,28.0,3.0,"addExerciseToSection('TRICEPS')"),
+    hotspot("Add Shoulders Exercise",38.0,92.0,28.0,3.0,"addExerciseToSection('SHOULDERS')"),
+    hotspot("Hub",12.0,94.6,12.0,4.5,"switchTab('hub')"),
+    hotspot("Train",27.0,94.6,13.0,4.5,"switchTab('training')"),
+    hotspot("Quests",43.0,94.6,13.0,4.5,"switchTab('quests')"),
+    hotspot("Shop",60.0,94.6,12.0,4.5,"switchTab('shop')"),
+    hotspot("Profile",77.0,94.6,13.0,4.5,"switchTab('status')")
+  ];
+}
+
+function trainingLivePanel(w){
+  const exerciseCount = Object.values(w.sections||{}).reduce((sum,items)=>sum+items.length,0);
+  const sessionCount = (state.sessions?.[activeTrainingDay]||[]).length;
+  const analytics = getTrainingAnalytics();
+  return `${liveHeader("LIVE TRAINING COMMAND",`${w.label} · ${exerciseCount} movements · ${sessionCount} sessions logged`)}
+    <div class="action-grid mb12">
+      <button class="btn" onclick="startLogSession('${activeTrainingDay}')">LOG SESSION</button>
+      <button class="btn" onclick="switchTab('progress')">PROGRESS</button>
+      <button class="btn btn-gold" onclick="applyTrainingTemplate('ppl')">PPL TEMPLATE</button>
+      <button class="btn" onclick="showNotif('quest','COACHING SIGNAL','${esc(analytics.prs.length)} PR signals · ${esc(analytics.stalls.length)} stalls detected across logged sessions.')">COACH CHECK</button>
+    </div>
+    <div class="two-col">
+      <div class="system-card p12"><div class="label-sm mb8">TODAY'S TARGET</div><div style="font-size:20px;font-weight:900;color:${w.color};">${esc(w.focus)}</div><div style="color:#9cadbd;font-size:12px;margin-top:6px;">Edit exercises below, then log real weights and reps.</div></div>
+      <div class="system-card p12"><div class="label-sm mb8">REWARDS</div><div class="social-strip"><div><small>XP</small><b>+200</b></div><div><small>GOLD</small><b>+75</b></div><div><small>IMPACT</small><b>+50</b></div></div></div>
+    </div>`;
+}
+
+function addExerciseToSection(section){
+  const w = state.workouts?.[activeTrainingDay];
+  if(!w?.sections?.[section]) return showNotif("penalty","SECTION LOCKED",`${section} is not on ${activeTrainingDay}.`);
+  const id = `${activeTrainingDay.toLowerCase()}-${section.toLowerCase()}-${Date.now()}`;
+  w.sections[section].push({id,name:"new movement",sets:"3 sets",reps:"8-10 reps",note:"custom"});
+  workoutsDirty = true;
+  sSet("sl-workouts",state.workouts);
+  queueBackendSave("workout-add-exercise");
+  updateSaveBtn();
+  renderTrainingContent();
+  showNotif("quest","EXERCISE ADDED",`${section}: New movement added. Tap it below to rename and tune sets/reps.`);
+}
+
+function applyTrainingTemplate(template){
+  const presets = {
+    ppl:"Push/Pull/Legs mode selected. Keep UB days push/pull focused and LB days leg focused.",
+    arnold:"Arnold split selected. Add chest/back supersets and arm volume from the editor.",
+    fullbody:"Full body selected. Use fewer movements per day and higher weekly frequency."
+  };
+  showNotif("quest","TRAINING TEMPLATE",presets[template] || "Template selected. Customize the live plan below.");
+}
+
 function renderTrainingContent(){
   if(logMode && logDay){renderLogSession();return;}
   const w = state.workouts[activeTrainingDay];
   const el = document.getElementById("training-content");
-  el.innerHTML = `<div class="panel workout-card">
+  el.innerHTML = `${pixelScreen("assets/screens/training-workout.jpg",trainingHotspots(),trainingLivePanel(w))}
+  <div class="panel workout-card">
     <div class="br"></div><div class="bl"></div>
     <div class="flex-between flex-wrap gap8 mb16">
       <div>
@@ -2235,6 +2301,8 @@ function saveEdit(dayKey,sec,idx){
   state.workouts[dayKey].sections[sec][idx]={...state.workouts[dayKey].sections[sec][idx],name,sets,reps,note:note||undefined};
   editingEx=null;
   workoutsDirty=true;
+  sSet("sl-workouts",state.workouts);
+  queueBackendSave("workout-edit");
   updateSaveBtn();
   renderTrainingContent();
 }
@@ -2243,6 +2311,8 @@ function deleteExercise(dayKey,sec,idx){
   state.workouts[dayKey].sections[sec].splice(idx,1);
   editingEx=null;
   workoutsDirty=true;
+  sSet("sl-workouts",state.workouts);
+  queueBackendSave("workout-delete-exercise");
   updateSaveBtn();
   renderTrainingContent();
 }
@@ -2716,6 +2786,30 @@ function renderStatus(){
   </div>`).join("");
 }
 
+function profileHotspots(nextRoute="quests"){
+  return [
+    hotspot("Edit Avatar",29.0,18.6,8.0,7.2,"switchTab('settings')"),
+    hotspot("Quests",51.5,28.5,18.0,6.0,"switchTab('quests')"),
+    hotspot("Train",73.0,28.5,18.0,6.0,"switchTab('training')"),
+    hotspot("Nutrition",51.5,35.2,18.0,6.0,"switchTab('nutrition')"),
+    hotspot("Impact",73.0,35.2,18.0,6.0,"switchTab('impact')"),
+    hotspot("Vault",51.5,42.0,18.0,6.0,"switchTab('vault')"),
+    hotspot("Shop",73.0,42.0,18.0,6.0,"switchTab('shop')"),
+    hotspot("Go Now",9.0,37.0,18.0,5.0,`switchTab('${nextRoute}')`),
+    hotspot("Edit License",8.0,53.0,34.0,4.6,"switchTab('settings')"),
+    hotspot("Change Title",53.0,53.0,34.0,4.6,"switchTab('awakening')"),
+    hotspot("View Activity",50.0,81.0,35.0,4.0,"showNotif('quest','RECENT ACTIVITY',(state.auditLog||[]).slice(0,6).map(a=>a.message).join('\\n') || 'No activity yet.')"),
+    hotspot("Export Backup",68.0,89.2,20.0,4.8,"handleExport()"),
+    hotspot("Settings",68.0,94.0,20.0,4.5,"switchTab('settings')"),
+    hotspot("Quests Tab",9.5,94.4,12.0,4.8,"switchTab('quests')"),
+    hotspot("Train Tab",24.0,94.4,12.0,4.8,"switchTab('training')"),
+    hotspot("Hub Tab",39.0,94.4,12.0,4.8,"switchTab('hub')"),
+    hotspot("Shop Tab",55.0,94.4,12.0,4.8,"switchTab('shop')"),
+    hotspot("Impact Tab",70.0,94.4,12.0,4.8,"switchTab('impact')"),
+    hotspot("Profile Tab",84.0,94.4,12.0,4.8,"switchTab('status')")
+  ];
+}
+
 function renderHunterProfile(){
   ensureStateShape();
   const el = document.getElementById("tab-status");
@@ -2728,6 +2822,7 @@ function renderHunterProfile(){
   const nextRoute = next?.type==="nutrition" ? "nutrition" : next?.id==="dq-workout" ? "training" : next ? "quests" : "impact";
   const nextText = next ? `${next.label}: ${formatNum(next.remaining)} ${next.unit} remaining` : "All core obligations clear. Build impact or start a raid.";
   el.innerHTML = `
+    ${pixelScreen("assets/screens/profile-command.jpg",profileHotspots(nextRoute))}
     ${hunterLicenseCard()}
     <div class="system-card p16 mb12" style="border-color:${threat.color};background:linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,25,45,.36));">
       <div class="flex-between flex-wrap gap8">

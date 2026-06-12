@@ -1,4 +1,4 @@
-const CACHE = "system-v4-3-nutrition";
+const CACHE = "system-v4-4-train-profile";
 const FILES = [
   "./",
   "./the-system.html",
@@ -11,7 +11,9 @@ const FILES = [
   "./assets/screens/nutrition-archive.jpg",
   "./assets/screens/nutrition-scan.jpg",
   "./assets/screens/nutrition-diary.jpg",
-  "./assets/screens/nutrition-progress.jpg"
+  "./assets/screens/nutrition-progress.jpg",
+  "./assets/screens/training-workout.jpg",
+  "./assets/screens/profile-command.jpg"
 ];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
