@@ -1,4 +1,4 @@
-const CACHE = "system-v3-2";
+const CACHE = "system-v3-3";
 const FILES = ["./", "./the-system.html", "./manifest.json"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

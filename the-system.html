@@ -182,7 +182,7 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
   <div id="topbar">
     <div>
       <span class="system-text">◈ THE SYSTEM</span>
-      <span style="color:#4a7a9b;font-size:10px;margin-left:10px;font-family:monospace;letter-spacing:2px;">v3.2 · ONLINE</span>
+      <span style="color:#4a7a9b;font-size:10px;margin-left:10px;font-family:monospace;letter-spacing:2px;">v3.3 · ONLINE</span>
       <div id="clock"></div>
     </div>
     <div class="topbar-right">
@@ -222,6 +222,7 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
     <button class="tab-btn" onclick="switchTab('nutrition')">🍖 NUTRITION</button>
     <button class="tab-btn" onclick="switchTab('progress')">📊 PROGRESS</button>
     <button class="tab-btn" onclick="switchTab('coach')">◆ COACH</button>
+    <button class="tab-btn" onclick="switchTab('awakening')">◇ AWAKENING</button>
     <button class="tab-btn" onclick="switchTab('vault')">⬥ VAULT</button>
     <button class="tab-btn" onclick="switchTab('status')">👤 STATUS</button>
   </div>
@@ -361,6 +362,11 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
     <div id="coach-content"></div>
   </div>
 
+  <!-- AWAKENING TAB -->
+  <div id="tab-awakening" class="tab-content">
+    <div id="awakening-content"></div>
+  </div>
+
   <!-- DISCIPLINE VAULT TAB -->
   <div id="tab-vault" class="tab-content">
     <div id="vault-content"></div>
@@ -426,6 +432,28 @@ const MEAL_TEMPLATES = [
   {name:"Lean bulk wrap stack",calories:850,protein:58}
 ];
 const VAULT_CHARITIES = ["Cancer Research UK","British Heart Foundation","Mind","UNICEF","WaterAid","Local food bank","Custom charity"];
+const TITLE_RULES = [
+  {id:"initiate",name:"E-Rank Initiate",desc:"The beginning of the climb.",check:()=>true},
+  {id:"iron-will",name:"Iron Will",desc:"Hold a 7 day perfect streak.",check:()=>state.streak.current>=7 || state.streak.best>=7},
+  {id:"calorie-smith",name:"Calorie Smith",desc:"Log 20 meals.",check:()=>getMealCount()>=20},
+  {id:"forge-bound",name:"Forge Bound",desc:"Log 10 training sessions.",check:()=>getSessionCount()>=10},
+  {id:"contract-bound",name:"Contract Bound",desc:"Create a Discipline Vault contract.",check:()=>state.vaultContracts.length>0},
+  {id:"a-rank-mindset",name:"A-Rank Mindset",desc:"Reach 35,000 total XP.",check:()=>state.player.totalXp>=35000}
+];
+const SKILL_RULES = [
+  {id:"power-output",name:"Power Output",stat:"STR",req:15,desc:"Progressive overload alerts unlock deeper lift pressure."},
+  {id:"quick-footwork",name:"Quick Footwork",stat:"AGI",req:18,desc:"Step consistency becomes a weekly boss multiplier."},
+  {id:"deep-work",name:"Deep Work",stat:"INT",req:15,desc:"Study streaks gain stronger system priority."},
+  {id:"recovery-core",name:"Recovery Core",stat:"VIT",req:15,desc:"Planned rest days protect discipline without guilt."},
+  {id:"battle-sense",name:"Battle Sense",stat:"PER",req:12,desc:"Coach warnings and contract risk become easier to read."}
+];
+const ACHIEVEMENT_RULES = [
+  {id:"first-clear",name:"First Clear",desc:"Complete any mandatory quest.",check:()=>Object.values(state.dailyProgress.quests||{}).some(q=>q.completed)},
+  {id:"first-session",name:"First Logged Session",desc:"Log your first full workout.",check:()=>getSessionCount()>=1},
+  {id:"protein-discipline",name:"Protein Discipline",desc:"Hit nutrition targets for 3 recorded days.",check:()=>state.dailyHistory.filter(d=>d.nutritionHit).length>=3},
+  {id:"boss-slayer",name:"Boss Slayer",desc:"Claim a weekly boss reward.",check:()=>state.auditLog.some(a=>a.type==="boss-claimed")},
+  {id:"vault-forged",name:"Vault Forged",desc:"Create your first accountability contract.",check:()=>state.vaultContracts.length>=1}
+];
 const QUESTS = [
   {id:"dq-water",cat:"VITALITY",icon:"💧",name:"Drink Water",target:4,unit:"litres",xp:80,stat:"VIT",optional:false},
   {id:"dq-steps",cat:"AGILITY",icon:"👟",name:"Daily Steps",target:10000,unit:"steps",xp:150,stat:"AGI",optional:false},
@@ -455,6 +483,7 @@ let state = {
   auditLog: [],
   nutritionTargets: {calories:2900,protein:176,mode:"lean bulk",lastAdjusted:null},
   vaultContracts: [],
+  unlocks: {titles:["initiate"],activeTitle:"E-Rank Initiate",skills:[],achievements:[]},
 };
 let activeTrainingDay = "UB1";
 let activeProgressDay = "UB1";
@@ -549,6 +578,7 @@ function ensureStateShape(){
   state.auditLog = Array.isArray(state.auditLog) ? state.auditLog : [];
   state.nutritionTargets = {...NUTRITION_TARGETS, mode:"lean bulk", lastAdjusted:null, ...(state.nutritionTargets||{})};
   state.vaultContracts = Array.isArray(state.vaultContracts) ? state.vaultContracts : [];
+  state.unlocks = {...{titles:["initiate"],activeTitle:"E-Rank Initiate",skills:[],achievements:[]}, ...(state.unlocks||{})};
   if(!state.dailyProgress.quests) state.dailyProgress.quests = {};
 }
 function addAudit(type, message, extra={}){
@@ -573,6 +603,7 @@ function getFullSave(){
     auditLog:state.auditLog,
     nutritionTargets:state.nutritionTargets,
     vaultContracts:state.vaultContracts,
+    unlocks:state.unlocks,
     exportedAt:new Date().toISOString()
   };
 }
@@ -584,7 +615,38 @@ function restoreExtraState(data){
   if(data.auditLog) state.auditLog = data.auditLog;
   if(data.nutritionTargets) state.nutritionTargets = data.nutritionTargets;
   if(data.vaultContracts) state.vaultContracts = data.vaultContracts;
+  if(data.unlocks) state.unlocks = data.unlocks;
   ensureStateShape();
+}
+
+function getSessionCount(){return Object.values(state.sessions||{}).reduce((a,b)=>a+(Array.isArray(b)?b.length:0),0);}
+function getMealCount(){return (state.dailyHistory||[]).reduce((sum,d)=>sum+(d.meals?.length||0),0) + (state.nutritionLog.meals||[]).length;}
+function getPowerScore(){
+  const s = state.player.stats || {};
+  return Math.round((state.player.totalXp/100) + (s.STR||0)*8 + (s.AGI||0)*6 + (s.INT||0)*7 + (s.VIT||0)*6 + (s.PER||0)*5 + (state.streak.best||0)*12);
+}
+function recalcUnlocks(announce=false){
+  ensureStateShape();
+  const foundTitles = TITLE_RULES.filter(t=>t.check()).map(t=>t.id);
+  const foundSkills = SKILL_RULES.filter(s=>(state.player.stats?.[s.stat]||0)>=s.req).map(s=>s.id);
+  const foundAchievements = ACHIEVEMENT_RULES.filter(a=>a.check()).map(a=>a.id);
+  const newUnlocks = [
+    ...foundTitles.filter(id=>!state.unlocks.titles.includes(id)).map(id=>({type:"title",rule:TITLE_RULES.find(r=>r.id===id)})),
+    ...foundSkills.filter(id=>!state.unlocks.skills.includes(id)).map(id=>({type:"skill",rule:SKILL_RULES.find(r=>r.id===id)})),
+    ...foundAchievements.filter(id=>!state.unlocks.achievements.includes(id)).map(id=>({type:"achievement",rule:ACHIEVEMENT_RULES.find(r=>r.id===id)}))
+  ];
+  state.unlocks.titles = foundTitles;
+  state.unlocks.skills = foundSkills;
+  state.unlocks.achievements = foundAchievements;
+  if(!state.unlocks.activeTitle || !foundTitles.includes(TITLE_RULES.find(t=>t.name===state.unlocks.activeTitle)?.id)){
+    const newest = TITLE_RULES.filter(t=>foundTitles.includes(t.id)).slice(-1)[0];
+    state.unlocks.activeTitle = newest?.name || "E-Rank Initiate";
+  }
+  newUnlocks.forEach(u=>addAudit("unlock", `${u.type} unlocked: ${u.rule.name}`, {id:u.rule.id,type:u.type}));
+  if(announce && newUnlocks.length){
+    const u = newUnlocks[0];
+    setTimeout(()=>showNotif("levelup",`${u.type.toUpperCase()} UNLOCKED`,`${u.rule.name}\n\n${u.rule.desc}`),150);
+  }
 }
 
 function saveAll(){
@@ -602,6 +664,7 @@ function saveAll(){
   sSet("sl-audit",state.auditLog);
   sSet("sl-targets",state.nutritionTargets);
   sSet("sl-vault",state.vaultContracts);
+  sSet("sl-unlocks",state.unlocks);
 }
 function saveNonWorkout(){
   ensureStateShape();
@@ -617,6 +680,7 @@ function saveNonWorkout(){
   sSet("sl-audit",state.auditLog);
   sSet("sl-targets",state.nutritionTargets);
   sSet("sl-vault",state.vaultContracts);
+  sSet("sl-unlocks",state.unlocks);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -637,11 +701,12 @@ function init(){
   const savedAudit = sGet("sl-audit");
   const savedTargets = sGet("sl-targets");
   const savedVault = sGet("sl-vault");
+  const savedUnlocks = sGet("sl-unlocks");
 
   state.workouts = savedWorkouts || JSON.parse(JSON.stringify(DEFAULT_WORKOUTS));
   state.sessions = savedSessions || {};
   state.weightLog = savedWeight || [];
-  restoreExtraState({meta:savedMeta,settings:savedSettings,streak:savedStreak,dailyHistory:savedHistory,auditLog:savedAudit,nutritionTargets:savedTargets,vaultContracts:savedVault});
+  restoreExtraState({meta:savedMeta,settings:savedSettings,streak:savedStreak,dailyHistory:savedHistory,auditLog:savedAudit,nutritionTargets:savedTargets,vaultContracts:savedVault,unlocks:savedUnlocks});
 
   // Restore player — use saved if totalXp >= what we know is correct
   if(savedPlayer && savedPlayer.totalXp >= 970){
@@ -816,6 +881,7 @@ function addXP(amount, statKey){
   const rankEnd = ri < RANKS.length-1 ? RANK_THRESHOLDS[RANKS[ri+1]] : rankStart+99999;
   state.player.xp = state.player.totalXp - rankStart;
   state.player.xpNeeded = rankEnd - rankStart;
+  recalcUnlocks(true);
   saveNonWorkout();
   renderPlayerStrip();
   if(currentTab==="status") renderStatus();
@@ -866,8 +932,11 @@ function checkPenalty(){
 // RENDER PLAYER STRIP
 // ═══════════════════════════════════════════════════════════
 function renderPlayerStrip(){
+  recalcUnlocks(false);
   const p = state.player;
   const xpPct = Math.min(100,(p.xp/(p.xpNeeded||2000))*100);
+  const nameEl = document.getElementById("player-name-label");
+  if(nameEl) nameEl.textContent = `[ ${state.unlocks.activeTitle || "PLAYER"} ]`;
   document.getElementById("xp-bar").style.width = xpPct+"%";
   document.getElementById("xp-label").textContent = `XP: ${p.xp} / ${p.xpNeeded||2000}`;
   const badge = document.getElementById("rank-badge-top");
@@ -1387,6 +1456,7 @@ function renderStatus(){
   const done=QUESTS.filter(q=>!q.optional&&state.dailyProgress.quests[q.id]?.completed).length;
   const total=QUESTS.filter(q=>!q.optional).length;
   const activeContracts=(state.vaultContracts||[]).filter(c=>c.status==="active").length;
+  const backupAge = state.meta.lastBackupAt ? Math.floor((Date.now()-new Date(state.meta.lastBackupAt).getTime())/86400000) : null;
   document.getElementById("status-summary").innerHTML=[
     {label:"RANK",value:`${p.rank}-Rank`,color:RANK_COLORS[p.rank]},
     {label:"TOTAL XP",value:p.totalXp,color:"#f0c040"},
@@ -1394,6 +1464,7 @@ function renderStatus(){
     {label:"QUESTS TODAY",value:`${done}/${total}`,color:"#00ff88"},
     {label:"STREAK",value:state.streak.current||0,color:"#f0c040"},
     {label:"VAULTS ACTIVE",value:activeContracts,color:"#ff3333"},
+    {label:"BACKUP AGE",value:backupAge===null?"NEVER":`${backupAge}d`,color:backupAge===null||backupAge>3?"#ff3333":"#00ff88"},
   ].map(s=>`<div class="summary-card">
     <div style="color:#4a7a9b;font-size:9px;letter-spacing:2px;margin-bottom:4px;">${s.label}</div>
     <div style="color:${s.color};font-size:20px;font-weight:900;font-family:monospace;text-shadow:0 0 8px ${s.color};">${s.value}</div>
@@ -1406,7 +1477,7 @@ function renderStatus(){
 function switchTab(tab){
   currentTab=tab;
   document.querySelectorAll(".tab-btn").forEach((b,i)=>{
-    const tabs=["quests","training","nutrition","progress","coach","vault","status"];
+    const tabs=["quests","training","nutrition","progress","coach","awakening","vault","status"];
     b.classList.toggle("active",tabs[i]===tab);
   });
   document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
@@ -1415,6 +1486,7 @@ function switchTab(tab){
   if(tab==="nutrition") renderNutrition();
   if(tab==="progress"){renderProgressTabs();renderProgressContent();}
   if(tab==="coach") renderCoach();
+  if(tab==="awakening") renderAwakening();
   if(tab==="vault") renderVault();
   if(tab==="status") renderStatus();
 }
@@ -1484,6 +1556,7 @@ function renderAll(){
   if(currentTab==="nutrition") renderNutrition();
   if(currentTab==="progress") renderProgressContent();
   if(currentTab==="coach") renderCoach();
+  if(currentTab==="awakening") renderAwakening();
   if(currentTab==="vault") renderVault();
   if(currentTab==="status") renderStatus();
 }
@@ -1787,6 +1860,66 @@ function renderCoach(){
     </div>`;
 }
 
+function setActiveTitle(titleId){
+  const title = TITLE_RULES.find(t=>t.id===titleId);
+  if(!title || !state.unlocks.titles.includes(titleId)) return;
+  state.unlocks.activeTitle = title.name;
+  addAudit("title-equipped", `Title equipped: ${title.name}`, {titleId});
+  saveNonWorkout();
+  renderAll();
+  showNotif("quest","TITLE EQUIPPED",`${title.name}\n\n${title.desc}`);
+}
+
+function renderAwakening(){
+  recalcUnlocks(false);
+  const el = document.getElementById("awakening-content");
+  const power = getPowerScore();
+  const unlockedTitles = new Set(state.unlocks.titles||[]);
+  const unlockedSkills = new Set(state.unlocks.skills||[]);
+  const unlockedAchievements = new Set(state.unlocks.achievements||[]);
+  el.innerHTML = `
+    <div class="panel glow p20 mb12"><div class="br"></div><div class="bl"></div>
+      <div style="color:#f0c040;font-size:11px;font-family:monospace;letter-spacing:3px;margin-bottom:12px;">◇ AWAKENING BOARD</div>
+      <div class="summary-grid">
+        <div class="summary-card"><div class="label-sm">POWER SCORE</div><div style="color:#f0c040;font-size:24px;font-weight:900;font-family:monospace;text-shadow:0 0 8px #f0c040;">${power}</div></div>
+        <div class="summary-card"><div class="label-sm">ACTIVE TITLE</div><div style="color:#00aaff;font-size:16px;font-weight:900;font-family:monospace;">${esc(state.unlocks.activeTitle)}</div></div>
+        <div class="summary-card"><div class="label-sm">SKILLS</div><div style="color:#00ff88;font-size:22px;font-weight:900;font-family:monospace;">${unlockedSkills.size}/${SKILL_RULES.length}</div></div>
+        <div class="summary-card"><div class="label-sm">ACHIEVEMENTS</div><div style="color:#9933ff;font-size:22px;font-weight:900;font-family:monospace;">${unlockedAchievements.size}/${ACHIEVEMENT_RULES.length}</div></div>
+      </div>
+    </div>
+    <div class="panel p16 mb12"><div class="br"></div><div class="bl"></div>
+      <div style="color:#00aaff;font-size:10px;font-family:monospace;letter-spacing:2px;margin-bottom:10px;">◇ TITLES</div>
+      <div class="progress-grid">
+        ${TITLE_RULES.map(t=>{const unlocked=unlockedTitles.has(t.id);const active=state.unlocks.activeTitle===t.name;return`
+          <div class="progress-card" style="border-color:${active?"#f0c040":unlocked?"#00ff88":"#1a4a7a"};opacity:${unlocked?1:.45};">
+            <div class="progress-ex-name">${esc(t.name)}</div>
+            <div style="color:#4a7a9b;font-size:11px;line-height:1.5;margin-bottom:8px;">${esc(t.desc)}</div>
+            <button class="btn ${active?"btn-gold":unlocked?"btn-green":"btn-ghost"}" ${unlocked?`onclick="setActiveTitle('${t.id}')"`:"disabled"} style="width:100%;">${active?"EQUIPPED":unlocked?"EQUIP":"LOCKED"}</button>
+          </div>`;}).join("")}
+      </div>
+    </div>
+    <div class="panel p16 mb12"><div class="br"></div><div class="bl"></div>
+      <div style="color:#00ff88;font-size:10px;font-family:monospace;letter-spacing:2px;margin-bottom:10px;">◇ SKILL TREE</div>
+      <div class="progress-grid">
+        ${SKILL_RULES.map(s=>{const unlocked=unlockedSkills.has(s.id);const current=state.player.stats?.[s.stat]||0;const pct=Math.min(100,(current/s.req)*100);return`
+          <div class="progress-card" style="opacity:${unlocked?1:.7};border-color:${unlocked?"#00ff88":"#1a4a7a"};">
+            <span class="muscle-tag" style="background:${unlocked?"#00ff88":"#1a4a7a"};color:${unlocked?"#001b10":"#4a7a9b"};">${s.stat} ${current}/${s.req}</span>
+            <div class="progress-ex-name">${esc(s.name)}</div>
+            <div style="color:#4a7a9b;font-size:11px;line-height:1.5;margin-bottom:8px;">${esc(s.desc)}</div>
+            <div class="xp-bar-wrap"><div class="xp-bar-fill" style="width:${pct}%;background:${unlocked?"#00ff88":"#00aaff"};"></div></div>
+          </div>`;}).join("")}
+      </div>
+    </div>
+    <div class="panel p16"><div class="br"></div><div class="bl"></div>
+      <div style="color:#9933ff;font-size:10px;font-family:monospace;letter-spacing:2px;margin-bottom:10px;">◇ ACHIEVEMENTS</div>
+      ${ACHIEVEMENT_RULES.map(a=>{const unlocked=unlockedAchievements.has(a.id);return`
+        <div class="meal-list-row" style="opacity:${unlocked?1:.45};">
+          <span style="color:#e8f4ff;font-weight:700;">${unlocked?"✓":"◇"} ${esc(a.name)}</span>
+          <span style="color:#4a7a9b;font-size:11px;text-align:right;">${esc(a.desc)}</span>
+        </div>`;}).join("")}
+    </div>`;
+}
+
 // ═══════════════════════════════════════════════════════════
 // DISCIPLINE VAULT
 // ═══════════════════════════════════════════════════════════
@@ -1830,8 +1963,9 @@ function createVaultContract(){
     status:"active",
     startDate:dateKey(start),
     endDate:dateKey(end),
-    rules:["Complete mandatory quests","Hit nutrition targets","Use rest days responsibly"],
+    rules:["Complete mandatory quests","Hit nutrition targets","Use rest days responsibly","Record proof notes for hard days"],
     checkins:{},
+    proofs:[],
     paymentStatus:"integration-ready",
     subscriptionRevenue:true
   };
@@ -1840,6 +1974,20 @@ function createVaultContract(){
   saveNonWorkout();
   renderVault();
   showNotif("vault","CONTRACT CREATED",`${name}\n\nStake: £${amount}\nDuration: ${days} days\nFailure destination: ${charity}`);
+}
+function addVaultProof(contractId){
+  const contract = state.vaultContracts.find(c=>c.id===contractId);
+  if(!contract) return;
+  const input = document.getElementById(`proof-${contractId}`);
+  const note = input?.value.trim();
+  if(!note) return;
+  if(!contract.proofs) contract.proofs = [];
+  contract.proofs.unshift({dateKey:dateKey(),at:new Date().toISOString(),note});
+  contract.proofs = contract.proofs.slice(0,30);
+  addAudit("vault-proof", `Proof added: ${contract.name}`, {contractId});
+  saveNonWorkout();
+  renderVault();
+  showNotif("vault","PROOF LOGGED",`${contract.name}\n\n${note}`);
 }
 function renderVault(){
   ensureStateShape();
@@ -1866,6 +2014,9 @@ function renderVault(){
           <div class="flex-between"><span style="color:#e8f4ff;font-weight:700;">${esc(c.name)}</span><span style="color:${c.status==="active"?"#00aaff":c.status==="completed"?"#00ff88":"#ff3333"};font-family:monospace;">${c.status.toUpperCase()}</span></div>
           <div style="color:#4a7a9b;font-size:11px;margin-top:6px;">£${c.amount} · ${c.startDate} to ${c.endDate} · ${esc(c.charity)}</div>
           <div style="color:#4a7a9b;font-size:10px;margin-top:6px;font-family:monospace;">${Object.keys(c.checkins||{}).length}/${c.durationDays} days checked</div>
+          <div style="color:#4a7a9b;font-size:10px;margin-top:8px;line-height:1.6;">${(c.rules||[]).map(r=>`◇ ${esc(r)}`).join("<br>")}</div>
+          ${c.status==="active"?`<div class="flex gap6" style="margin-top:10px;"><input id="proof-${c.id}" class="quest-input" placeholder="Proof note: what did you do today?" /><button class="btn btn-green" onclick="addVaultProof('${c.id}')">LOG PROOF</button></div>`:""}
+          ${(c.proofs||[]).slice(0,2).map(p=>`<div style="color:#4a7a9b;font-size:10px;margin-top:6px;border-top:1px solid #1a4a7a;padding-top:6px;">${p.dateKey}: ${esc(p.note)}</div>`).join("")}
         </div>`).join(""):`<div class="no-data" style="padding:20px;">NO CONTRACTS CREATED YET</div>`}
     </div>`;
 }
