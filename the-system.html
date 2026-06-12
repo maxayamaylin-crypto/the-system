@@ -182,7 +182,7 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
   <div id="topbar">
     <div>
       <span class="system-text">◈ THE SYSTEM</span>
-      <span style="color:#4a7a9b;font-size:10px;margin-left:10px;font-family:monospace;letter-spacing:2px;">v3.4 · ONLINE</span>
+      <span style="color:#4a7a9b;font-size:10px;margin-left:10px;font-family:monospace;letter-spacing:2px;">v3.5 · ONLINE</span>
       <div id="clock"></div>
     </div>
     <div class="topbar-right">
@@ -1205,6 +1205,57 @@ function deleteExercise(dayKey,sec,idx){
 // LOG SESSION
 // ═══════════════════════════════════════════════════════════
 function parseSets(s){const m=(s||"").match(/(\d+)/);return m?parseInt(m[1]):3;}
+function setWeight(set){return parseFloat(set?.weight)||0;}
+function setReps(set){return parseFloat(set?.reps)||0;}
+function estimate1RM(weight,reps){
+  if(!weight || !reps) return 0;
+  return weight * (1 + reps/30);
+}
+function analyseExerciseLogs(dayKey, exId){
+  const logs = state.sessions?.[dayKey] || [];
+  const entries = logs.map((log,idx)=>{
+    const sets = log.exercises?.[exId]?.sets || [];
+    const bestWeight = Math.max(0, ...sets.map(setWeight));
+    const volume = sets.reduce((sum,s)=>sum + setWeight(s)*setReps(s), 0);
+    const bestE1RM = Math.max(0, ...sets.map(s=>estimate1RM(setWeight(s), setReps(s))));
+    const workingSets = sets.filter(s=>setWeight(s)>0 && setReps(s)>0).length;
+    return {idx,date:log.date,sets,bestWeight,volume,bestE1RM,workingSets};
+  }).filter(e=>e.workingSets>0 || e.bestWeight>0 || e.volume>0);
+  const first = entries[0] || null;
+  const latest = entries[entries.length-1] || null;
+  const previous = entries.length>1 ? entries[entries.length-2] : null;
+  const allTimeBest = entries.reduce((best,e)=>e.bestWeight>best.bestWeight?e:best,{bestWeight:0});
+  const allTimeE1RM = entries.reduce((best,e)=>e.bestE1RM>best.bestE1RM?e:best,{bestE1RM:0});
+  const volumeTrend = latest && previous ? latest.volume - previous.volume : 0;
+  const isWeightPR = latest && latest.bestWeight>0 && latest.bestWeight >= allTimeBest.bestWeight && latest.idx===allTimeBest.idx && entries.length>1;
+  const isE1RMPR = latest && latest.bestE1RM>0 && latest.bestE1RM >= allTimeE1RM.bestE1RM && latest.idx===allTimeE1RM.idx && entries.length>1;
+  let recommendation = "Log more sessions to unlock coaching.";
+  if(entries.length>=3){
+    const recent = entries.slice(-3);
+    const flatWeight = recent[2].bestWeight <= recent[0].bestWeight;
+    const flatVolume = recent[2].volume <= recent[0].volume;
+    if(flatWeight && flatVolume) recommendation = "Stall detected: add reps first, then raise load next session.";
+    else if(volumeTrend>0 && !isWeightPR) recommendation = "Volume is rising. Keep form strict and prepare a small load jump.";
+    else if(isWeightPR || isE1RMPR) recommendation = "PR signal detected. Hold the new standard and repeat cleanly.";
+    else recommendation = "Progress stable. Aim for one extra rep on your top set.";
+  }
+  return {entries,first,latest,previous,allTimeBest,allTimeE1RM,volumeTrend,isWeightPR,isE1RMPR,recommendation};
+}
+function getTrainingAnalytics(){
+  const items = [];
+  for(const dayKey of DAY_ORDER){
+    const workout = state.workouts?.[dayKey];
+    if(!workout) continue;
+    Object.values(workout.sections).flat().forEach(ex=>{
+      const a = analyseExerciseLogs(dayKey, ex.id);
+      if(a.latest) items.push({dayKey,exercise:ex,analytics:a});
+    });
+  }
+  const totalVolume = items.reduce((sum,i)=>sum+(i.analytics.latest?.volume||0),0);
+  const prs = items.filter(i=>i.analytics.isWeightPR || i.analytics.isE1RMPR);
+  const stalls = items.filter(i=>/Stall detected/.test(i.analytics.recommendation));
+  return {items,totalVolume,prs,stalls};
+}
 
 function startLogSession(dayKey){
   logMode=true; logDay=dayKey; logData={};
@@ -1298,11 +1349,6 @@ function renderProgressContent(){
     el.innerHTML=`<div class="no-data">NO DATA RECORDED<br><span style="font-size:12px;color:#1a4a7a;">Log a session to begin tracking progress</span></div>`;
     return;
   }
-  const bestW = (logEntry)=>{
-    if(!logEntry) return null;
-    if(logEntry.sets){const ws=logEntry.sets.map(s=>parseFloat(s.weight)).filter(w=>!isNaN(w));return ws.length?Math.max(...ws):null;}
-    return logEntry.weight?parseFloat(logEntry.weight):null;
-  };
   el.innerHTML = `
     <div class="panel p12 mb12" style="border-left:3px solid ${w.color};">
       <div class="br"></div><div class="bl"></div>
@@ -1312,11 +1358,9 @@ function renderProgressContent(){
     </div>
     <div class="progress-grid">
       ${allEx.map(ex=>{
-        const first = logs[0]?.exercises?.[ex.id];
-        const last = logs[logs.length-1]?.exercises?.[ex.id];
-        const prev = logs.length>1?logs[logs.length-2]?.exercises?.[ex.id]:null;
-        const fb=bestW(first), lb=bestW(last), pb=bestW(prev);
-        const latestSets = last?.sets||[];
+        const a = analyseExerciseLogs(activeProgressDay, ex.id);
+        const fb=a.first?.bestWeight||0, lb=a.latest?.bestWeight||0, pb=a.previous?.bestWeight||0;
+        const latestSets = a.latest?.sets||[];
         return `<div class="panel progress-card">
           <div class="br"></div><div class="bl"></div>
           <div class="muscle-tag" style="background:${MUSCLE_COLORS[ex.section]||"#555"}">${ex.section}</div>
@@ -1326,18 +1370,25 @@ function renderProgressContent(){
               <div class="progress-stat">
                 <span class="progress-stat-label">FIRST (BEST SET)</span>
                 <span class="progress-stat-val" style="color:#4ECDC4;">${fb?fb+"kg":"—"}</span>
-                <span style="color:#4a7a9b;font-size:9px;">${logs[0].date}</span>
+                <span style="color:#4a7a9b;font-size:9px;">${a.first?.date||"—"}</span>
               </div>
               <div class="progress-stat">
                 <span class="progress-stat-label">LATEST (BEST SET)</span>
                 <span class="progress-stat-val" style="color:${w.color};">${lb?lb+"kg":"—"}</span>
-                <span style="color:#4a7a9b;font-size:9px;">${logs[logs.length-1].date}</span>
+                <span style="color:#4a7a9b;font-size:9px;">${a.latest?.date||"—"}</span>
+              </div>
+              <div class="progress-stat">
+                <span class="progress-stat-label">EST. 1RM</span>
+                <span class="progress-stat-val" style="color:#f0c040;">${a.latest?.bestE1RM?Math.round(a.latest.bestE1RM)+"kg":"—"}</span>
+                <span style="color:#4a7a9b;font-size:9px;">VOLUME ${Math.round(a.latest?.volume||0)}kg</span>
               </div>
             </div>
             ${fb&&lb?`<div class="progress-delta">
               <span style="color:${lb-fb>=0?"#00ff88":"#ff3333"};font-size:12px;font-weight:700;font-family:monospace;">${lb-fb>=0?"▲":"▼"} ${Math.abs(lb-fb).toFixed(1)}kg overall</span>
               ${pb?`<span style="color:#4a7a9b;font-size:11px;">${(lb-pb>=0?"+":"")}${(lb-pb).toFixed(1)} vs prev</span>`:""}
+              ${a.isWeightPR||a.isE1RMPR?`<span style="color:#f0c040;font-size:11px;font-family:monospace;">◆ PR SIGNAL</span>`:""}
             </div>`:""}
+            <div style="color:#4a7a9b;font-size:11px;line-height:1.5;margin-top:8px;">${esc(a.recommendation)}</div>
             ${latestSets.length?`<div class="set-breakdown">
               <div style="color:#4a7a9b;font-size:9px;letter-spacing:1px;margin-bottom:6px;">LATEST SESSION SETS</div>
               ${latestSets.map((s,i)=>`<div class="set-row">
@@ -1356,6 +1407,7 @@ function renderProgressContent(){
       ${logs.map((log,i)=>`<div style="display:flex;gap:16px;padding:5px 0;border-bottom:1px solid #1a4a7a;">
         <span style="color:${w.color};font-family:monospace;font-size:12px;min-width:80px;">${log.date}</span>
         <span style="color:#4a7a9b;font-size:11px;">Session #${i+1}</span>
+        <span style="color:#f0c040;font-size:11px;font-family:monospace;margin-left:auto;">${Math.round(Object.values(log.exercises||{}).reduce((sum,e)=>sum+(e.sets||[]).reduce((s,set)=>s+setWeight(set)*setReps(set),0),0))}kg volume</span>
       </div>`).join("")}
     </div>`;
 }
@@ -1887,17 +1939,15 @@ function markTodayRestDay(){
 function findOverloadAlerts(){
   const alerts = [];
   for(const [dayKey, logs] of Object.entries(state.sessions||{})){
-    if(!Array.isArray(logs) || logs.length < 3) continue;
+    if(!Array.isArray(logs) || logs.length < 2) continue;
     const workout = state.workouts?.[dayKey];
     if(!workout) continue;
     const exercises = Object.values(workout.sections).flat();
     exercises.forEach(ex=>{
-      const recent = logs.slice(-3).map(log=>{
-        const sets = log.exercises?.[ex.id]?.sets || [];
-        return Math.max(0, ...sets.map(s=>parseFloat(s.weight)||0));
-      });
-      if(recent.length===3 && recent[2] <= recent[0]){
-        alerts.push({dayKey,name:ex.name,weights:recent});
+      const a = analyseExerciseLogs(dayKey, ex.id);
+      if(!a.latest) return;
+      if(/Stall detected/.test(a.recommendation) || a.isWeightPR || a.isE1RMPR){
+        alerts.push({dayKey,name:ex.name,weights:a.entries.slice(-3).map(e=>e.bestWeight),recommendation:a.recommendation,pr:a.isWeightPR||a.isE1RMPR,volume:a.latest.volume,e1rm:a.latest.bestE1RM});
       }
     });
   }
@@ -1910,6 +1960,7 @@ function renderCoach(){
   const threat = getThreatReport();
   const bossPct = Math.round(boss.goals.reduce((s,g)=>s+Math.min(1,g.value/g.target),0)/boss.goals.length*100);
   const alerts = findOverloadAlerts();
+  const training = getTrainingAnalytics();
   const todayName = new Date().toLocaleDateString("en-US",{weekday:"long"});
   el.innerHTML = `
     <div class="panel glow p20 mb12"><div class="br"></div><div class="bl"></div>
@@ -1939,7 +1990,14 @@ function renderCoach(){
     </div>
     <div class="panel p16 mb12"><div class="br"></div><div class="bl"></div>
       <div style="color:#00aaff;font-size:10px;font-family:monospace;letter-spacing:2px;margin-bottom:10px;">◆ PROGRESSIVE OVERLOAD RADAR</div>
-      ${alerts.length?alerts.map(a=>`<div class="meal-list-row"><span style="color:#e8f4ff;">${esc(a.name)}</span><span style="color:#f0c040;font-family:monospace;">${a.weights.join(" → ")}kg</span></div>`).join(""):`<div class="no-data" style="padding:20px;">NO STALLS DETECTED</div>`}
+      <div class="summary-grid mb12">
+        <div class="summary-card"><div class="label-sm">LATEST VOLUME</div><div style="color:#00aaff;font-size:20px;font-weight:900;font-family:monospace;">${Math.round(training.totalVolume)}kg</div></div>
+        <div class="summary-card"><div class="label-sm">PR SIGNALS</div><div style="color:#f0c040;font-size:20px;font-weight:900;font-family:monospace;">${training.prs.length}</div></div>
+      </div>
+      ${alerts.length?alerts.map(a=>`<div style="padding:9px 0;border-bottom:1px solid #1a4a7a;">
+        <div class="flex-between gap8"><span style="color:#e8f4ff;font-weight:700;">${a.pr?"◆ ":""}${esc(a.name)}</span><span style="color:${a.pr?"#f0c040":"#00aaff"};font-family:monospace;font-size:11px;">${a.weights.join(" → ")}kg</span></div>
+        <div style="color:#4a7a9b;font-size:11px;line-height:1.5;margin-top:4px;">${esc(a.recommendation)} · e1RM ${Math.round(a.e1rm||0)}kg · volume ${Math.round(a.volume||0)}kg</div>
+      </div>`).join(""):`<div class="no-data" style="padding:20px;">NO STALLS DETECTED</div>`}
     </div>
     <div class="panel p16"><div class="br"></div><div class="bl"></div>
       <div class="label-sm mb8">RECENT SYSTEM LOG</div>
