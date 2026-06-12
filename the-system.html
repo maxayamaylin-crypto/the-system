@@ -182,7 +182,7 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
   <div id="topbar">
     <div>
       <span class="system-text">◈ THE SYSTEM</span>
-      <span style="color:#4a7a9b;font-size:10px;margin-left:10px;font-family:monospace;letter-spacing:2px;">v3.3 · ONLINE</span>
+      <span style="color:#4a7a9b;font-size:10px;margin-left:10px;font-family:monospace;letter-spacing:2px;">v3.4 · ONLINE</span>
       <div id="clock"></div>
     </div>
     <div class="topbar-right">
@@ -229,6 +229,7 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
 
   <!-- QUESTS TAB -->
   <div id="tab-quests" class="tab-content active">
+    <div id="mission-control"></div>
     <div class="flex-between mb16 flex-wrap gap8">
       <div>
         <div style="color:#f0c040;font-size:13px;font-family:monospace;letter-spacing:3px;text-shadow:0 0 10px #f0c040;">⚠ DAILY QUEST</div>
@@ -578,6 +579,13 @@ function ensureStateShape(){
   state.auditLog = Array.isArray(state.auditLog) ? state.auditLog : [];
   state.nutritionTargets = {...NUTRITION_TARGETS, mode:"lean bulk", lastAdjusted:null, ...(state.nutritionTargets||{})};
   state.vaultContracts = Array.isArray(state.vaultContracts) ? state.vaultContracts : [];
+  state.vaultContracts.forEach(c=>{
+    c.rules = Array.isArray(c.rules) ? c.rules : [];
+    ["Complete mandatory quests","Hit nutrition targets","Use rest days responsibly","Record proof notes for hard days"].forEach(rule=>{
+      if(!c.rules.includes(rule)) c.rules.push(rule);
+    });
+    if(!Array.isArray(c.proofs)) c.proofs = [];
+  });
   state.unlocks = {...{titles:["initiate"],activeTitle:"E-Rank Initiate",skills:[],achievements:[]}, ...(state.unlocks||{})};
   if(!state.dailyProgress.quests) state.dailyProgress.quests = {};
 }
@@ -624,6 +632,49 @@ function getMealCount(){return (state.dailyHistory||[]).reduce((sum,d)=>sum+(d.m
 function getPowerScore(){
   const s = state.player.stats || {};
   return Math.round((state.player.totalXp/100) + (s.STR||0)*8 + (s.AGI||0)*6 + (s.INT||0)*7 + (s.VIT||0)*6 + (s.PER||0)*5 + (state.streak.best||0)*12);
+}
+function getNutritionTotals(){
+  const meals = state.nutritionLog.meals || [];
+  return {
+    calories: meals.reduce((s,m)=>s+(parseFloat(m.calories)||0),0),
+    protein: meals.reduce((s,m)=>s+(parseFloat(m.protein)||0),0)
+  };
+}
+function getIncompleteObligations(){
+  const targets = state.nutritionTargets || NUTRITION_TARGETS;
+  const totals = getNutritionTotals();
+  const questItems = QUESTS.filter(q=>!q.optional && !state.dailyProgress.quests[q.id]?.completed).map(q=>({
+    id:q.id,
+    label:q.name,
+    type:"quest",
+    remaining: Math.max(0, q.target - (state.dailyProgress.quests[q.id]?.value||0)),
+    unit:q.unit,
+    xp:q.xp
+  }));
+  const nutritionItems = [];
+  if(totals.calories < targets.calories) nutritionItems.push({id:"nutrition-calories",label:"Calories",type:"nutrition",remaining:targets.calories-Math.round(totals.calories),unit:"kcal",xp:0});
+  if(totals.protein < targets.protein) nutritionItems.push({id:"nutrition-protein",label:"Protein",type:"nutrition",remaining:targets.protein-Math.round(totals.protein),unit:"g",xp:0});
+  return [...questItems, ...nutritionItems];
+}
+function getMinutesToMidnight(){
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24,0,0,0);
+  return Math.max(0, Math.round((midnight-now)/60000));
+}
+function getThreatReport(){
+  const incomplete = getIncompleteObligations();
+  const minutes = getMinutesToMidnight();
+  const activeVaults = (state.vaultContracts||[]).filter(c=>c.status==="active").length;
+  const pressure = incomplete.length*14 + (minutes<180?25:0) + (minutes<60?25:0) + activeVaults*8 - (state.streak.graceTokens||0)*5;
+  const level = pressure >= 80 ? "RED" : pressure >= 45 ? "ORANGE" : incomplete.length ? "BLUE" : "CLEAR";
+  const color = level==="RED"?"#ff3333":level==="ORANGE"?"#f0c040":level==="BLUE"?"#00aaff":"#00ff88";
+  return {level,color,incomplete,minutes,activeVaults,pressure:Math.max(0,pressure)};
+}
+function getNextAction(){
+  const incomplete = getIncompleteObligations();
+  const priority = ["nutrition-protein","dq-workout","dq-steps","dq-water","dq-coding","nutrition-calories","dq-sleep"];
+  return incomplete.sort((a,b)=>priority.indexOf(a.id)-priority.indexOf(b.id))[0] || null;
 }
 function recalcUnlocks(announce=false){
   ensureStateShape();
@@ -833,6 +884,7 @@ function startClock(){
     const s = String(now.getSeconds()).padStart(2,"0");
     const el = document.getElementById("clock");
     if(el) el.textContent = `${h}:${m}:${s}`;
+    if(currentTab==="quests" && s==="00") renderMissionControl();
   }
   tick();
   setInterval(tick, 1000);
@@ -962,11 +1014,39 @@ function renderPlayerStrip(){
 // RENDER QUESTS
 // ═══════════════════════════════════════════════════════════
 function renderQuests(){
+  renderMissionControl();
   const mandEl = document.getElementById("mandatory-quests");
   const bonusEl = document.getElementById("bonus-quests");
   mandEl.innerHTML = QUESTS.filter(q=>!q.optional).map(q=>questCardHTML(q)).join("");
   bonusEl.innerHTML = QUESTS.filter(q=>q.optional).map(q=>questCardHTML(q)).join("");
   attachQuestListeners();
+}
+
+function renderMissionControl(){
+  const el = document.getElementById("mission-control");
+  if(!el) return;
+  const threat = getThreatReport();
+  const next = getNextAction();
+  const done = QUESTS.filter(q=>!q.optional && state.dailyProgress.quests[q.id]?.completed).length;
+  const total = QUESTS.filter(q=>!q.optional).length;
+  const boss = getWeeklyBoss();
+  const bossPct = Math.round(boss.goals.reduce((s,g)=>s+Math.min(1,g.value/g.target),0)/boss.goals.length*100);
+  el.innerHTML = `
+    <div class="panel glow p20 mb12" style="border-color:${threat.color};">
+      <div class="br"></div><div class="bl"></div>
+      <div class="flex-between flex-wrap gap8 mb12">
+        <div>
+          <div style="color:${threat.color};font-size:11px;font-family:monospace;letter-spacing:3px;text-shadow:0 0 10px ${threat.color};">◆ MISSION CONTROL · THREAT ${threat.level}</div>
+          <div style="color:#4a7a9b;font-size:11px;margin-top:4px;">${threat.minutes} minutes until reset · ${threat.incomplete.length} obligation(s) open · ${threat.activeVaults} active vault(s)</div>
+        </div>
+        <div class="rank-badge" style="color:${threat.color};border:1px solid ${threat.color};background:${threat.color}22;">${done}/${total} CLEAR</div>
+      </div>
+      <div class="summary-grid mb12">
+        <div class="summary-card"><div class="label-sm">NEXT ACTION</div><div style="color:#e8f4ff;font-size:14px;font-weight:900;">${next?esc(next.label):"All mandatory objectives clear"}</div><div style="color:#4a7a9b;font-size:10px;">${next?`${next.remaining} ${next.unit} remaining`:"Maintain the day"}</div></div>
+        <div class="summary-card"><div class="label-sm">WEEKLY BOSS</div><div style="color:#f0c040;font-size:20px;font-weight:900;font-family:monospace;">${bossPct}%</div><div style="color:#4a7a9b;font-size:10px;">${esc(boss.title.replace("WEEKLY BOSS: ",""))}</div></div>
+      </div>
+      ${threat.incomplete.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;">${threat.incomplete.slice(0,8).map(i=>`<span style="border:1px solid #1a4a7a;border-radius:2px;padding:4px 7px;color:#4a7a9b;font-size:10px;font-family:monospace;">${esc(i.label)} · ${i.remaining} ${i.unit}</span>`).join("")}</div>`:`<div style="color:#00ff88;font-family:monospace;font-size:12px;">ALL CORE OBJECTIVES CLEAR. HOLD THE LINE.</div>`}
+    </div>`;
 }
 
 function questCardHTML(q){
@@ -1770,7 +1850,8 @@ function getWeeklyBoss(){
   const gymSessions = sessions.length + (state.dailyProgress.quests["dq-workout"]?.completed && !sessions.length ? 1 : 0);
   return {
     id:weekKey(),
-    title:"WEEKLY BOSS: CONSISTENCY TRIAL",
+    title:"WEEKLY BOSS: THE CONSISTENCY WARDEN",
+    subtitle:"A week-long discipline raid. Clear every objective before Sunday reset.",
     goals:[
       {label:"Gym sessions",value:gymSessions,target:5},
       {label:"Protein target days",value:proteinDays,target:6},
@@ -1826,6 +1907,8 @@ function renderCoach(){
   ensureStateShape();
   const el = document.getElementById("coach-content");
   const boss = getWeeklyBoss();
+  const threat = getThreatReport();
+  const bossPct = Math.round(boss.goals.reduce((s,g)=>s+Math.min(1,g.value/g.target),0)/boss.goals.length*100);
   const alerts = findOverloadAlerts();
   const todayName = new Date().toLocaleDateString("en-US",{weekday:"long"});
   el.innerHTML = `
@@ -1843,12 +1926,16 @@ function renderCoach(){
     </div>
     <div class="panel p16 mb12"><div class="br"></div><div class="bl"></div>
       <div style="color:#ff3333;font-size:10px;font-family:monospace;letter-spacing:2px;margin-bottom:10px;">◆ ${boss.title}</div>
+      <div style="color:#4a7a9b;font-size:11px;margin-bottom:12px;line-height:1.6;">${boss.subtitle}</div>
+      <div class="flex-between mb8"><span class="label-sm">BOSS HEALTH</span><span style="color:${bossPct>=100?"#00ff88":"#ff3333"};font-family:monospace;font-weight:900;">${bossPct}% CLEARED</span></div>
+      <div class="xp-bar-wrap mb12"><div class="xp-bar-fill" style="width:${bossPct}%;background:linear-gradient(90deg,#7a0000,#ff3333);box-shadow:0 0 8px #ff3333;"></div></div>
       ${boss.goals.map(g=>{const pct=Math.min(100,(g.value/g.target)*100);return`
         <div style="margin-bottom:10px;">
           <div class="flex-between"><span style="font-size:12px;color:#e8f4ff;">${g.label}</span><span style="font-family:monospace;color:${pct>=100?"#00ff88":"#00aaff"};">${g.value}/${g.target}</span></div>
           <div class="xp-bar-wrap"><div class="xp-bar-fill" style="width:${pct}%;background:${pct>=100?"#00ff88":"#00aaff"};"></div></div>
         </div>`;}).join("")}
       <button class="btn btn-red" style="width:100%;" onclick="claimBossReward()">CLAIM BOSS REWARD +${boss.reward} XP</button>
+      <div style="color:${threat.color};font-size:10px;margin-top:10px;font-family:monospace;">TODAY'S THREAT: ${threat.level} · ${threat.incomplete.length} OPEN OBLIGATION(S)</div>
     </div>
     <div class="panel p16 mb12"><div class="br"></div><div class="bl"></div>
       <div style="color:#00aaff;font-size:10px;font-family:monospace;letter-spacing:2px;margin-bottom:10px;">◆ PROGRESSIVE OVERLOAD RADAR</div>
@@ -1992,6 +2079,7 @@ function addVaultProof(contractId){
 function renderVault(){
   ensureStateShape();
   const el = document.getElementById("vault-content");
+  const threat = getThreatReport();
   el.innerHTML = `
     <div class="panel glow p20 mb12"><div class="br"></div><div class="bl"></div>
       <div style="color:#f0c040;font-size:11px;font-family:monospace;letter-spacing:3px;margin-bottom:12px;">⬥ DISCIPLINE VAULT</div>
@@ -2005,7 +2093,8 @@ function renderVault(){
         ${VAULT_CHARITIES.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("")}
       </select>
       <button class="btn btn-gold" style="width:100%;" onclick="createVaultContract()">CREATE CONTRACT</button>
-      <div style="color:#4a7a9b;font-size:10px;margin-top:10px;line-height:1.5;">Payment status: integration-ready. Connect a regulated payment/charity payout provider before collecting live stakes.</div>
+      <div style="color:${threat.color};font-size:10px;margin-top:10px;line-height:1.5;font-family:monospace;">CURRENT CONTRACT RISK: ${threat.level} · ${threat.incomplete.length} OPEN OBLIGATION(S)</div>
+      <div style="color:#4a7a9b;font-size:10px;margin-top:6px;line-height:1.5;">Payment status: integration-ready. Connect a regulated payment/charity payout provider before collecting live stakes.</div>
     </div>
     <div class="panel p16"><div class="br"></div><div class="bl"></div>
       <div class="label-sm mb8">ACTIVE / PAST CONTRACTS</div>
@@ -2014,6 +2103,7 @@ function renderVault(){
           <div class="flex-between"><span style="color:#e8f4ff;font-weight:700;">${esc(c.name)}</span><span style="color:${c.status==="active"?"#00aaff":c.status==="completed"?"#00ff88":"#ff3333"};font-family:monospace;">${c.status.toUpperCase()}</span></div>
           <div style="color:#4a7a9b;font-size:11px;margin-top:6px;">£${c.amount} · ${c.startDate} to ${c.endDate} · ${esc(c.charity)}</div>
           <div style="color:#4a7a9b;font-size:10px;margin-top:6px;font-family:monospace;">${Object.keys(c.checkins||{}).length}/${c.durationDays} days checked</div>
+          ${c.status==="active"?`<div style="color:${threat.color};font-size:10px;margin-top:6px;font-family:monospace;">TODAY RISK: ${threat.level} · STAKE AT RISK: £${c.amount}</div>`:""}
           <div style="color:#4a7a9b;font-size:10px;margin-top:8px;line-height:1.6;">${(c.rules||[]).map(r=>`◇ ${esc(r)}`).join("<br>")}</div>
           ${c.status==="active"?`<div class="flex gap6" style="margin-top:10px;"><input id="proof-${c.id}" class="quest-input" placeholder="Proof note: what did you do today?" /><button class="btn btn-green" onclick="addVaultProof('${c.id}')">LOG PROOF</button></div>`:""}
           ${(c.proofs||[]).slice(0,2).map(p=>`<div style="color:#4a7a9b;font-size:10px;margin-top:6px;border-top:1px solid #1a4a7a;padding-top:6px;">${p.dateKey}: ${esc(p.note)}</div>`).join("")}
