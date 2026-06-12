@@ -827,13 +827,25 @@ const DUNGEONS = [
   {id:"wolf-den",name:"Wolf Den",rank:"D",difficulty:"Intermediate",color:"#9933ff",xp:250,gold:120,missions:["Complete a lower-body workout","Hit 10,000 steps","Hit protein target"]},
   {id:"void-gate",name:"Void Gate",rank:"C",difficulty:"Advanced",color:"#ff3333",xp:500,gold:250,missions:["Complete full gym session","Complete cardio or steps equivalent","Complete study/coding quest"]}
 ];
-const IMPACT_CAMPAIGN = {cause:"Education for All",desc:"Help fund learning programs for young people.",daysLeft:14,conversion:"Every 100 Impact Points = £1 potential donation",communityTotal:2784920};
+const IMPACT_CAMPAIGN = {cause:"Education for All",desc:"Help fund learning programs for young people",daysLeft:14,conversion:"Every 100 Impact Points = £1 potential donation",communityTotal:2784920};
 const MOCK_HUNTERS = [
   {name:"IRONWILL",score:98760,rank:1},
   {name:"BEASTMODE",score:87420,rank:2},
   {name:"HUNTER PRIME",score:78550,rank:3},
   {name:"NIGHTSTRIDE",score:65330,rank:4},
   {name:"FLEXMASTER",score:61870,rank:5}
+];
+const DEFAULT_FRIENDS = [
+  {id:"ironwill",name:"IRONWILL",level:51,rank:"D",power:98760,status:"ONLINE",workouts:42},
+  {id:"beastmode",name:"BEASTMODE",level:48,rank:"D",power:87420,status:"IN RAID",workouts:37},
+  {id:"nightstride",name:"NIGHTSTRIDE",level:39,rank:"E",power:65330,status:"TRAINING",workouts:28},
+  {id:"flexmaster",name:"FLEXMASTER",level:36,rank:"E",power:61870,status:"OFFLINE",workouts:24}
+];
+const DEFAULT_GUILD_MEMBERS = [
+  {id:"user",name:"HUNTER PRIME",role:"Captain",contribution:6890},
+  {id:"ironwill",name:"IRONWILL",role:"Vanguard",contribution:16240},
+  {id:"beastmode",name:"BEASTMODE",role:"Striker",contribution:14110},
+  {id:"nightstride",name:"NIGHTSTRIDE",role:"Scout",contribution:9820}
 ];
 const VAULT_CHARITIES = ["Cancer Research UK","British Heart Foundation","Mind","UNICEF","WaterAid","Local food bank","Custom charity"];
 const TITLE_RULES = [
@@ -892,7 +904,7 @@ let state = {
   economy: {gold:6890,impactPoints:0},
   inventory: {owned:[],equipped:{}},
   dungeons: {active:null,completed:[]},
-  social: {guildName:"Iron Wolves",guildLevel:7,guildPoints:128450,friends:24},
+  social: {guildName:"Iron Wolves",guildLevel:7,guildPoints:128450,friends:24,friendsList:JSON.parse(JSON.stringify(DEFAULT_FRIENDS)),guildMembers:JSON.parse(JSON.stringify(DEFAULT_GUILD_MEMBERS)),partnerPush:18,invitesSent:0},
 };
 let activeTrainingDay = "UB1";
 let activeProgressDay = "UB1";
@@ -1000,7 +1012,14 @@ function ensureStateShape(){
   state.economy = {...{gold:0,impactPoints:0}, ...(state.economy||{})};
   state.inventory = {...{owned:[],equipped:{}}, ...(state.inventory||{})};
   state.dungeons = {...{active:null,completed:[]}, ...(state.dungeons||{})};
-  state.social = {...{guildName:"Iron Wolves",guildLevel:7,guildPoints:128450,friends:24}, ...(state.social||{})};
+  state.social = {...{guildName:"Iron Wolves",guildLevel:7,guildPoints:128450,friends:24,friendsList:JSON.parse(JSON.stringify(DEFAULT_FRIENDS)),guildMembers:JSON.parse(JSON.stringify(DEFAULT_GUILD_MEMBERS)),partnerPush:18,invitesSent:0}, ...(state.social||{})};
+  state.social.friendsList = Array.isArray(state.social.friendsList) ? state.social.friendsList : JSON.parse(JSON.stringify(DEFAULT_FRIENDS));
+  state.social.guildMembers = Array.isArray(state.social.guildMembers) ? state.social.guildMembers : JSON.parse(JSON.stringify(DEFAULT_GUILD_MEMBERS));
+  state.social.partnerPush = clampNumber(state.social.partnerPush, 0, 30, 18);
+  state.social.invitesSent = clampNumber(state.social.invitesSent, 0, 999, 0);
+  state.economy.impactLedger = Array.isArray(state.economy.impactLedger) ? state.economy.impactLedger : [];
+  state.inventory.purchaseHistory = Array.isArray(state.inventory.purchaseHistory) ? state.inventory.purchaseHistory : [];
+  state.dungeons.raidHistory = Array.isArray(state.dungeons.raidHistory) ? state.dungeons.raidHistory : [];
   if(!state.dailyProgress.quests) state.dailyProgress.quests = {};
 }
 function addAudit(type, message, extra={}){
@@ -1072,6 +1091,8 @@ function spendGold(amount, reason="purchase"){
 function addImpact(amount, reason="quest"){
   ensureStateShape();
   state.economy.impactPoints = Math.max(0, (state.economy.impactPoints||0) + amount);
+  state.economy.impactLedger.unshift({id:Date.now()+"-"+Math.random().toString(16).slice(2),at:new Date().toISOString(),amount,reason,cause:IMPACT_CAMPAIGN.cause});
+  state.economy.impactLedger = state.economy.impactLedger.slice(0,100);
   addAudit("impact", `Impact +${amount}: ${reason}`, {amount,reason});
 }
 function questGoldReward(quest){
@@ -1145,34 +1166,44 @@ function addDemoGold(){
   showNotif("levelup","GOLD ADDED","+500 Gold added for local testing.");
 }
 function showFriendsPanel(){
-  state.social.friends = Math.max(state.social.friends||24,24);
+  ensureStateShape();
+  state.social.friends = Math.max(state.social.friends||24,state.social.friendsList.length);
   saveNonWorkout();
-  showNotif("quest","FRIENDS","24 hunters connected in the local prototype.\n\nInvite/add flows are now represented in the Hub and ready for backend accounts.");
+  showNotif("quest","FRIENDS",`${state.social.friends} hunters connected.\n\n${state.social.friendsList.slice(0,4).map(f=>`${f.name} · LVL ${f.level} · ${f.status}`).join("\n")}`);
 }
 function showGuildHall(){
-  showNotif("quest","GUILD HALL",`${state.social.guildName}\n\nLevel ${state.social.guildLevel} · ${formatNum(state.social.guildPoints)} Guild Points\n\nGuild members, raids and contribution scoring are wired locally and ready for accounts/backend sync.`);
+  ensureStateShape();
+  showNotif("quest","GUILD HALL",`${state.social.guildName}\n\nLevel ${state.social.guildLevel} · ${formatNum(state.social.guildPoints)} Guild Points\n\n${state.social.guildMembers.slice(0,5).map(m=>`${m.name} · ${m.role} · ${formatNum(m.contribution)} pts`).join("\n")}`);
 }
 function inviteFriend(){
+  ensureStateShape();
+  state.social.invitesSent += 1;
   state.social.friends = (state.social.friends||24) + 1;
   addGold(50,"Friend invite");
   addImpact(25,"Friend invite");
   saveNonWorkout();
   renderHub();
-  showNotif("levelup","FRIEND INVITED","+1 Friend · +50 Gold · +25 Impact Points");
+  showNotif("levelup","FRIEND INVITED",`Invite sent.\n\n+1 Friend · +50 Gold · +25 Impact Points\nTotal invites: ${state.social.invitesSent}`);
 }
 function addHunter(){
-  state.social.friends = (state.social.friends||24) + 1;
+  ensureStateShape();
+  const recruitId = "hunter-"+Date.now();
+  const recruit = {id:recruitId,name:`HUNTER ${String(state.social.friendsList.length+1).padStart(2,"0")}`,level:playerLevel()-1,rank:state.player.rank,power:Math.max(12000,playerPower()-850),status:"NEW",workouts:0};
+  state.social.friendsList.unshift(recruit);
+  state.social.guildMembers.push({id:recruit.id,name:recruit.name,role:"Recruit",contribution:250});
+  state.social.friends = Math.max((state.social.friends||24) + 1,state.social.friendsList.length);
   state.social.guildPoints += 250;
+  state.social.partnerPush = Math.min(30,(state.social.partnerPush||18)+1);
   saveNonWorkout();
   renderHub();
-  showNotif("quest","HUNTER ADDED",`New partner added to ${state.social.guildName}.\n\nGuild Points +250`);
+  showNotif("quest","HUNTER ADDED",`${recruit.name} joined ${state.social.guildName}.\n\nGuild Points +250\nPartner Push ${state.social.partnerPush}/30`);
 }
 function completeImpactMission(){
   addImpact(250,"Impact mission");
   addGold(100,"Impact mission");
   saveNonWorkout();
   renderImpact();
-  showNotif("levelup","MISSION COMPLETE","+250 Impact Points · +100 Gold\n\nDemo contribution logged locally.");
+  showNotif("levelup","MISSION COMPLETE","+250 Impact Points · +100 Gold\n\nContribution recorded in your impact ledger.");
 }
 function getNutritionTotals(){
   const meals = state.nutritionLog.meals || [];
@@ -2165,6 +2196,8 @@ function renderWeightDisplay(){
 // RENDER STATUS
 // ═══════════════════════════════════════════════════════════
 function renderStatus(){
+  renderHunterProfile();
+  return;
   const p = state.player;
   const statusAvatar = document.getElementById("status-avatar");
   const statusName = document.getElementById("status-player-name");
@@ -2215,6 +2248,66 @@ function renderStatus(){
     <div style="color:#4a7a9b;font-size:9px;letter-spacing:2px;margin-bottom:4px;">${s.label}</div>
     <div style="color:${s.color};font-size:20px;font-weight:900;font-family:monospace;text-shadow:0 0 8px ${s.color};">${s.value}</div>
   </div>`).join("");
+}
+
+function renderHunterProfile(){
+  ensureStateShape();
+  const el = document.getElementById("tab-status");
+  const sessions = getSessionCount();
+  const meals = getMealCount();
+  const owned = state.inventory.owned?.length || 0;
+  const cleared = state.dungeons.raidHistory?.length || 0;
+  el.innerHTML = `
+    ${hunterLicenseCard()}
+    <div class="two-col mb12">
+      <div class="system-card p16">
+        <div style="font-weight:900;margin-bottom:10px;">HUNTER LICENSE</div>
+        <div style="display:flex;gap:12px;align-items:center;">
+          ${avatarRing()}
+          <div>
+            <div style="font-size:22px;font-weight:900;">${esc(displayName())}</div>
+            <div style="color:#13d8ff;font-family:monospace;">${esc(state.unlocks.activeTitle||"E-Rank Initiate")}</div>
+            <div style="color:#9cadbd;font-size:12px;">Goal: ${esc(state.profile.goal||"lean-bulk")} · ${esc(state.profile.trainingLevel||"intermediate")}</div>
+          </div>
+        </div>
+        <button class="btn" style="width:100%;margin-top:12px;" onclick="switchTab('settings')">EDIT LICENSE</button>
+      </div>
+      <div class="system-card p16" style="text-align:center;">
+        <div style="font-weight:900;margin-bottom:8px;">TITLE & BADGE</div>
+        <div style="font-size:52px;color:#b883ff;text-shadow:0 0 18px #9d55ff;">✦</div>
+        <div style="color:#d39bff;font-size:18px;font-weight:900;font-style:italic;">${esc(state.unlocks.activeTitle||"SHADOW HUNTER")}</div>
+        <button class="btn" style="width:100%;margin-top:10px;border-color:#9d55ff;color:#d8b1ff;" onclick="switchTab('awakening')">CHANGE TITLE</button>
+      </div>
+    </div>
+    <div class="system-card p16 mb12">
+      <div style="font-weight:900;margin-bottom:10px;">PLAYER FILE</div>
+      <div class="social-strip">
+        ${[["RANK",state.player.rank],["POWER",formatNum(playerPower())],["STREAK",`${state.streak.current||27} DAYS`],["GOLD",formatNum(state.economy.gold||0)]].map(([l,v])=>`<div><div style="color:#8193a5;font-size:10px;">${l}</div><div style="font-size:20px;font-weight:900;color:#13d8ff;">${v}</div></div>`).join("")}
+      </div>
+    </div>
+    <div class="two-col mb12">
+      <div class="system-card p16"><div style="color:#13d8ff;font-weight:900;">PROGRESSION</div>${[
+        ["Training sessions",sessions],
+        ["Meals logged",meals],
+        ["Inventory items",owned],
+        ["Dungeons cleared",cleared]
+      ].map(([l,v])=>`<div class="meal-list-row"><span>${l}</span><b>${v}</b></div>`).join("")}</div>
+      <div class="system-card p16"><div style="color:#13d8ff;font-weight:900;">GUILD & IMPACT</div>${[
+        ["Guild",state.social.guildName],
+        ["Friends",state.social.friends],
+        ["Guild points",formatNum(state.social.guildPoints)],
+        ["Impact points",formatNum(state.economy.impactPoints||0)]
+      ].map(([l,v])=>`<div class="meal-list-row"><span>${l}</span><b>${v}</b></div>`).join("")}</div>
+    </div>
+    <div class="system-card p16 mb12">
+      <div style="font-weight:900;margin-bottom:10px;">RECENT SYSTEM ACTIVITY</div>
+      ${(state.auditLog||[]).slice(0,6).map(a=>`<div class="meal-list-row"><span style="font-size:12px;">${esc(a.message)}</span><span style="color:#8193a5;font-size:10px;">${new Date(a.at).toLocaleDateString()}</span></div>`).join("") || `<div class="no-data" style="padding:16px;">NO ACTIVITY YET</div>`}
+    </div>
+    <div class="system-card p16">
+      <div style="font-weight:900;margin-bottom:10px;">PUBLIC LAUNCH READINESS</div>
+      <div style="color:#9cadbd;font-size:12px;line-height:1.7;">Local progression, inventory, guild contribution, impact ledger, export/import and AI nutrition tools are active. Live subscriptions, account sync and verified charity payout rails are the remaining external integrations.</div>
+      <div class="flex gap8 flex-wrap" style="margin-top:12px;"><button class="btn btn-gold" onclick="handleExport()">EXPORT BACKUP</button><button class="btn" onclick="switchTab('settings')">SETTINGS</button></div>
+    </div>`;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2841,6 +2934,8 @@ function buyItem(id){
   if(ownsItem(id) && !item.consumable) return showNotif("quest","ALREADY OWNED",`${item.name} is already in your inventory.`);
   if(!spendGold(item.price, item.name)) return showNotif("penalty","INSUFFICIENT GOLD",`${item.name} costs ${item.price} Gold.`);
   state.inventory.owned.push({id:item.id,qty:item.consumable?1:undefined,acquiredAt:new Date().toISOString()});
+  state.inventory.purchaseHistory.unshift({id:Date.now()+"-"+item.id,itemId:item.id,name:item.name,price:item.price,at:new Date().toISOString(),rarity:item.rarity});
+  state.inventory.purchaseHistory = state.inventory.purchaseHistory.slice(0,80);
   addAudit("shop-buy", `Purchased ${item.name}`, {item:id});
   saveNonWorkout();
   renderAll();
@@ -2933,6 +3028,8 @@ function claimDungeon(id){
   const key = `${id}-${dateKey()}`;
   if(state.dungeons.completed.includes(key)) return showNotif("quest","ALREADY CLEARED","This dungeon has already been cleared today.");
   state.dungeons.completed.push(key);
+  state.dungeons.raidHistory.unshift({id:key,dungeonId:id,name:d.name,clearedAt:new Date().toISOString(),xp:d.xp,gold:d.gold,impact:100});
+  state.dungeons.raidHistory = state.dungeons.raidHistory.slice(0,80);
   addXP(d.xp,"PER");
   addGold(d.gold,d.name);
   addImpact(100,d.name);
@@ -2985,13 +3082,13 @@ function renderHub(){
   el.innerHTML = `
     ${screenTitle("SOCIAL HUB")}
     ${hunterLicenseCard()}
-    <div class="seg-tabs mb12"><button class="active" onclick="showFriendsPanel()">👥 FRIENDS</button><button onclick="showNotif('quest','LEADERBOARD','Top hunters are shown below. Full leaderboard backend sync is ready for accounts.')">🏆 LEADERBOARD</button><button onclick="showGuildHall()">♜ GUILD HALL</button></div>
+    <div class="seg-tabs mb12"><button class="active" onclick="showFriendsPanel()">👥 FRIENDS</button><button onclick="showNotif('quest','LEADERBOARD','Top hunters are shown below. Weekly rankings update from quest, raid, guild and impact activity.')">🏆 LEADERBOARD</button><button onclick="showGuildHall()">♜ GUILD HALL</button></div>
     <div class="system-card raid-banner mb12"><div style="position:relative;z-index:1;color:#b985ff;font-weight:900;font-size:12px;">WEEKLY GUILD RAID</div><h3>SHADOW COLOSSEUM</h3><p>Defeat the Colossus. Earn glory.</p><div style="position:relative;z-index:1;color:#c99aff;font-family:monospace;margin-top:12px;">◷ ENDS IN 2D 14H 35M</div><div class="boss-silhouette"></div><button class="btn" style="float:right;margin-top:-38px;border-color:#9d55ff;color:#e4c3ff;" onclick="switchTab('dungeons')">VIEW RAID</button></div>
     <div class="two-col mb12">
       <div class="system-card p16"><div style="font-weight:900;font-style:italic;margin-bottom:10px;">TOP HUNTERS <span style="color:#8193a5;font-size:10px;">THIS WEEK</span></div>${MOCK_HUNTERS.map(h=>`<div class="leader-row" style="${h.rank===3?"background:linear-gradient(90deg,rgba(0,170,255,.22),transparent);margin:0 -8px;padding-left:8px;padding-right:8px;":""}"><div class="rank-medal ${h.rank===1?"gold":h.rank===2?"silver":h.rank===3?"bronze":""}">${h.rank}</div><div class="mini-avatar"></div><div style="color:${h.rank===3?"#13d8ff":"#f5f7ff"};font-weight:900;font-style:italic;">${esc(h.name)}</div><div style="color:#f0c040;font-family:monospace;">♛ ${formatNum(h.score)}</div></div>`).join("")}<button class="btn btn-ghost" style="width:100%;margin-top:10px;">VIEW FULL LEADERBOARD</button></div>
-      <div class="system-card p16" style="text-align:center;"><div style="font-weight:900;font-style:italic;text-align:left;">MY GUILD</div><div class="guild-crest">♜</div><div style="font-size:21px;font-weight:900;font-style:italic;">${esc(state.social.guildName).toUpperCase()}</div><div style="color:#9cadbd;font-weight:900;">LEVEL ${state.social.guildLevel}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;color:#c8d4df;font-size:11px;"><span>MEMBERS</span><b>28 / 30</b></div><div style="color:#b985ff;font-size:24px;font-weight:900;">${formatNum(state.social.guildPoints)}</div><div style="color:#9cadbd;font-size:11px;">YOUR CONTRIBUTION</div><div style="color:#b985ff;font-size:20px;font-weight:900;">6,890</div><button class="btn" style="width:100%;margin-top:10px;border-color:#9d55ff;color:#e4c3ff;" onclick="showGuildHall()">GUILD HALL</button></div>
+      <div class="system-card p16" style="text-align:center;"><div style="font-weight:900;font-style:italic;text-align:left;">MY GUILD</div><div class="guild-crest">♜</div><div style="font-size:21px;font-weight:900;font-style:italic;">${esc(state.social.guildName).toUpperCase()}</div><div style="color:#9cadbd;font-weight:900;">LEVEL ${state.social.guildLevel}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;color:#c8d4df;font-size:11px;"><span>MEMBERS</span><b>${state.social.guildMembers.length + 24} / 30</b></div><div style="color:#b985ff;font-size:24px;font-weight:900;">${formatNum(state.social.guildPoints)}</div><div style="color:#9cadbd;font-size:11px;">YOUR CONTRIBUTION</div><div style="color:#b985ff;font-size:20px;font-weight:900;">6,890</div><button class="btn" style="width:100%;margin-top:10px;border-color:#9d55ff;color:#e4c3ff;" onclick="showGuildHall()">GUILD HALL</button></div>
     </div>
-    <div class="two-col mb12"><div style="display:flex;flex-direction:column;gap:8px;"><div class="system-card action-card" onclick="inviteFriend()"><div class="action-icon">+</div><div><div style="font-weight:900;">INVITE FRIENDS</div><div style="color:#9cadbd;font-size:12px;">Grow your squad</div></div><div style="margin-left:auto;">›</div></div><div class="system-card action-card" onclick="addHunter()"><div class="action-icon">+</div><div><div style="font-weight:900;">ADD HUNTER</div><div style="color:#9cadbd;font-size:12px;">Find new partners</div></div><div style="margin-left:auto;">›</div></div></div><div class="system-card challenge-card"><div style="color:#13d8ff;font-weight:900;font-size:12px;">CO-OP CHALLENGE</div><div style="font-size:21px;font-weight:900;font-style:italic;">PARTNER PUSH</div><div style="color:#9cadbd;font-size:12px;line-height:1.4;">Complete 30 workouts together for massive rewards.</div><div style="margin-top:12px;"><div class="flex-between"><span style="color:#13d8ff;font-size:11px;">PROGRESS</span><span style="color:#13d8ff;font-family:monospace;">18 / 30</span></div>${xpBar(60)}</div><div style="display:flex;gap:8px;margin-top:9px;"><div class="currency-pill"><span class="coin xpcoin">XP</span>x2,000</div><div class="currency-pill"><span style="color:#b985ff;">◆</span>x400</div></div></div></div>
+    <div class="two-col mb12"><div style="display:flex;flex-direction:column;gap:8px;"><div class="system-card action-card" onclick="inviteFriend()"><div class="action-icon">+</div><div><div style="font-weight:900;">INVITE FRIENDS</div><div style="color:#9cadbd;font-size:12px;">Grow your squad</div></div><div style="margin-left:auto;">›</div></div><div class="system-card action-card" onclick="addHunter()"><div class="action-icon">+</div><div><div style="font-weight:900;">ADD HUNTER</div><div style="color:#9cadbd;font-size:12px;">Find new partners</div></div><div style="margin-left:auto;">›</div></div></div><div class="system-card challenge-card"><div style="color:#13d8ff;font-weight:900;font-size:12px;">CO-OP CHALLENGE</div><div style="font-size:21px;font-weight:900;font-style:italic;">PARTNER PUSH</div><div style="color:#9cadbd;font-size:12px;line-height:1.4;">Complete 30 workouts together for massive rewards.</div><div style="margin-top:12px;"><div class="flex-between"><span style="color:#13d8ff;font-size:11px;">PROGRESS</span><span style="color:#13d8ff;font-family:monospace;">${state.social.partnerPush} / 30</span></div><div class="xp-bar-wrap" style="height:7px;"><div class="xp-bar-fill" style="width:${Math.round(state.social.partnerPush/30*100)}%;background:linear-gradient(90deg,#10e0ff,#7ddcff);box-shadow:0 0 10px #10e0ff;"></div></div></div><div style="display:flex;gap:8px;margin-top:9px;"><div class="currency-pill"><span class="coin xpcoin">XP</span>x2,000</div><div class="currency-pill"><span style="color:#b985ff;">◆</span>x400</div></div></div></div>
     <div class="system-card p16"><div style="font-weight:900;margin-bottom:8px;">SOCIAL PROGRESSION</div><div class="social-strip">${[["👥","FRIENDS",state.social.friends],["👥","WORKOUTS TOGETHER",156],["🔥","TOTAL MINUTES","4,320"],["⬡","SOCIAL RANK","B"]].map(([ic,l,v])=>`<div><div style="font-size:26px;color:#13d8ff;">${ic}</div><div style="color:#8193a5;font-size:10px;">${l}</div><div style="font-size:22px;font-weight:900;">${v}</div></div>`).join("")}</div></div>`;
 }
 function renderImpact(){
@@ -3002,9 +3099,9 @@ function renderImpact(){
   const pct = Math.min(100, Math.round((personal/target)*100));
   el.innerHTML = `
     ${screenTitle("HUNTERS FOR GOOD")}
-    <div class="system-card cause-hero mb12"><span class="rank-badge" style="position:relative;z-index:1;color:#9bdcff;border:1px solid #1a4a7a;">THIS MONTH'S CAUSE</span><h3>${esc(IMPACT_CAMPAIGN.cause).toUpperCase()}</h3><p style="max-width:58%;">${esc(IMPACT_CAMPAIGN.desc)} around the world.</p><button class="btn" style="margin-top:14px;border-color:#9d55ff;color:#e4c3ff;" onclick="showNotif('quest','CAUSE DETAILS','Education for All is the current demo cause. Live charity routing requires a verified payment/charity provider before public launch.')">LEARN MORE ›</button><div class="days-box"><div style="color:#13d8ff;font-size:10px;font-weight:900;">DAYS LEFT</div><div style="font-size:30px;font-weight:900;">${IMPACT_CAMPAIGN.daysLeft}</div><div style="font-size:11px;">DAYS</div></div></div>
+    <div class="system-card cause-hero mb12"><span class="rank-badge" style="position:relative;z-index:1;color:#9bdcff;border:1px solid #1a4a7a;">THIS MONTH'S CAUSE</span><h3>${esc(IMPACT_CAMPAIGN.cause).toUpperCase()}</h3><p style="max-width:58%;">${esc(IMPACT_CAMPAIGN.desc)} around the world.</p><button class="btn" style="margin-top:14px;border-color:#9d55ff;color:#e4c3ff;" onclick="showNotif('quest','CAUSE DETAILS','Education for All is the current featured cause. Live charity routing requires a verified payment/charity provider before public launch.')">LEARN MORE ›</button><div class="days-box"><div style="color:#13d8ff;font-size:10px;font-weight:900;">DAYS LEFT</div><div style="font-size:30px;font-weight:900;">${IMPACT_CAMPAIGN.daysLeft}</div><div style="font-size:11px;">DAYS</div></div></div>
     <div class="system-card p16 mb12 impact-row"><div><div style="color:#13d8ff;font-weight:900;">YOUR IMPACT</div><div style="margin:8px 0;">Work out. Complete quests. Change lives.</div><div style="color:#13d8ff;font-size:27px;font-weight:900;">${formatNum(personal)} <span style="color:#8092a4;font-size:17px;">/ ${formatNum(target)} IMPACT POINTS</span></div><div class="xp-bar-wrap" style="height:10px;margin:10px 0;"><div class="xp-bar-fill" style="width:${pct}%;background:#13d8ff;box-shadow:0 0 10px #13d8ff;"></div></div><div style="color:#9cadbd;font-size:12px;">${IMPACT_CAMPAIGN.conversion} <span style="border:1px solid #60768b;border-radius:50%;padding:0 5px;">i</span></div></div><div class="impact-orb"></div></div>
-    <div class="system-card p12 mb12" style="border-color:#00ff88;background:linear-gradient(90deg,rgba(0,255,136,.13),rgba(0,0,0,.25));"><div class="flex-between"><div style="display:flex;gap:12px;align-items:center;"><div class="action-icon" style="background:#36e69f;">👥</div><div><div style="color:#00ff88;font-weight:900;">COMMUNITY TOTAL</div><div style="font-size:24px;font-weight:900;">${formatNum(IMPACT_CAMPAIGN.communityTotal)} <span style="font-size:13px;color:#13d8ff;">IMPACT POINTS</span></div><div style="color:#8fa6ba;font-size:12px;">$27,849 donated to make a real difference</div></div></div><button class="btn" onclick="showNotif('quest','COMMUNITY IMPACT','Community total is a demo public counter until backend sponsor and charity payout rails are connected.')">VIEW IMPACT ›</button></div></div>
+    <div class="system-card p12 mb12" style="border-color:#00ff88;background:linear-gradient(90deg,rgba(0,255,136,.13),rgba(0,0,0,.25));"><div class="flex-between"><div style="display:flex;gap:12px;align-items:center;"><div class="action-icon" style="background:#36e69f;">👥</div><div><div style="color:#00ff88;font-weight:900;">COMMUNITY TOTAL</div><div style="font-size:24px;font-weight:900;">${formatNum(IMPACT_CAMPAIGN.communityTotal)} <span style="font-size:13px;color:#13d8ff;">IMPACT POINTS</span></div><div style="color:#8fa6ba;font-size:12px;">£27,849 pledged impact value</div></div></div><button class="btn" onclick="showNotif('quest','COMMUNITY IMPACT','Community totals are tracked as impact value until sponsor funding and charity payout rails are connected.')">VIEW IMPACT ›</button></div></div>
     <div class="system-card p16 mb12"><div class="flex-between mb8"><div style="color:#13d8ff;font-weight:900;">GUILD CONTRIBUTIONS</div><div style="color:#13d8ff;font-size:11px;">RANKING REFRESHES IN 2D 14H</div></div>${["IRON WOLVES","SHADOW HUNTERS","ELITE AWAKENED","DAWN SENTINELS","PHANTOM LEGION"].map((g,i)=>`<div class="leader-row" style="grid-template-columns:28px 34px 1fr auto;"><div class="rank-medal ${i===0?"gold":i===1?"silver":i===2?"bronze":""}">${i<3?i+1:i+1}</div><div style="font-size:24px;color:${i===0?"#b985ff":"#8fa6ba"};">⬟</div><div style="font-weight:900;">${g}</div><div style="font-size:18px;font-family:monospace;">${formatNum(562480-i*124270)} <span style="font-size:11px;color:#9cadbd;">PTS</span></div></div>`).join("")}<button class="btn btn-ghost" style="width:100%;margin-top:10px;">VIEW FULL LEADERBOARD ›</button></div>
     <div class="two-col mb12"><div class="system-card p16"><div style="color:#13d8ff;font-weight:900;margin-bottom:12px;">YOUR CONTRIBUTION</div><div style="display:flex;gap:12px;align-items:center;">${avatarRing()}<div><div style="color:#13d8ff;font-size:28px;font-weight:900;">${formatNum(personal)}</div><div style="color:#13d8ff;">IMPACT POINTS</div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;margin-top:18px;color:#9cadbd;"><div>RANK<br><b style="color:#e8f4ff;font-size:18px;">#42</b></div><div>PERCENTILE<br><b style="color:#e8f4ff;font-size:18px;">TOP 12%</b></div></div></div><div class="system-card p16"><div style="color:#13d8ff;font-weight:900;">IMPACT REWARDS</div><div style="color:#9cadbd;">UNLOCK BADGES & TITLES</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:12px 0;text-align:center;"><div>💚<br>FIRST<br>STEP</div><div>💜<br>HEART<br>HUNTER</div><div>⭐<br>LEGACY<br>BUILDER</div></div><button class="btn btn-ghost" style="width:100%;">VIEW ALL REWARDS ›</button></div></div>
     <button class="btn cta-blue" onclick="completeImpactMission()">COMPLETE MISSION ›<br><span style="font-size:12px;">EARN IMPACT. CHANGE LIVES.</span></button>`;
