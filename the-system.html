@@ -666,6 +666,10 @@ body.pixel-mode .tab-btn.active{border-bottom:0;background:linear-gradient(180de
   <!-- NUTRITION TAB -->
   <div id="tab-nutrition" class="tab-content">
 
+    <div class="panel glow p16 mb12" id="nutrition-command">
+      <div class="br"></div><div class="bl"></div>
+    </div>
+
     <!-- Progress overview -->
     <div class="panel glow p20 mb12">
       <div class="br"></div><div class="bl"></div>
@@ -1407,6 +1411,85 @@ function getNutritionTotals(){
     sugar: meals.reduce((s,m)=>s+(parseFloat(m.sugar)||0),0),
     fiber: meals.reduce((s,m)=>s+(parseFloat(m.fiber)||0),0)
   };
+}
+function getNutritionGaps(){
+  const targets = state.nutritionTargets || NUTRITION_TARGETS;
+  const totals = getNutritionTotals();
+  return {
+    calories: Math.max(0, Math.round(targets.calories - totals.calories)),
+    protein: Math.max(0, Math.round(targets.protein - totals.protein)),
+    carbs: Math.max(0, Math.round((targets.carbs||0) - totals.carbs)),
+    fat: Math.max(0, Math.round((targets.fat||0) - totals.fat)),
+    sugar: Math.max(0, Math.round((targets.sugar||0) - totals.sugar)),
+    fiber: Math.max(0, Math.round((targets.fiber||0) - totals.fiber)),
+    totals,
+    targets
+  };
+}
+function getNutritionDirective(){
+  const gaps = getNutritionGaps();
+  if(gaps.calories===0 && gaps.protein===0) return {level:"CLEAR",color:"#00ff88",title:"Targets secured",body:"Calories and protein are hit. Keep meals clean and avoid unnecessary sugar."};
+  if(gaps.protein>45) return {level:"PROTEIN",color:"#9933ff",title:"Protein is the priority",body:`${gaps.protein}g protein remaining. Choose a dense protein meal before chasing calories.`};
+  if(gaps.calories>700) return {level:"CALORIES",color:"#00aaff",title:"Energy gap detected",body:`${gaps.calories} kcal remaining. Add a balanced carb/protein meal so the bulk target does not slip.`};
+  if(gaps.fiber>10) return {level:"MICROS",color:"#00ff88",title:"Add fibre and micronutrients",body:`${gaps.fiber}g fibre remaining. Add fruit, oats, veg or beans.`};
+  return {level:"FINISH",color:"#f0c040",title:"Close the final gap",body:`${gaps.calories} kcal and ${gaps.protein}g protein remaining. Use a small finisher.`};
+}
+function renderNutritionCommand(){
+  const el = document.getElementById("nutrition-command");
+  if(!el) return;
+  const gaps = getNutritionGaps();
+  const directive = getNutritionDirective();
+  el.innerHTML = `<div class="br"></div><div class="bl"></div>
+    <div class="flex-between flex-wrap gap8">
+      <div>
+        <div style="color:${directive.color};font-weight:900;letter-spacing:2px;">NUTRITION COMMAND · ${directive.level}</div>
+        <div style="color:#e8f4ff;font-weight:900;margin-top:4px;">${esc(directive.title)}</div>
+        <div style="color:#9cadbd;font-size:12px;line-height:1.5;margin-top:4px;">${esc(directive.body)}</div>
+      </div>
+      <div style="text-align:right;font-family:monospace;">
+        <div style="color:#00aaff;font-size:20px;font-weight:900;">${formatNum(gaps.calories)}</div>
+        <div style="color:#7f9ab4;font-size:10px;">KCAL LEFT</div>
+        <div style="color:#9933ff;font-size:18px;font-weight:900;margin-top:5px;">${formatNum(gaps.protein)}g</div>
+        <div style="color:#7f9ab4;font-size:10px;">PROTEIN LEFT</div>
+      </div>
+    </div>
+    <div class="action-grid" style="margin-top:12px;">
+      <button class="btn btn-green" onclick="logSmartFinisher()">SMART FINISHER</button>
+      <button class="btn btn-gold" onclick="getMealSuggestions()">AI SUGGESTIONS</button>
+      <label class="btn" style="text-align:center;cursor:pointer;">SCAN FOOD<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="scanFoodPhoto(this)"/></label>
+      <button class="btn" onclick="switchTab('settings')">EDIT TARGETS</button>
+    </div>`;
+}
+function logSmartFinisher(){
+  const gaps = getNutritionGaps();
+  if(gaps.calories===0 && gaps.protein===0){
+    showNotif("quest","TARGETS ALREADY HIT","No finisher needed. Calories and protein are already secured.");
+    return;
+  }
+  const proteinHeavy = gaps.protein > 35;
+  const meal = proteinHeavy ? {
+    name:"System Protein Finisher",
+    calories:Math.min(650, Math.max(280, gaps.calories || 420)),
+    protein:Math.min(65, Math.max(30, gaps.protein)),
+    carbs:Math.min(70, Math.max(18, gaps.carbs || 32)),
+    fat:Math.min(18, Math.max(4, gaps.fat || 8)),
+    sugar:8,
+    fiber:5
+  } : {
+    name:"System Energy Finisher",
+    calories:Math.min(850, Math.max(400, gaps.calories || 520)),
+    protein:Math.min(42, Math.max(20, gaps.protein || 25)),
+    carbs:Math.min(110, Math.max(45, gaps.carbs || 70)),
+    fat:Math.min(26, Math.max(8, gaps.fat || 12)),
+    sugar:14,
+    fiber:8
+  };
+  if(!state.nutritionLog.meals) state.nutritionLog.meals=[];
+  state.nutritionLog.meals.push({...meal,id:Date.now()});
+  addAudit("smart-finisher", `Smart finisher logged: ${meal.name}`, meal);
+  saveNonWorkout();
+  renderNutrition();
+  showNotif("levelup","SMART FINISHER LOGGED",`${meal.name}\n\n+${meal.calories} kcal · +${meal.protein}g protein`);
 }
 function getIncompleteObligations(){
   const targets = state.nutritionTargets || NUTRITION_TARGETS;
@@ -2263,9 +2346,19 @@ function renderNutrition(){
   const protDone = totalProt>=targets.protein;
   const nutritionHit = calDone && protDone;
   if(state.dailyProgress.nutritionHit !== nutritionHit){
+    const firstHit = nutritionHit && !state.dailyProgress.nutritionHit;
     state.dailyProgress.nutritionHit = nutritionHit;
+    if(firstHit && !state.dailyProgress.nutritionRewarded){
+      state.dailyProgress.nutritionRewarded = true;
+      addGold(80,"Nutrition target");
+      addImpact(35,"Nutrition target");
+      addAudit("nutrition-complete","Daily nutrition targets secured", {calories:Math.round(totalCal), protein:Math.round(totalProt)});
+      showNotif("levelup","NUTRITION TARGET SECURED","+80 Gold · +35 Impact Points\n\nCalories and protein are locked in.");
+    }
     sSet("sl-daily", state.dailyProgress);
+    saveNonWorkout();
   }
+  renderNutritionCommand();
 
   document.getElementById("cal-bar").style.width=calPct+"%";
   document.getElementById("prot-bar").style.width=protPct+"%";
@@ -2366,7 +2459,7 @@ function addMeal(){
   if(!state.nutritionLog.meals) state.nutritionLog.meals=[];
   state.nutritionLog.meals.push({name,calories:cal,protein:prot,carbs,fat,sugar,fiber,id:Date.now()});
   addAudit("meal-logged", `Meal logged: ${name || "Unnamed"}`, {calories:cal,protein:prot,carbs,fat,sugar,fiber});
-  sSet("sl-nutrition",state.nutritionLog);
+  saveNonWorkout();
   document.getElementById("meal-name").value="";
   document.getElementById("meal-cal").value="";
   document.getElementById("meal-prot").value="";
@@ -2379,7 +2472,8 @@ function addMeal(){
 
 function removeMeal(idx){
   state.nutritionLog.meals.splice(idx,1);
-  sSet("sl-nutrition",state.nutritionLog);
+  addAudit("meal-removed", "Meal removed from nutrition log", {idx});
+  saveNonWorkout();
   renderNutrition();
 }
 
@@ -2747,7 +2841,8 @@ function addScannedMeal() {
   if (!cal) return;
   if (!state.nutritionLog.meals) state.nutritionLog.meals = [];
   state.nutritionLog.meals.push({ name, calories: cal, protein: prot, carbs, fat, sugar, fiber, id: Date.now() });
-  sSet("sl-nutrition", state.nutritionLog);
+  addAudit("scanned-meal", `Scanned meal logged: ${name}`, {calories:cal,protein:prot,carbs,fat,sugar,fiber});
+  saveNonWorkout();
   document.getElementById("scan-result").style.display = "none";
   document.getElementById("scan-preview").style.display = "none";
   document.getElementById("scan-meal-name").value = "";
@@ -2882,7 +2977,8 @@ function buildFallbackSuggestions(calLeft, protLeft){
 function quickAddSuggestion(name, cal, prot, carbs=0, fat=0, sugar=0, fiber=0) {
   if (!state.nutritionLog.meals) state.nutritionLog.meals = [];
   state.nutritionLog.meals.push({ name, calories: cal, protein: prot, carbs, fat, sugar, fiber, id: Date.now() });
-  sSet("sl-nutrition", state.nutritionLog);
+  addAudit("suggestion-meal", `Suggested meal logged: ${name}`, {calories:cal,protein:prot,carbs,fat,sugar,fiber});
+  saveNonWorkout();
   renderNutrition();
   showNotif("quest", "MEAL LOGGED", `${name}\n\n+${cal} kcal · +${prot}g protein added to today's log.`);
 }
