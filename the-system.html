@@ -1035,6 +1035,11 @@ let state = {
 let activeTrainingDay = "UB1";
 let activeProgressDay = "UB1";
 let activeNutritionView = "overview";
+let activeQuestScreen = "main";
+let activeQuestId = "dq-workout";
+let questProgressDraft = 10;
+let activeDungeonScreen = "main";
+let activeDungeonId = "iron-gate";
 let currentTab = "hub";
 let editingEx = null; // {dayKey, section, idx}
 let activeTrainingScreen = "main";
@@ -1352,6 +1357,174 @@ function questLivePanel(){
     <div class="action-grid mb12"><button class="btn btn-red" onclick="checkPenalty()">CHECK PENALTY</button><button class="btn" onclick="switchTab('nutrition')">LOG FOOD</button><button class="btn" onclick="switchTab('training')">TRAINING</button><button class="btn" onclick="switchTab('dungeons')">DUNGEONS</button></div>
     <div class="system-card p12"><div class="live-list">${qRows}</div></div>`;
 }
+const QUEST_SCREEN_IMAGES = {
+  main:"assets/screens/quests.png",
+  detail:"assets/screens/quest-q03-detail.jpg",
+  addProgress:"assets/screens/quest-q04-add-progress.jpg",
+  advanced:"assets/screens/quest-q04-advanced-progress.jpg",
+  weekly:"assets/screens/quest-q05-weekly-tracker.jpg",
+  streak:"assets/screens/quest-q07-streak-alert.jpg"
+};
+
+function setQuestScreen(screen,questId){
+  activeQuestScreen = screen || "main";
+  if(questId) activeQuestId = questId;
+  renderQuests();
+}
+
+function questById(id=activeQuestId){return QUESTS.find(q=>q.id===id) || QUESTS.find(q=>q.id==="dq-workout") || QUESTS[0];}
+function questBottomHotspots(){
+  return [
+    hotspot("Hub",15,90,13,6,"switchTab('hub')"),
+    hotspot("Quests",30,90,17,6,"switchTab('quests')"),
+    hotspot("Train",49,90,15,6,"switchTab('training')"),
+    hotspot("Dungeons",65,90,17,6,"switchTab('dungeons')"),
+    hotspot("Profile",83,90,14,6,"switchTab('status')")
+  ];
+}
+function questHotspots(screen=activeQuestScreen){
+  const nav = questBottomHotspots();
+  if(screen==="detail") return [
+    ...nav,
+    hotspot("Back To Quests",16,13,7,5,"setQuestScreen('main')"),
+    hotspot("Quick Add 5",18,70,12,4,"updateQuestProgress(activeQuestId,5)"),
+    hotspot("Quick Add 10",33,70,12,4,"updateQuestProgress(activeQuestId,10)"),
+    hotspot("Quick Add 15",48,70,12,4,"updateQuestProgress(activeQuestId,15)"),
+    hotspot("Quick Add 20",63,70,12,4,"updateQuestProgress(activeQuestId,20)"),
+    hotspot("Custom Progress",77,70,14,4,"setQuestScreen('advanced',activeQuestId)"),
+    hotspot("Save Progress",20,86,28,5,"saveQuestProgress()"),
+    hotspot("Mark Complete",52,86,30,5,"completeQuestFromDetail()")
+  ];
+  if(screen==="addProgress") return [
+    ...nav,
+    hotspot("Close Progress",76,39,8,5,"setQuestScreen('main')"),
+    hotspot("Minus Reps",24,58,12,5,"adjustQuestDraft(-1)"),
+    hotspot("Plus Reps",66,58,12,5,"adjustQuestDraft(1)"),
+    hotspot("Add 5",23,65,12,4,"adjustQuestDraft(5)"),
+    hotspot("Add 10",36,65,12,4,"adjustQuestDraft(10)"),
+    hotspot("Add 25",50,65,12,4,"adjustQuestDraft(25)"),
+    hotspot("Add 50",64,65,12,4,"adjustQuestDraft(50)"),
+    hotspot("Confirm Progress",20,76,62,5,"confirmQuestDraft()"),
+    hotspot("Cancel Progress",35,82,30,4,"setQuestScreen('main')")
+  ];
+  if(screen==="advanced") return [
+    ...nav,
+    hotspot("Back To Quests",16,13,7,5,"setQuestScreen('main')"),
+    hotspot("Minus",22,44,10,6,"adjustQuestDraft(-1)"),
+    hotspot("Plus",68,44,10,6,"adjustQuestDraft(1)"),
+    hotspot("Add 5 Advanced",20,57,12,4,"adjustQuestDraft(5)"),
+    hotspot("Add 10 Advanced",34,57,12,4,"adjustQuestDraft(10)"),
+    hotspot("Add 15 Advanced",48,57,12,4,"adjustQuestDraft(15)"),
+    hotspot("Add 25 Advanced",62,57,12,4,"adjustQuestDraft(25)"),
+    hotspot("Max Advanced",76,57,12,4,"setQuestDraftMax()"),
+    hotspot("Confirm Progress",18,85,66,7,"confirmQuestDraft()")
+  ];
+  if(screen==="weekly") return [
+    ...nav,
+    hotspot("Back To Quests",16,16,7,5,"setQuestScreen('main')"),
+    hotspot("Claim 15 Tier",50,54,16,10,"claimWeeklyQuestTier(15)"),
+    hotspot("Claim Streak Bonus",29,70,19,4,"claimWeeklyQuestBonus('streak')"),
+    hotspot("Claim Time Bonus",69,70,19,4,"claimWeeklyQuestBonus('time')"),
+    hotspot("Claim Weekly Reward",18,88,39,5,"claimWeeklyQuestTier(20)"),
+    hotspot("View Weekly Missions",59,88,30,5,"showNotif('quest','WEEKLY MISSIONS','Weekly mission list will expand here as Pack 2 grows.')")
+  ];
+  if(screen==="streak") return [
+    ...nav,
+    hotspot("Back To Quests",16,13,7,5,"setQuestScreen('main')"),
+    hotspot("Use Streak Freeze",63,53,21,6,"useStreakFreeze()"),
+    hotspot("Go Pushups",76,70,10,4,"setQuestScreen('detail','dq-workout')"),
+    hotspot("Go Water",76,75,10,4,"setQuestScreen('detail','dq-water')"),
+    hotspot("Go Plank",76,80,10,4,"setQuestScreen('advanced','dq-coding')"),
+    hotspot("Complete Today",18,86,66,6,"setQuestScreen('main')"),
+    hotspot("View All Quests",18,93,66,4,"setQuestScreen('main')")
+  ];
+  return [
+    ...nav,
+    hotspot("Streak Alert",18,18,68,7,"setQuestScreen('streak')"),
+    hotspot("Push-Up Power",24,25.7,48,3.2,"setQuestScreen('detail','dq-workout')"),
+    hotspot("Push-Up Add",78,25.7,11,3.2,"setQuestScreen('addProgress','dq-workout')"),
+    hotspot("Leg Day",24,30.2,48,3.2,"setQuestScreen('detail','dq-workout')"),
+    hotspot("Core Stability",24,34.9,48,3.2,"setQuestScreen('advanced','dq-coding')"),
+    hotspot("Flexibility Flow",24,39.7,48,3.2,"setQuestScreen('advanced','dq-reading')"),
+    hotspot("Hydration Check",24,44.5,48,3.2,"setQuestScreen('detail','dq-water')"),
+    hotspot("Hydration Add",78,44.5,11,3.2,"updateQuestProgress('dq-water',0.5)"),
+    hotspot("Weekly Tracker",18,50.5,68,8,"setQuestScreen('weekly')"),
+    hotspot("Iron Gate",18,72.7,19,3.4,"setDungeonScreen('iron')"),
+    hotspot("Shadow Gate",43,72.7,19,3.4,"setDungeonScreen('shadow')"),
+    hotspot("Void Gate",68,72.7,19,3.4,"setDungeonScreen('void')"),
+    hotspot("World Boss",82,78.1,8,4,"setDungeonScreen('world')"),
+    hotspot("Start Raid",16,84,68,5.2,"setDungeonScreen('world')")
+  ];
+}
+function questStatePanel(screen=activeQuestScreen){
+  const q = questById();
+  const p = state.dailyProgress.quests[q.id] || {value:0,completed:false};
+  if(screen==="detail") return `${liveHeader("DAILY QUEST DETAIL",`${q.name} · ${formatNum(p.value||0)} / ${formatNum(q.target)} ${q.unit}`)}
+    <div class="action-grid"><button class="btn" onclick="updateQuestProgress('${q.id}',5)">+5</button><button class="btn" onclick="updateQuestProgress('${q.id}',10)">+10</button><button class="btn" onclick="setQuestScreen('advanced','${q.id}')">CUSTOM</button><button class="btn cta-blue" onclick="completeQuestFromDetail()">MARK COMPLETE</button></div>`;
+  if(screen==="addProgress" || screen==="advanced") return `${liveHeader(screen==="advanced"?"ADVANCED PROGRESS ENTRY":"ADD PROGRESS",`${q.name} · draft +${questProgressDraft}`)}
+    <div class="action-grid"><button class="btn" onclick="adjustQuestDraft(-1)">-</button><button class="btn" onclick="adjustQuestDraft(5)">+5</button><button class="btn" onclick="adjustQuestDraft(10)">+10</button><button class="btn" onclick="setQuestDraftMax()">MAX</button><button class="btn cta-blue" onclick="confirmQuestDraft()">CONFIRM PROGRESS</button></div>`;
+  if(screen==="weekly") return `${liveHeader("WEEKLY QUEST TRACKER","Claim weekly milestones and bonuses.")}
+    <div class="action-grid"><button class="btn btn-gold" onclick="claimWeeklyQuestTier(15)">CLAIM 15</button><button class="btn" onclick="claimWeeklyQuestBonus('streak')">STREAK BONUS</button><button class="btn" onclick="claimWeeklyQuestBonus('time')">TIME BONUS</button><button class="btn cta-blue" onclick="claimWeeklyQuestTier(20)">WEEKLY REWARD</button></div>`;
+  if(screen==="streak") return `${liveHeader("STREAK ALERT",`${state.streak.current||27} days · protect the streak today.`)}
+    <div class="action-grid"><button class="btn btn-red" onclick="checkPenalty()">CHECK RISK</button><button class="btn" onclick="useStreakFreeze()">USE FREEZE</button><button class="btn cta-blue" onclick="setQuestScreen('main')">VIEW QUESTS</button></div>`;
+  return questLivePanel();
+}
+function adjustQuestDraft(delta){
+  const q = questById();
+  questProgressDraft = Math.max(0,Math.min(q.target,questProgressDraft + delta));
+  renderQuests();
+}
+function setQuestDraftMax(){
+  questProgressDraft = questById().target;
+  renderQuests();
+}
+function confirmQuestDraft(){
+  updateQuestProgress(activeQuestId,questProgressDraft);
+  questProgressDraft = 10;
+  activeQuestScreen = "main";
+  renderQuests();
+}
+function completeQuestFromDetail(){
+  const q = questById();
+  updateQuestProgress(q.id,q.target,"set");
+  activeQuestScreen = "main";
+  renderQuests();
+}
+function saveQuestProgress(){
+  saveNonWorkout();
+  setQuestScreen("main");
+  showNotif("quest","PROGRESS SAVED","Quest progress synced to the system.");
+}
+function claimWeeklyQuestTier(tier){
+  state.meta.weeklyClaims = state.meta.weeklyClaims || {};
+  const key = `tier-${tier}-${weekKey()}`;
+  if(state.meta.weeklyClaims[key]) return showNotif("quest","ALREADY CLAIMED",`${tier} quest tier already claimed.`);
+  state.meta.weeklyClaims[key] = true;
+  const xp = tier >= 20 ? 500 : tier >= 15 ? 250 : 100;
+  const gold = tier >= 20 ? 250 : tier >= 15 ? 100 : 50;
+  addXP(xp,"PER"); addGold(gold,`Weekly tier ${tier}`);
+  addAudit("weekly-tier",`Weekly tier claimed: ${tier}`,{tier,xp,gold});
+  saveNonWorkout();
+  setQuestScreen("weekly");
+  showNotif("levelup","WEEKLY REWARD CLAIMED",`Tier ${tier}\n\n+${xp} XP · +${gold} Gold`);
+}
+function claimWeeklyQuestBonus(type){
+  const xp = type==="time" ? 150 : 0;
+  const gold = type==="streak" ? 75 : 0;
+  if(xp) addXP(xp,"AGI");
+  if(gold) addGold(gold,"Weekly streak bonus");
+  addAudit("weekly-bonus",`Weekly ${type} bonus claimed`,{type,xp,gold});
+  saveNonWorkout();
+  setQuestScreen("weekly");
+  showNotif("quest","BONUS CLAIMED",`${type.toUpperCase()} bonus claimed.`);
+}
+function useStreakFreeze(){
+  state.streak.graceTokens = Math.max(0,(state.streak.graceTokens||0)-1);
+  addAudit("streak-freeze","Streak freeze used",{remaining:state.streak.graceTokens});
+  saveNonWorkout();
+  setQuestScreen("main");
+  showNotif("quest","STREAK PROTECTED",`Freeze used. Remaining: ${state.streak.graceTokens}`);
+}
 function shopLivePanel(){
   const owned = new Set((state.inventory.owned||[]).map(i=>i.id));
   return `${liveHeader("LIVE HUNTER SHOP",`${state.inventory.owned.length} owned · purchases spend earned gold`)}
@@ -1366,6 +1539,100 @@ function dungeonLivePanel(){
       return `<div class="live-row"><div><strong>${esc(d.name)}</strong><small>${d.rank}-Rank · ${pct}% clear requirements · ${d.xp} XP · ${d.gold} Gold</small>${xpBar(pct)}</div><button class="btn ${dungeonUnlocked(d)?"":"btn-red"}" onclick="startDungeon('${d.id}');claimDungeon('${d.id}')">${dungeonUnlocked(d)?"ENTER":"LOCKED"}</button></div>`;
     }).join("")}</div>
     <button class="btn cta-blue" onclick="claimWorldBoss()">START WORLD BOSS</button>`;
+}
+const DUNGEON_SCREEN_IMAGES = {
+  main:"assets/screens/quests.png",
+  iron:"assets/screens/dungeon-d01-iron-gate.jpg",
+  shadow:"assets/screens/dungeon-d02-shadow-gate.jpg",
+  void:"assets/screens/dungeon-d03-void-gate-locked.jpg",
+  world:"assets/screens/dungeon-d04-world-boss.jpg",
+  prep:"assets/screens/dungeon-d05-raid-prep.jpg"
+};
+function setDungeonScreen(screen,id){
+  activeDungeonScreen = screen || "main";
+  if(id) activeDungeonId = id;
+  if(currentTab !== "dungeons") switchTab("dungeons");
+  else renderDungeons();
+}
+function dungeonBottomHotspots(){
+  return [
+    hotspot("Hub",15,90,13,6,"switchTab('hub')"),
+    hotspot("Quests",30,90,17,6,"switchTab('quests')"),
+    hotspot("Train",49,90,15,6,"switchTab('training')"),
+    hotspot("Dungeons",65,90,17,6,"switchTab('dungeons')"),
+    hotspot("Profile",83,90,14,6,"switchTab('status')")
+  ];
+}
+function dungeonHotspots(screen=activeDungeonScreen){
+  const nav = dungeonBottomHotspots();
+  if(screen==="iron") return [
+    ...nav,
+    hotspot("Back Dungeons",16,13,7,5,"setDungeonScreen('main')"),
+    hotspot("Enter Iron Gate",16,84,68,7,"enterDungeonPrep('iron-gate')")
+  ];
+  if(screen==="shadow") return [
+    ...nav,
+    hotspot("Back Dungeons",16,13,7,5,"setDungeonScreen('main')"),
+    hotspot("Enter Shadow Gate",40,82,45,7,"enterDungeonPrep('wolf-den')")
+  ];
+  if(screen==="void") return [
+    ...nav,
+    hotspot("Back Dungeons",16,20,7,5,"setDungeonScreen('main')"),
+    hotspot("Home",78,16,8,5,"switchTab('hub')"),
+    hotspot("Gate Sealed",20,83,60,6,"showNotif('penalty','GATE SEALED','Reach Level 50, 65,000 power and 25 Shadow Cores to unlock Void Gate.')")
+  ];
+  if(screen==="world") return [
+    ...nav,
+    hotspot("Back Dungeons",16,13,7,5,"setDungeonScreen('main')"),
+    hotspot("Leaderboard",65,13,18,5,"showNotif('quest','WORLD BOSS LEADERBOARD','Global contribution leaderboard is active locally until account sync goes live.')"),
+    hotspot("Join World Boss",17,86,66,7,"joinWorldBossFromScreen()")
+  ];
+  if(screen==="prep") return [
+    ...nav,
+    hotspot("Back Shadow Gate",16,13,7,5,"setDungeonScreen('shadow')"),
+    hotspot("Solo Mode",18,35,27,7,"showNotif('quest','SOLO MODE','Solo raid mode selected.')"),
+    hotspot("Team Mode",48,35,27,7,"showNotif('quest','TEAM MODE','Team raid unlocks with account sync and level requirements.')"),
+    hotspot("Add Consumable",66,62,16,8,"showNotif('quest','CONSUMABLES','Consumable selection will pull from inventory.')"),
+    hotspot("Begin Raid",17,84,66,7,"beginPreparedRaid()")
+  ];
+  return [
+    ...nav,
+    hotspot("Iron Gate",18,72.7,19,3.4,"setDungeonScreen('iron','iron-gate')"),
+    hotspot("Shadow Gate",43,72.7,19,3.4,"setDungeonScreen('shadow','wolf-den')"),
+    hotspot("Void Gate",68,72.7,19,3.4,"setDungeonScreen('void','void-gate')"),
+    hotspot("World Boss",82,78.1,8,4,"setDungeonScreen('world')"),
+    hotspot("Start Raid",16,84,68,5.2,"setDungeonScreen('world')")
+  ];
+}
+function dungeonStatePanel(screen=activeDungeonScreen){
+  if(screen==="iron") return `${liveHeader("IRON GATE","Beginner gate detail.")}
+    <div class="action-grid"><button class="btn cta-blue" onclick="enterDungeonPrep('iron-gate')">ENTER GATE</button><button class="btn btn-ghost" onclick="setDungeonScreen('main')">BACK</button></div>`;
+  if(screen==="shadow") return `${liveHeader("SHADOW GATE","Intermediate gate detail.")}
+    <div class="action-grid"><button class="btn cta-blue" onclick="enterDungeonPrep('wolf-den')">ENTER GATE</button><button class="btn btn-ghost" onclick="setDungeonScreen('main')">BACK</button></div>`;
+  if(screen==="void") return `${liveHeader("VOID GATE LOCKED","Advanced raid remains sealed.")}
+    <button class="btn btn-red" onclick="showNotif('penalty','GATE SEALED','Level 50 and higher power required.')">VIEW REQUIREMENTS</button>`;
+  if(screen==="world") return `${liveHeader("WORLD BOSS","The Shadow Beast event.")}
+    <div class="action-grid"><button class="btn cta-blue" onclick="joinWorldBossFromScreen()">JOIN WORLD BOSS</button><button class="btn" onclick="showNotif('quest','WORLD BOSS','Damage contribution recorded through weekly mission progress.')">STRATEGY</button></div>`;
+  if(screen==="prep") return `${liveHeader("RAID PREPARATION","Confirm setup before entering.")}
+    <div class="action-grid"><button class="btn" onclick="showNotif('quest','SOLO MODE','Solo raid selected.')">SOLO</button><button class="btn" onclick="showNotif('quest','LOADOUT','Current loadout power: ${formatNum(playerPower())}.')">LOADOUT</button><button class="btn cta-blue" onclick="beginPreparedRaid()">BEGIN RAID</button></div>`;
+  return dungeonLivePanel();
+}
+function enterDungeonPrep(id){
+  activeDungeonId = id;
+  setDungeonScreen("prep",id);
+}
+function beginPreparedRaid(){
+  const id = activeDungeonId || "wolf-den";
+  startDungeon(id);
+  claimDungeon(id);
+  activeDungeonScreen = "main";
+}
+function joinWorldBossFromScreen(){
+  addAudit("world-boss-join","Joined world boss event",{boss:"shadow-beast"});
+  addImpact(25,"World boss participation");
+  saveNonWorkout();
+  setDungeonScreen("world");
+  showNotif("quest","WORLD BOSS JOINED","+25 Impact Points · contribution recorded.");
 }
 function impactLivePanel(){
   const personal = state.economy.impactPoints || 0;
@@ -2257,24 +2524,8 @@ function renderPlayerStrip(){
 // RENDER QUESTS
 // ═══════════════════════════════════════════════════════════
 function renderQuests(){
-  const h = [
-    hotspot("Hub",15,90,13,6,"switchTab('hub')"),
-    hotspot("Quests",30,90,17,6,"switchTab('quests')"),
-    hotspot("Train",49,90,15,6,"switchTab('training')"),
-    hotspot("Dungeons",65,90,17,6,"switchTab('dungeons')"),
-    hotspot("Profile",83,90,14,6,"switchTab('status')"),
-    hotspot("Push-Up Power",78,25.7,11,3.2,"updateQuestProgress('dq-workout',1)"),
-    hotspot("Leg Day",78,30.2,11,3.2,"updateQuestProgress('dq-workout',1)"),
-    hotspot("Core Stability",78,34.9,11,3.2,"updateQuestProgress('dq-workout',1)"),
-    hotspot("Flexibility Flow",78,39.7,11,3.2,"updateQuestProgress('dq-reading',5)"),
-    hotspot("Hydration Check",78,44.5,11,3.2,"updateQuestProgress('dq-water',0.5)"),
-    hotspot("Iron Gate",18,72.7,19,3.4,"startDungeon('iron-gate');claimDungeon('iron-gate')"),
-    hotspot("Shadow Gate",43,72.7,19,3.4,"startDungeon('wolf-den');claimDungeon('wolf-den')"),
-    hotspot("Void Gate",68,72.7,19,3.4,"startDungeon('void-gate');claimDungeon('void-gate')"),
-    hotspot("World Boss",82,78.1,8,4,"claimWorldBoss()"),
-    hotspot("Start Raid",16,84,68,5.2,"switchTab('dungeons')")
-  ];
-  document.getElementById("mission-control").innerHTML = pixelScreen("assets/screens/quests.png",h,questLivePanel());
+  const screen = activeQuestScreen || "main";
+  document.getElementById("mission-control").innerHTML = pixelScreen(QUEST_SCREEN_IMAGES[screen] || QUEST_SCREEN_IMAGES.main,questHotspots(screen),questStatePanel(screen));
   document.getElementById("mandatory-quests").innerHTML = "";
   document.getElementById("bonus-quests").innerHTML = "";
   return;
@@ -4091,19 +4342,8 @@ function claimDungeon(id){
 function renderDungeons(){
   ensureStateShape();
   const el = document.getElementById("dungeons-content");
-  const h = [
-    hotspot("Hub",15,90,13,6,"switchTab('hub')"),
-    hotspot("Quests",30,90,17,6,"switchTab('quests')"),
-    hotspot("Train",49,90,15,6,"switchTab('training')"),
-    hotspot("Dungeons",65,90,17,6,"switchTab('dungeons')"),
-    hotspot("Profile",83,90,14,6,"switchTab('status')"),
-    hotspot("Iron Gate",18,72.7,19,3.4,"startDungeon('iron-gate');claimDungeon('iron-gate')"),
-    hotspot("Shadow Gate",43,72.7,19,3.4,"startDungeon('wolf-den');claimDungeon('wolf-den')"),
-    hotspot("Void Gate",68,72.7,19,3.4,"startDungeon('void-gate');claimDungeon('void-gate')"),
-    hotspot("World Boss",82,78.1,8,4,"claimWorldBoss()"),
-    hotspot("Start Raid",16,84,68,5.2,"claimWorldBoss()")
-  ];
-  el.innerHTML = pixelScreen("assets/screens/quests.png",h,dungeonLivePanel());
+  const screen = activeDungeonScreen || "main";
+  el.innerHTML = pixelScreen(DUNGEON_SCREEN_IMAGES[screen] || DUNGEON_SCREEN_IMAGES.main,dungeonHotspots(screen),dungeonStatePanel(screen));
   return;
   el.innerHTML = `
     ${screenTitle("DUNGEON RAIDS")}

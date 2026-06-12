@@ -1,4 +1,4 @@
-const CACHE = "system-v4-6-hub-global-pack";
+const CACHE = "system-v4-7-quest-dungeon-pack";
 const FILES = [
   "./",
   "./the-system.html",
@@ -32,7 +32,17 @@ const FILES = [
   "./assets/screens/hub-g05-mission-complete.jpg",
   "./assets/screens/hub-g06-confirmation.jpg",
   "./assets/screens/hub-g06-purchase-confirmation.jpg",
-  "./assets/screens/hub-g09-sync-complete.jpg"
+  "./assets/screens/hub-g09-sync-complete.jpg",
+  "./assets/screens/quest-q03-detail.jpg",
+  "./assets/screens/quest-q04-add-progress.jpg",
+  "./assets/screens/quest-q04-advanced-progress.jpg",
+  "./assets/screens/quest-q05-weekly-tracker.jpg",
+  "./assets/screens/quest-q07-streak-alert.jpg",
+  "./assets/screens/dungeon-d01-iron-gate.jpg",
+  "./assets/screens/dungeon-d02-shadow-gate.jpg",
+  "./assets/screens/dungeon-d03-void-gate-locked.jpg",
+  "./assets/screens/dungeon-d04-world-boss.jpg",
+  "./assets/screens/dungeon-d05-raid-prep.jpg"
 ];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
