@@ -182,7 +182,7 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
   <div id="topbar">
     <div>
       <span class="system-text">◈ THE SYSTEM</span>
-      <span style="color:#4a7a9b;font-size:10px;margin-left:10px;font-family:monospace;letter-spacing:2px;">v3.6 · ONLINE</span>
+      <span style="color:#4a7a9b;font-size:10px;margin-left:10px;font-family:monospace;letter-spacing:2px;">v3.7 · ONLINE</span>
       <div id="clock"></div>
     </div>
     <div class="topbar-right">
@@ -196,6 +196,7 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
   <!-- Player strip -->
   <div class="panel p12 mb12" id="player-strip">
     <div class="player-inner">
+      <img id="profile-avatar-top" alt="" style="display:none;width:42px;height:42px;border-radius:4px;border:1px solid #00aaff;object-fit:cover;box-shadow:0 0 10px rgba(0,170,255,0.3);"/>
       <div class="xp-section">
         <div class="xp-label">
           <span style="color:#f0c040;font-size:12px;font-family:monospace;letter-spacing:2px;" id="player-name-label">[ PLAYER ]</span>
@@ -274,6 +275,7 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
         <div class="xp-bar-wrap" style="height:10px;margin-bottom:4px;"><div class="xp-bar-fill" id="prot-bar" style="background:linear-gradient(90deg,#660099,#9933ff);box-shadow:0 0 8px #9933ff;width:0%;"></div></div>
         <div id="prot-remaining" style="color:#4a7a9b;font-size:11px;"></div>
       </div>
+      <div class="nutrition-targets" style="margin-top:14px;" id="macro-targets"></div>
       <button class="btn btn-gold" style="width:100%;margin-top:14px;" onclick="adaptNutritionTargets()">◆ ADAPT TARGETS FROM WEIGHT TREND</button>
     </div>
 
@@ -307,6 +309,12 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
           <input id="scan-prot" class="quest-input" type="number" placeholder="protein g" style="flex:1;"/>
           <button class="btn btn-green" onclick="addScannedMeal()">✓ ADD</button>
         </div>
+        <div class="flex gap8" style="margin-top:8px;">
+          <input id="scan-carbs" class="quest-input" type="number" placeholder="carbs g"/>
+          <input id="scan-fat" class="quest-input" type="number" placeholder="fat g"/>
+          <input id="scan-sugar" class="quest-input" type="number" placeholder="sugar g"/>
+          <input id="scan-fiber" class="quest-input" type="number" placeholder="fiber g"/>
+        </div>
       </div>
     </div>
 
@@ -318,6 +326,14 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
       <div class="flex gap8 mb8">
         <input id="meal-cal" class="quest-input" type="number" placeholder="kcal" style="flex:1;"/>
         <input id="meal-prot" class="quest-input" type="number" placeholder="protein (g)" style="flex:1;"/>
+      </div>
+      <div class="flex gap8 mb8">
+        <input id="meal-carbs" class="quest-input" type="number" placeholder="carbs (g)" style="flex:1;"/>
+        <input id="meal-fat" class="quest-input" type="number" placeholder="fat (g)" style="flex:1;"/>
+      </div>
+      <div class="flex gap8 mb8">
+        <input id="meal-sugar" class="quest-input" type="number" placeholder="sugar (g)" style="flex:1;"/>
+        <input id="meal-fiber" class="quest-input" type="number" placeholder="fiber (g)" style="flex:1;"/>
         <button class="btn" onclick="addMeal()">+ ADD</button>
       </div>
       <div id="meal-template-row" class="flex gap6 flex-wrap"></div>
@@ -379,8 +395,9 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
     <div class="panel glow status-card mb12">
       <div class="br"></div><div class="bl"></div>
       <div style="text-align:center;margin-bottom:20px;">
+        <img id="status-avatar" alt="" style="display:none;width:72px;height:72px;border-radius:6px;border:1px solid #00aaff;object-fit:cover;margin-bottom:10px;box-shadow:0 0 14px rgba(0,170,255,0.35);"/>
         <div style="font-size:11px;letter-spacing:4px;color:#f0c040;margin-bottom:8px;font-family:monospace;text-shadow:0 0 10px #f0c040;">◈ PLAYER STATUS ◈</div>
-        <div style="font-size:26px;font-weight:900;color:#e8f4ff;letter-spacing:3px;text-shadow:0 0 20px #00aaff;">PLAYER</div>
+        <div id="status-player-name" style="font-size:26px;font-weight:900;color:#e8f4ff;letter-spacing:3px;text-shadow:0 0 20px #00aaff;">PLAYER</div>
         <div style="margin-top:8px;" id="status-rank-badge"></div>
       </div>
       <div class="mb16">
@@ -426,23 +443,30 @@ const RANKS = ["E","D","C","B","A","S"];
 const APP_SCHEMA_VERSION = 5;
 const RANK_THRESHOLDS = {E:0,D:2000,C:6000,B:15000,A:35000,S:80000};
 const RANK_COLORS = {E:"#aaa",D:"#66cc44",C:"#4488ff",B:"#aa44ff",A:"#ffaa00",S:"#ff4400"};
-const NUTRITION_TARGETS = {calories:2900,protein:176};
+const NUTRITION_TARGETS = {calories:2900,protein:176,carbs:360,fat:80,sugar:75,fiber:30};
 const AI_ENDPOINT_URL = window.SYSTEM_AI_ENDPOINT_URL || localStorage.getItem("system-ai-endpoint-url") || "";
 const MUSCLE_COLORS = {CHEST:"#FF6B35",BACK:"#4ECDC4",BICEPS:"#A855F7",TRICEPS:"#EF4444",SHOULDERS:"#F59E0B",QUADS:"#10B981",HAMSTRINGS:"#06B6D4",GLUTES:"#EC4899",CALVES:"#84CC16",ABS:"#FF6EC7"};
 const DAY_ORDER = ["UB1","LB1","UB2","LB2","UB3"];
 const DEFAULT_SETTINGS = {restDays:["Sunday"],graceTokens:2,subscriptionPlan:"founder",units:"metric",aiEndpoint:""};
-const DEFAULT_PROFILE = {displayName:"PLAYER",goal:"lean-bulk",heightCm:191,weightKg:81,trainingLevel:"intermediate"};
+const DEFAULT_PROFILE = {displayName:"PLAYER",goal:"lean-bulk",heightCm:191,weightKg:81,trainingLevel:"intermediate",avatar:null};
 const SUBSCRIPTION_PLANS = [
   {id:"initiate",name:"Initiate",price:"£3.99/mo",desc:"Core quests, workout logging, nutrition targets, backup/export."},
   {id:"ascended",name:"Ascended",price:"£7.99/mo",desc:"AI food tools, adaptive targets, advanced analytics, boss battles."},
   {id:"founder",name:"Founder",price:"£9.99/mo",desc:"Discipline Vault, charity contracts, early features, founder badge."}
 ];
 const MEAL_TEMPLATES = [
-  {name:"Chicken rice power bowl",calories:750,protein:62},
-  {name:"Greek yoghurt protein bowl",calories:420,protein:42},
-  {name:"Protein shake finisher",calories:520,protein:48},
-  {name:"Tuna toast upgrade",calories:460,protein:38},
-  {name:"Lean bulk wrap stack",calories:850,protein:58}
+  {name:"Chicken rice power bowl",calories:750,protein:62,carbs:86,fat:14,sugar:6,fiber:7},
+  {name:"Greek yoghurt protein bowl",calories:420,protein:42,carbs:48,fat:8,sugar:22,fiber:6},
+  {name:"Protein shake finisher",calories:520,protein:48,carbs:62,fat:12,sugar:28,fiber:8},
+  {name:"Tuna toast upgrade",calories:460,protein:38,carbs:42,fat:14,sugar:5,fiber:6},
+  {name:"Lean bulk wrap stack",calories:850,protein:58,carbs:92,fat:28,sugar:10,fiber:9}
+];
+const TRAINING_PLAN_TEMPLATES = [
+  {id:"current",name:"Current Split",focus:"Your existing 5-day personalised upper/lower split."},
+  {id:"bodybuilding",name:"Bodybuilding Hypertrophy",focus:"High-volume physique split for muscle growth and symmetry."},
+  {id:"strength",name:"Strength Foundation",focus:"Lower-rep compound priority with accessories for strength."},
+  {id:"athletic",name:"Athletic Performance",focus:"Power, speed, unilateral strength and conditioning."},
+  {id:"combat",name:"Combat Conditioning",focus:"Strength endurance, shoulders, core, posterior chain and work capacity."}
 ];
 const VAULT_CHARITIES = ["Cancer Research UK","British Heart Foundation","Mind","UNICEF","WaterAid","Local food bank","Custom charity"];
 const TITLE_RULES = [
@@ -654,7 +678,11 @@ function getNutritionTotals(){
   const meals = state.nutritionLog.meals || [];
   return {
     calories: meals.reduce((s,m)=>s+(parseFloat(m.calories)||0),0),
-    protein: meals.reduce((s,m)=>s+(parseFloat(m.protein)||0),0)
+    protein: meals.reduce((s,m)=>s+(parseFloat(m.protein)||0),0),
+    carbs: meals.reduce((s,m)=>s+(parseFloat(m.carbs)||0),0),
+    fat: meals.reduce((s,m)=>s+(parseFloat(m.fat)||0),0),
+    sugar: meals.reduce((s,m)=>s+(parseFloat(m.sugar)||0),0),
+    fiber: meals.reduce((s,m)=>s+(parseFloat(m.fiber)||0),0)
   };
 }
 function getIncompleteObligations(){
@@ -1009,6 +1037,11 @@ function renderPlayerStrip(){
   const xpPct = Math.min(100,(p.xp/(p.xpNeeded||2000))*100);
   const nameEl = document.getElementById("player-name-label");
   if(nameEl) nameEl.textContent = `[ ${state.profile.displayName || "PLAYER"} · ${state.unlocks.activeTitle || "E-Rank Initiate"} ]`;
+  const avatarEl = document.getElementById("profile-avatar-top");
+  if(avatarEl){
+    avatarEl.style.display = state.profile.avatar ? "block" : "none";
+    if(state.profile.avatar) avatarEl.src = state.profile.avatar;
+  }
   document.getElementById("xp-bar").style.width = xpPct+"%";
   document.getElementById("xp-label").textContent = `XP: ${p.xp} / ${p.xpNeeded||2000}`;
   const badge = document.getElementById("rank-badge-top");
@@ -1438,8 +1471,9 @@ function renderProgressContent(){
 function renderNutrition(){
   const targets = state.nutritionTargets || NUTRITION_TARGETS;
   const meals = state.nutritionLog.meals||[];
-  const totalCal = meals.reduce((s,m)=>s+(parseFloat(m.calories)||0),0);
-  const totalProt = meals.reduce((s,m)=>s+(parseFloat(m.protein)||0),0);
+  const totals = getNutritionTotals();
+  const totalCal = totals.calories;
+  const totalProt = totals.protein;
   const calPct = Math.min(100,(totalCal/targets.calories)*100);
   const protPct = Math.min(100,(totalProt/targets.protein)*100);
   const calDone = totalCal>=targets.calories;
@@ -1458,6 +1492,23 @@ function renderNutrition(){
   document.getElementById("prot-label").style.color=protDone?"#00ff88":"#9933ff";
   document.getElementById("cal-remaining").textContent=calDone?"✓ TARGET HIT":`${targets.calories-Math.round(totalCal)} kcal remaining`;
   document.getElementById("prot-remaining").textContent=protDone?"✓ TARGET HIT":`${targets.protein-Math.round(totalProt)}g remaining`;
+  const macroEl = document.getElementById("macro-targets");
+  if(macroEl){
+    macroEl.innerHTML = [
+      ["Carbs","carbs","g","#00aaff"],
+      ["Fat","fat","g","#f0c040"],
+      ["Sugar","sugar","g","#ff6699"],
+      ["Fiber","fiber","g","#00ff88"]
+    ].map(([label,key,unit,color])=>{
+      const val = Math.round(totals[key]||0);
+      const target = targets[key] || NUTRITION_TARGETS[key] || 0;
+      const pct = target ? Math.min(100,(val/target)*100) : 0;
+      return `<div>
+        <div class="nut-label"><span style="font-size:12px;color:#e8f4ff;">${label}</span><span style="font-size:11px;color:${color};font-family:monospace;">${val}/${target}${unit}</span></div>
+        <div class="xp-bar-wrap" style="height:6px;"><div class="xp-bar-fill" style="width:${pct}%;background:${color};box-shadow:0 0 6px ${color};"></div></div>
+      </div>`;
+    }).join("");
+  }
 
   const templateEl = document.getElementById("meal-template-row");
   if(templateEl){
@@ -1473,6 +1524,7 @@ function renderNutrition(){
       <div class="flex gap10 align-center">
         <span style="color:#00aaff;font-size:12px;font-family:monospace;">${esc(m.calories||0)} kcal</span>
         <span style="color:#9933ff;font-size:12px;font-family:monospace;">${esc(m.protein||0)}g</span>
+        <span style="color:#4a7a9b;font-size:11px;font-family:monospace;">C${esc(m.carbs||0)} F${esc(m.fat||0)} S${esc(m.sugar||0)}</span>
         <button onclick="removeMeal(${i})" style="background:transparent;border:none;color:#ff3333;cursor:pointer;font-size:13px;">✕</button>
       </div>
     </div>`).join("");
@@ -1481,6 +1533,7 @@ function renderNutrition(){
     <div class="flex gap10">
       <span style="color:#00aaff;font-weight:700;font-family:monospace;">${Math.round(totalCal)} kcal</span>
       <span style="color:#9933ff;font-weight:700;font-family:monospace;">${Math.round(totalProt)}g protein</span>
+      <span style="color:#4a7a9b;font-weight:700;font-family:monospace;">${Math.round(totals.carbs)}C ${Math.round(totals.fat)}F ${Math.round(totals.sugar)}S ${Math.round(totals.fiber)}Fi</span>
     </div>`:"";
 
   renderWeightDisplay();
@@ -1522,14 +1575,22 @@ function addMeal(){
   const name = document.getElementById("meal-name").value.trim();
   const cal = clampNumber(document.getElementById("meal-cal").value, 0, 10000, 0);
   const prot = clampNumber(document.getElementById("meal-prot").value, 0, 500, 0);
+  const carbs = clampNumber(document.getElementById("meal-carbs").value, 0, 1000, 0);
+  const fat = clampNumber(document.getElementById("meal-fat").value, 0, 400, 0);
+  const sugar = clampNumber(document.getElementById("meal-sugar").value, 0, 400, 0);
+  const fiber = clampNumber(document.getElementById("meal-fiber").value, 0, 150, 0);
   if(!name && !cal) return;
   if(!state.nutritionLog.meals) state.nutritionLog.meals=[];
-  state.nutritionLog.meals.push({name,calories:cal,protein:prot,id:Date.now()});
-  addAudit("meal-logged", `Meal logged: ${name || "Unnamed"}`, {calories:cal,protein:prot});
+  state.nutritionLog.meals.push({name,calories:cal,protein:prot,carbs,fat,sugar,fiber,id:Date.now()});
+  addAudit("meal-logged", `Meal logged: ${name || "Unnamed"}`, {calories:cal,protein:prot,carbs,fat,sugar,fiber});
   sSet("sl-nutrition",state.nutritionLog);
   document.getElementById("meal-name").value="";
   document.getElementById("meal-cal").value="";
   document.getElementById("meal-prot").value="";
+  document.getElementById("meal-carbs").value="";
+  document.getElementById("meal-fat").value="";
+  document.getElementById("meal-sugar").value="";
+  document.getElementById("meal-fiber").value="";
   renderNutrition();
 }
 
@@ -1579,6 +1640,13 @@ function renderWeightDisplay(){
 // ═══════════════════════════════════════════════════════════
 function renderStatus(){
   const p = state.player;
+  const statusAvatar = document.getElementById("status-avatar");
+  const statusName = document.getElementById("status-player-name");
+  if(statusName) statusName.textContent = state.profile.displayName || "PLAYER";
+  if(statusAvatar){
+    statusAvatar.style.display = state.profile.avatar ? "inline-block" : "none";
+    if(state.profile.avatar) statusAvatar.src = state.profile.avatar;
+  }
   const xpPct = Math.min(100,(p.xp/(p.xpNeeded||2000))*100);
   document.getElementById("status-xp-bar").style.width=xpPct+"%";
   document.getElementById("status-xp-label").textContent=`${p.xp} / ${p.xpNeeded||2000} XP`;
@@ -1756,6 +1824,10 @@ async function scanFoodPhoto(input) {
       });
       const calories = clampNumber(result.calories, 0, 10000, 0);
       const protein = clampNumber(result.protein_g ?? result.protein, 0, 500, 0);
+      const carbs = clampNumber(result.carbs_g ?? result.carbs, 0, 1000, 0);
+      const fat = clampNumber(result.fat_g ?? result.fat, 0, 400, 0);
+      const sugar = clampNumber(result.sugar_g ?? result.sugar, 0, 400, 0);
+      const fiber = clampNumber(result.fiber_g ?? result.fiber, 0, 150, 0);
       const mealName = result.meal_name || result.name || "Scanned meal";
       const confidence = result.confidence || "medium";
 
@@ -1765,12 +1837,17 @@ async function scanFoodPhoto(input) {
       document.getElementById("scan-result-text").innerHTML =
         `<span style="color:#e8f4ff;font-weight:700;">${esc(mealName)}</span><br>` +
         `<span style="color:#00aaff;">~${calories} kcal</span> &nbsp;·&nbsp; <span style="color:#9933ff;">~${protein}g protein</span><br>` +
+        `<span style="color:#4a7a9b;font-size:11px;">Carbs ${carbs}g · Fat ${fat}g · Sugar ${sugar}g · Fiber ${fiber}g</span><br>` +
         `<span style="color:#4a7a9b;font-size:11px;">${esc(result.breakdown || "Estimate generated from the meal photo. Adjust before logging if needed.")}</span><br>` +
         `<span style="color:#4a7a9b;font-size:10px;font-family:monospace;">Confidence: ${esc(confidence)}</span>`;
 
       document.getElementById("scan-meal-name").value = mealName;
       document.getElementById("scan-cal").value = calories;
       document.getElementById("scan-prot").value = protein;
+      document.getElementById("scan-carbs").value = carbs;
+      document.getElementById("scan-fat").value = fat;
+      document.getElementById("scan-sugar").value = sugar;
+      document.getElementById("scan-fiber").value = fiber;
 
   } catch (err) {
       statusEl.style.display = "none";
@@ -1786,15 +1863,23 @@ function addScannedMeal() {
   const name = document.getElementById("scan-meal-name").value.trim() || "Scanned meal";
   const cal = clampNumber(document.getElementById("scan-cal").value, 0, 10000, 0);
   const prot = clampNumber(document.getElementById("scan-prot").value, 0, 500, 0);
+  const carbs = clampNumber(document.getElementById("scan-carbs").value, 0, 1000, 0);
+  const fat = clampNumber(document.getElementById("scan-fat").value, 0, 400, 0);
+  const sugar = clampNumber(document.getElementById("scan-sugar").value, 0, 400, 0);
+  const fiber = clampNumber(document.getElementById("scan-fiber").value, 0, 150, 0);
   if (!cal) return;
   if (!state.nutritionLog.meals) state.nutritionLog.meals = [];
-  state.nutritionLog.meals.push({ name, calories: cal, protein: prot, id: Date.now() });
+  state.nutritionLog.meals.push({ name, calories: cal, protein: prot, carbs, fat, sugar, fiber, id: Date.now() });
   sSet("sl-nutrition", state.nutritionLog);
   document.getElementById("scan-result").style.display = "none";
   document.getElementById("scan-preview").style.display = "none";
   document.getElementById("scan-meal-name").value = "";
   document.getElementById("scan-cal").value = "";
   document.getElementById("scan-prot").value = "";
+  document.getElementById("scan-carbs").value = "";
+  document.getElementById("scan-fat").value = "";
+  document.getElementById("scan-sugar").value = "";
+  document.getElementById("scan-fiber").value = "";
   renderNutrition();
 }
 
@@ -1802,11 +1887,12 @@ function addScannedMeal() {
 // AI MEAL SUGGESTIONS
 // ═══════════════════════════════════════════════════════════
 async function getMealSuggestions() {
+  const targets = state.nutritionTargets || NUTRITION_TARGETS;
   const meals = state.nutritionLog.meals || [];
   const totalCal = meals.reduce((s, m) => s + (parseFloat(m.calories) || 0), 0);
   const totalProt = meals.reduce((s, m) => s + (parseFloat(m.protein) || 0), 0);
-  const calLeft = Math.max(0, NUTRITION_TARGETS.calories - totalCal);
-  const protLeft = Math.max(0, NUTRITION_TARGETS.protein - totalProt);
+  const calLeft = Math.max(0, targets.calories - totalCal);
+  const protLeft = Math.max(0, targets.protein - totalProt);
 
   const statusEl = document.getElementById("suggestions-status");
   const contentEl = document.getElementById("suggestions-content");
@@ -1823,7 +1909,7 @@ async function getMealSuggestions() {
   try {
     const result = await callNutritionAI({
       task: "meal-suggestions",
-      targets: NUTRITION_TARGETS,
+      targets,
       eaten: { calories: Math.round(totalCal), protein: Math.round(totalProt) },
       remaining: { calories: Math.round(calLeft), protein: Math.round(protLeft) }
     });
@@ -1842,6 +1928,10 @@ function renderMealSuggestions(suggestions, isFallback){
     name: s.name || "Target meal",
     calories: clampNumber(s.calories, 0, 10000, 0),
     protein_g: clampNumber(s.protein_g ?? s.protein, 0, 500, 0),
+    carbs: clampNumber(s.carbs_g ?? s.carbs, 0, 1000, 0),
+    fat: clampNumber(s.fat_g ?? s.fat, 0, 400, 0),
+    sugar: clampNumber(s.sugar_g ?? s.sugar, 0, 400, 0),
+    fiber: clampNumber(s.fiber_g ?? s.fiber, 0, 150, 0),
     description: s.description || "Built to close the gap toward today's nutrition targets.",
     easy_to_make: s.easy_to_make !== false
   }));
@@ -1858,13 +1948,14 @@ function renderMealSuggestions(suggestions, isFallback){
           &nbsp;·&nbsp;
           <span style="color:#9933ff;font-family:monospace;font-size:12px;">~${s.protein_g}g protein</span>
         </div>
+        <div style="color:#4a7a9b;font-family:monospace;font-size:10px;margin-bottom:6px;">C${s.carbs} · F${s.fat} · S${s.sugar} · Fi${s.fiber}</div>
         <div style="color:#4a7a9b;font-size:11px;line-height:1.5;">${esc(s.description)}</div>
         <button class="btn btn-green suggestion-add" data-suggestion-idx="${idx}" style="margin-top:8px;width:100%;font-size:11px;">+ LOG THIS MEAL</button>
       </div>`).join("");
   contentEl.querySelectorAll(".suggestion-add").forEach(btn => {
     btn.addEventListener("click", () => {
       const s = valid[Number(btn.dataset.suggestionIdx)];
-      quickAddSuggestion(s.name, s.calories, s.protein_g);
+      quickAddSuggestion(s.name, s.calories, s.protein_g, s.carbs, s.fat, s.sugar, s.fiber);
     });
   });
 }
@@ -1879,6 +1970,10 @@ function buildFallbackSuggestions(calLeft, protLeft){
       name: highProtein ? "Chicken rice power bowl" : "Greek yoghurt protein bowl",
       calories: highProtein ? Math.min(850, Math.max(550, calories)) : Math.min(550, Math.max(300, calories)),
       protein_g: highProtein ? Math.min(75, Math.max(45, protein)) : Math.min(45, Math.max(25, protein)),
+      carbs: highProtein ? 85 : 48,
+      fat: highProtein ? 18 : 8,
+      sugar: highProtein ? 6 : 22,
+      fiber: highProtein ? 7 : 6,
       description: highProtein ? "Chicken, rice, olive oil and veg. Dense, clean, and easy to scale up." : "Greek yoghurt, whey, berries and honey. Fast protein without a heavy meal.",
       easy_to_make: true
     },
@@ -1886,6 +1981,10 @@ function buildFallbackSuggestions(calLeft, protLeft){
       name: highCalories ? "Lean bulk wrap stack" : "Tuna toast upgrade",
       calories: highCalories ? Math.min(950, Math.max(650, calories - 150)) : Math.min(500, Math.max(300, calories)),
       protein_g: Math.min(60, Math.max(30, protein - 10)),
+      carbs: highCalories ? 92 : 42,
+      fat: highCalories ? 28 : 14,
+      sugar: highCalories ? 10 : 5,
+      fiber: highCalories ? 9 : 6,
       description: highCalories ? "Two wraps with lean meat, cheese, rice and sauce. Good when calories are the bigger gap." : "Tuna, toast, light mayo and salad. Simple, cheap and protein-heavy.",
       easy_to_make: true
     },
@@ -1893,15 +1992,19 @@ function buildFallbackSuggestions(calLeft, protLeft){
       name: "Protein shake finisher",
       calories: Math.min(700, Math.max(250, calories)),
       protein_g: Math.min(55, Math.max(25, protein)),
+      carbs: 62,
+      fat: 12,
+      sugar: 28,
+      fiber: 8,
       description: "Milk, whey, banana and oats. Best late-day option when you need to close targets quickly.",
       easy_to_make: true
     }
   ];
 }
 
-function quickAddSuggestion(name, cal, prot) {
+function quickAddSuggestion(name, cal, prot, carbs=0, fat=0, sugar=0, fiber=0) {
   if (!state.nutritionLog.meals) state.nutritionLog.meals = [];
-  state.nutritionLog.meals.push({ name, calories: cal, protein: prot, id: Date.now() });
+  state.nutritionLog.meals.push({ name, calories: cal, protein: prot, carbs, fat, sugar, fiber, id: Date.now() });
   sSet("sl-nutrition", state.nutritionLog);
   renderNutrition();
   showNotif("quest", "MEAL LOGGED", `${name}\n\n+${cal} kcal · +${prot}g protein added to today's log.`);
@@ -2202,11 +2305,19 @@ function saveSettings(){
   const weight = clampNumber(document.getElementById("set-weight")?.value, 35, 250, DEFAULT_PROFILE.weightKg);
   const calories = clampNumber(document.getElementById("set-calories")?.value, 1200, 6000, NUTRITION_TARGETS.calories);
   const protein = clampNumber(document.getElementById("set-protein")?.value, 50, 350, NUTRITION_TARGETS.protein);
+  const carbs = clampNumber(document.getElementById("set-carbs")?.value, 50, 900, NUTRITION_TARGETS.carbs);
+  const fat = clampNumber(document.getElementById("set-fat")?.value, 20, 250, NUTRITION_TARGETS.fat);
+  const sugar = clampNumber(document.getElementById("set-sugar")?.value, 0, 250, NUTRITION_TARGETS.sugar);
+  const fiber = clampNumber(document.getElementById("set-fiber")?.value, 5, 100, NUTRITION_TARGETS.fiber);
   const restDays = Array.from(document.querySelectorAll(".rest-day-check:checked")).map(i=>i.value);
   const aiEndpoint = document.getElementById("set-ai-endpoint")?.value.trim() || "";
   state.profile = {displayName:name,goal,heightCm:height,weightKg:weight,trainingLevel:level};
   state.nutritionTargets.calories = calories;
   state.nutritionTargets.protein = protein;
+  state.nutritionTargets.carbs = carbs;
+  state.nutritionTargets.fat = fat;
+  state.nutritionTargets.sugar = sugar;
+  state.nutritionTargets.fiber = fiber;
   state.nutritionTargets.mode = goal.replace("-", " ");
   state.settings.restDays = restDays.length ? restDays : ["Sunday"];
   state.settings.graceTokens = clampNumber(document.getElementById("set-grace")?.value, 0, 7, 2);
@@ -2236,6 +2347,75 @@ function resetLocalData(){
   Object.keys(localStorage).filter(k=>k.startsWith("sl-") || k.startsWith("system-ai-")).forEach(k=>localStorage.removeItem(k));
   showNotif("penalty","LOCAL DATA CLEARED","Refresh the app to start from a clean player file on this device.");
 }
+function handleAvatarUpload(input){
+  const file = input.files?.[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    state.profile.avatar = reader.result;
+    addAudit("avatar-updated", "Profile picture updated");
+    saveNonWorkout();
+    renderAll();
+    showNotif("quest","PROFILE PICTURE UPDATED","Your player avatar has been saved on this device.");
+  };
+  reader.readAsDataURL(file);
+  input.value = "";
+}
+function clearAvatar(){
+  state.profile.avatar = null;
+  saveNonWorkout();
+  renderAll();
+}
+function makeExercise(id,name,sets,reps,note){
+  return {id,name,sets,reps,note};
+}
+function buildPlanTemplate(planId){
+  const plans = {
+    bodybuilding:{
+      UB1:{label:"PUSH HYPERTROPHY",focus:"chest shoulder triceps",color:"#FF6B35",sections:{CHEST:[makeExercise("bb-push-1","incline smith press","3 sets","6-10 reps"),makeExercise("bb-push-2","seated cable fly","3 sets","10-15 reps")],SHOULDERS:[makeExercise("bb-push-3","machine shoulder press","3 sets","8-12 reps"),makeExercise("bb-push-4","lateral raise","4 sets","12-20 reps")],TRICEPS:[makeExercise("bb-push-5","rope pushdown","3 sets","10-15 reps"),makeExercise("bb-push-6","overhead cable extension","2 sets","12-15 reps")]}},
+      LB1:{label:"LEGS HYPERTROPHY",focus:"quads calves abs",color:"#4ECDC4",sections:{QUADS:[makeExercise("bb-leg-1","hack squat","3 sets","6-10 reps"),makeExercise("bb-leg-2","leg extension","3 sets","10-15 reps")],HAMSTRINGS:[makeExercise("bb-leg-3","romanian deadlift","3 sets","8-12 reps")],CALVES:[makeExercise("bb-leg-4","standing calf raise","4 sets","10-15 reps")],ABS:[makeExercise("bb-leg-5","cable crunch","3 sets","10-15 reps")]}},
+      UB2:{label:"PULL HYPERTROPHY",focus:"back biceps rear delts",color:"#A855F7",sections:{BACK:[makeExercise("bb-pull-1","lat pulldown","3 sets","8-12 reps"),makeExercise("bb-pull-2","chest supported row","3 sets","8-12 reps"),makeExercise("bb-pull-3","straight arm pulldown","2 sets","12-15 reps")],SHOULDERS:[makeExercise("bb-pull-4","rear delt fly","3 sets","12-20 reps")],BICEPS:[makeExercise("bb-pull-5","preacher curl","3 sets","8-12 reps"),makeExercise("bb-pull-6","hammer curl","2 sets","10-15 reps")]}},
+      LB2:{label:"POSTERIOR HYPERTROPHY",focus:"glutes hamstrings",color:"#F59E0B",sections:{GLUTES:[makeExercise("bb-post-1","hip thrust","3 sets","8-12 reps"),makeExercise("bb-post-2","abductor","3 sets","12-20 reps")],HAMSTRINGS:[makeExercise("bb-post-3","seated hamstring curl","4 sets","10-15 reps")],QUADS:[makeExercise("bb-post-4","leg press","3 sets","10-15 reps")],CALVES:[makeExercise("bb-post-5","seated calf raise","4 sets","12-20 reps")]}},
+      UB3:{label:"ARMS DELTS DETAIL",focus:"shoulders arms upper chest",color:"#EF4444",sections:{SHOULDERS:[makeExercise("bb-detail-1","cable lateral raise","4 sets","12-20 reps"),makeExercise("bb-detail-2","rear delt row","3 sets","10-15 reps")],BICEPS:[makeExercise("bb-detail-3","incline curl","3 sets","8-12 reps"),makeExercise("bb-detail-4","cable curl","3 sets","12-15 reps")],TRICEPS:[makeExercise("bb-detail-5","dip machine","3 sets","8-12 reps"),makeExercise("bb-detail-6","single arm pushdown","2 sets","12-15 reps")],CHEST:[makeExercise("bb-detail-7","incline press","2 sets","8-12 reps")]}}
+    },
+    strength:{
+      UB1:{label:"MAX UPPER",focus:"bench row press",color:"#FF6B35",sections:{CHEST:[makeExercise("str-u1-1","bench press","4 sets","3-6 reps")],BACK:[makeExercise("str-u1-2","barbell row","4 sets","4-6 reps"),makeExercise("str-u1-3","weighted pullup","3 sets","4-8 reps")],SHOULDERS:[makeExercise("str-u1-4","overhead press","3 sets","4-6 reps")],TRICEPS:[makeExercise("str-u1-5","close grip press","2 sets","6-8 reps")]}},
+      LB1:{label:"MAX LOWER",focus:"squat hinge",color:"#4ECDC4",sections:{QUADS:[makeExercise("str-l1-1","back squat","4 sets","3-6 reps")],HAMSTRINGS:[makeExercise("str-l1-2","romanian deadlift","4 sets","5-8 reps")],GLUTES:[makeExercise("str-l1-3","split squat","3 sets","6-10 reps")],ABS:[makeExercise("str-l1-4","weighted plank","3 sets","30-60 sec")]}},
+      UB2:{label:"VOLUME UPPER",focus:"strength volume",color:"#A855F7",sections:{CHEST:[makeExercise("str-u2-1","incline press","3 sets","6-8 reps")],BACK:[makeExercise("str-u2-2","lat pulldown","3 sets","8-10 reps"),makeExercise("str-u2-3","seated row","3 sets","8-10 reps")],SHOULDERS:[makeExercise("str-u2-4","dumbbell press","3 sets","6-10 reps")],BICEPS:[makeExercise("str-u2-5","curl","2 sets","8-12 reps")]}},
+      LB2:{label:"VOLUME LOWER",focus:"deadlift assistance",color:"#F59E0B",sections:{HAMSTRINGS:[makeExercise("str-l2-1","deadlift variation","3 sets","3-5 reps"),makeExercise("str-l2-2","hamstring curl","3 sets","8-12 reps")],QUADS:[makeExercise("str-l2-3","front squat","3 sets","5-8 reps")],CALVES:[makeExercise("str-l2-4","calf raise","3 sets","10-15 reps")]}},
+      UB3:{label:"ACCESSORY ARMOUR",focus:"weak point work",color:"#EF4444",sections:{BACK:[makeExercise("str-a-1","chest supported row","3 sets","8-12 reps")],SHOULDERS:[makeExercise("str-a-2","lateral raise","3 sets","12-20 reps")],BICEPS:[makeExercise("str-a-3","hammer curl","3 sets","8-12 reps")],TRICEPS:[makeExercise("str-a-4","rope pushdown","3 sets","10-15 reps")]}}
+    }
+  };
+  plans.athletic = {
+    UB1:{label:"POWER UPPER",focus:"explosive push pull",color:"#FF6B35",sections:{CHEST:[makeExercise("ath-u1-1","medicine ball chest throw","4 sets","3-5 reps"),makeExercise("ath-u1-2","speed bench press","5 sets","3 reps")],BACK:[makeExercise("ath-u1-3","explosive row","4 sets","5 reps"),makeExercise("ath-u1-4","pullups","3 sets","max reps")],SHOULDERS:[makeExercise("ath-u1-5","landmine press","3 sets","6-8 reps")]}},
+    LB1:{label:"SPEED LOWER",focus:"jump sprint unilateral",color:"#4ECDC4",sections:{QUADS:[makeExercise("ath-l1-1","box jump","5 sets","3 reps"),makeExercise("ath-l1-2","front squat","4 sets","4-6 reps")],GLUTES:[makeExercise("ath-l1-3","walking lunge","3 sets","8 each")],CALVES:[makeExercise("ath-l1-4","pogos","3 sets","20 reps")],ABS:[makeExercise("ath-l1-5","pallof press","3 sets","10 each")]}},
+    UB2:{label:"ATHLETIC BACK",focus:"posterior chain upper",color:"#A855F7",sections:{BACK:[makeExercise("ath-u2-1","trap bar carry","4 sets","30m"),makeExercise("ath-u2-2","single arm row","3 sets","8 each")],SHOULDERS:[makeExercise("ath-u2-3","facepull","3 sets","12-15 reps")],BICEPS:[makeExercise("ath-u2-4","hammer curl","2 sets","10 reps")]}},
+    LB2:{label:"POSTERIOR POWER",focus:"hinge acceleration",color:"#F59E0B",sections:{HAMSTRINGS:[makeExercise("ath-l2-1","romanian deadlift","4 sets","5-8 reps"),makeExercise("ath-l2-2","hamstring curl","3 sets","8-12 reps")],GLUTES:[makeExercise("ath-l2-3","hip thrust","3 sets","6-10 reps")],ABS:[makeExercise("ath-l2-4","hanging knee raise","3 sets","10-15 reps")]}},
+    UB3:{label:"CONDITIONING CIRCUIT",focus:"engine durability",color:"#EF4444",sections:{SHOULDERS:[makeExercise("ath-c-1","push press","4 sets","4 reps")],BACK:[makeExercise("ath-c-2","sled pull or row","5 sets","30 sec")],ABS:[makeExercise("ath-c-3","farmer carry","4 sets","40m")],QUADS:[makeExercise("ath-c-4","bike sprint","6 sets","20 sec")]}}
+  };
+  plans.combat = {
+    UB1:{label:"STRIKER UPPER",focus:"shoulder endurance",color:"#FF6B35",sections:{SHOULDERS:[makeExercise("com-u1-1","landmine press","4 sets","6 reps"),makeExercise("com-u1-2","lateral raise","3 sets","15-20 reps")],CHEST:[makeExercise("com-u1-3","pushup variation","4 sets","max reps")],BACK:[makeExercise("com-u1-4","cable row","3 sets","10-12 reps")],TRICEPS:[makeExercise("com-u1-5","rope pushdown","2 sets","15 reps")]}},
+    LB1:{label:"FIGHT BASE",focus:"legs hips core",color:"#4ECDC4",sections:{QUADS:[makeExercise("com-l1-1","goblet squat","4 sets","8-12 reps")],GLUTES:[makeExercise("com-l1-2","cossack squat","3 sets","8 each")],HAMSTRINGS:[makeExercise("com-l1-3","single leg RDL","3 sets","8 each")],ABS:[makeExercise("com-l1-4","cable rotation","3 sets","12 each")]}},
+    UB2:{label:"GRAPPLER PULL",focus:"back grip neck",color:"#A855F7",sections:{BACK:[makeExercise("com-u2-1","pullups","4 sets","max reps"),makeExercise("com-u2-2","towel row","3 sets","8-12 reps")],BICEPS:[makeExercise("com-u2-3","hammer curl","3 sets","10 reps")],SHOULDERS:[makeExercise("com-u2-4","rear delt fly","3 sets","15 reps")]}},
+    LB2:{label:"SCRAMBLE ENGINE",focus:"posterior chain conditioning",color:"#F59E0B",sections:{HAMSTRINGS:[makeExercise("com-l2-1","kettlebell swing","5 sets","15 reps"),makeExercise("com-l2-2","hamstring curl","3 sets","12 reps")],GLUTES:[makeExercise("com-l2-3","sled push","5 sets","20m")],ABS:[makeExercise("com-l2-4","plank shoulder tap","3 sets","30 sec")]}},
+    UB3:{label:"ROUND CONDITIONING",focus:"fight pace circuit",color:"#EF4444",sections:{CHEST:[makeExercise("com-c-1","battle rope slam","5 sets","30 sec")],BACK:[makeExercise("com-c-2","medicine ball rotational throw","4 sets","5 each")],SHOULDERS:[makeExercise("com-c-3","shadow boxing intervals","6 sets","2 min")],ABS:[makeExercise("com-c-4","dead bug","3 sets","12 each")]}}
+  };
+  if(planId==="current") return JSON.parse(JSON.stringify(DEFAULT_WORKOUTS));
+  return JSON.parse(JSON.stringify(plans[planId]||DEFAULT_WORKOUTS));
+}
+function applyTrainingPlan(planId){
+  const plan = TRAINING_PLAN_TEMPLATES.find(p=>p.id===planId);
+  if(!plan) return;
+  const ok = window.prompt(`Type APPLY to replace your current workout split with ${plan.name}:`);
+  if(ok !== "APPLY") return;
+  state.workouts = buildPlanTemplate(planId);
+  activeTrainingDay = "UB1";
+  activeProgressDay = "UB1";
+  addAudit("training-plan", `Applied training plan: ${plan.name}`, {planId});
+  saveAll();
+  renderAll();
+  showNotif("levelup","TRAINING PLAN LOADED",`${plan.name}\n\n${plan.focus}`);
+}
 function renderSettings(){
   ensureStateShape();
   const el = document.getElementById("settings-content");
@@ -2244,6 +2424,11 @@ function renderSettings(){
   el.innerHTML = `
     <div class="panel glow p20 mb12"><div class="br"></div><div class="bl"></div>
       <div style="color:#f0c040;font-size:11px;font-family:monospace;letter-spacing:3px;margin-bottom:12px;">⚙ PLAYER FILE</div>
+      <div class="flex gap8 mb8" style="align-items:center;">
+        <img src="${state.profile.avatar||""}" alt="" style="display:${state.profile.avatar?"block":"none"};width:56px;height:56px;border-radius:4px;border:1px solid #00aaff;object-fit:cover;"/>
+        <label class="btn" style="cursor:pointer;">UPLOAD PROFILE PICTURE<input type="file" accept="image/*" style="display:none;" onchange="handleAvatarUpload(this)"/></label>
+        <button class="btn btn-ghost" onclick="clearAvatar()">CLEAR</button>
+      </div>
       <input id="set-name" class="quest-input w100 mb8" value="${esc(state.profile.displayName)}" placeholder="Display name" />
       <div class="flex gap8 mb8">
         <select id="set-goal" class="quest-input">
@@ -2261,6 +2446,14 @@ function renderSettings(){
         <input id="set-calories" class="quest-input" type="number" value="${state.nutritionTargets.calories}" placeholder="Calories" />
         <input id="set-protein" class="quest-input" type="number" value="${state.nutritionTargets.protein}" placeholder="Protein g" />
       </div>
+      <div class="flex gap8 mb8">
+        <input id="set-carbs" class="quest-input" type="number" value="${state.nutritionTargets.carbs}" placeholder="Carbs g" />
+        <input id="set-fat" class="quest-input" type="number" value="${state.nutritionTargets.fat}" placeholder="Fat g" />
+      </div>
+      <div class="flex gap8 mb8">
+        <input id="set-sugar" class="quest-input" type="number" value="${state.nutritionTargets.sugar}" placeholder="Sugar g" />
+        <input id="set-fiber" class="quest-input" type="number" value="${state.nutritionTargets.fiber}" placeholder="Fiber g" />
+      </div>
       <div class="label-sm mb8">REST DAYS</div>
       <div class="flex gap6 flex-wrap mb12">
         ${days.map(d=>`<label class="btn btn-ghost" style="font-size:10px;"><input class="rest-day-check" type="checkbox" value="${d}" ${state.settings.restDays.includes(d)?"checked":""}/> ${d.slice(0,3).toUpperCase()}</label>`).join("")}
@@ -2270,6 +2463,16 @@ function renderSettings(){
         <input id="set-ai-endpoint" class="quest-input" value="${esc(state.settings.aiEndpoint||localStorage.getItem("system-ai-endpoint-url")||"")}" placeholder="Private AI endpoint URL" />
       </div>
       <button class="btn btn-green" style="width:100%;" onclick="saveSettings()">SAVE PLAYER FILE</button>
+    </div>
+    <div class="panel p16 mb12"><div class="br"></div><div class="bl"></div>
+      <div style="color:#f0c040;font-size:10px;font-family:monospace;letter-spacing:2px;margin-bottom:10px;">◆ TRAINING PLAN LIBRARY</div>
+      <div class="progress-grid">
+        ${TRAINING_PLAN_TEMPLATES.map(p=>`<div class="progress-card">
+          <div class="progress-ex-name">${esc(p.name)}</div>
+          <div style="color:#4a7a9b;font-size:11px;line-height:1.5;min-height:44px;">${esc(p.focus)}</div>
+          <button class="btn btn-gold" style="width:100%;margin-top:10px;" onclick="applyTrainingPlan('${p.id}')">LOAD PLAN</button>
+        </div>`).join("")}
+      </div>
     </div>
     <div class="panel p16 mb12"><div class="br"></div><div class="bl"></div>
       <div style="color:#00aaff;font-size:10px;font-family:monospace;letter-spacing:2px;margin-bottom:10px;">◆ SUBSCRIPTION MODEL</div>
