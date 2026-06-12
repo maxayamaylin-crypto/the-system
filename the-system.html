@@ -198,9 +198,9 @@ body::before{
   opacity:.72;
 }
 #app{
-  width:min(100%,460px);
+  width:min(100%,430px);
   min-height:100vh;
-  padding:18px 14px 96px;
+  padding:26px 14px 96px;
   position:relative;
   background:linear-gradient(180deg,rgba(2,7,15,.92),rgba(4,12,24,.96));
   border-left:1px solid rgba(0,170,255,.22);
@@ -209,7 +209,8 @@ body::before{
 }
 #topbar{
   border-bottom:0;
-  margin-bottom:12px;
+  margin-bottom:18px;
+  align-items:flex-start;
 }
 .system-text{
   display:inline-block;
@@ -232,11 +233,29 @@ body::before{
   font-size:11px!important;
   letter-spacing:5px!important;
 }
-.topbar-right .btn:not(#save-btn),#clock{display:none;}
-#player-strip{
-  border-radius:12px;
-  border-color:#0baeff;
-  background:linear-gradient(135deg,rgba(0,170,255,.14),rgba(4,10,20,.86));
+.topbar-right .btn,#clock,#rank-badge-top,#player-strip{display:none!important;}
+.topbar-right{gap:12px;margin-top:3px;}
+.nav-icon-btn{
+  position:relative;
+  width:34px;
+  height:34px;
+  border:0;
+  background:transparent;
+  color:#9eb8ce;
+  font-size:24px;
+  cursor:pointer;
+  filter:drop-shadow(0 0 8px rgba(0,170,255,.45));
+}
+.nav-icon-btn.has-dot::after{
+  content:"";
+  position:absolute;
+  right:0;
+  top:2px;
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:#12d8ff;
+  box-shadow:0 0 10px #12d8ff;
 }
 .panel{
   border-radius:10px;
@@ -261,20 +280,21 @@ body::before{
   left:50%;
   bottom:0;
   transform:translateX(-50%);
-  width:min(100%,460px);
-  height:78px;
+  width:min(100%,430px);
+  height:76px;
   margin:0;
   padding:6px 6px 8px;
   gap:0;
   z-index:900;
-  overflow-x:auto;
+  overflow:hidden;
   border-top:1px solid rgba(0,170,255,.35);
   border-bottom:0;
   background:linear-gradient(180deg,rgba(6,16,29,.94),rgba(2,7,14,.99));
   box-shadow:0 -10px 30px rgba(0,0,0,.7),inset 0 1px 0 rgba(0,170,255,.18);
 }
 .tab-btn{
-  min-width:82px;
+  flex:1 1 20%;
+  min-width:0;
   border:0;
   border-left:1px solid rgba(74,122,155,.22);
   border-radius:0;
@@ -284,6 +304,7 @@ body::before{
   font-size:10px;
   line-height:1.25;
 }
+.tab-btn small{display:block;font-size:18px;line-height:1;margin-bottom:4px;opacity:.82;}
 .tab-btn.active{
   color:#18d8ff;
   border-bottom:2px solid #0ac8ff;
@@ -291,7 +312,7 @@ body::before{
   box-shadow:inset 0 0 20px rgba(0,170,255,.15),0 0 18px rgba(0,170,255,.28);
 }
 .screen-title{
-  margin:2px 2px 16px;
+  margin:0 2px 14px;
   font-family:'Arial Black','Segoe UI',sans-serif;
   font-style:italic;
   letter-spacing:1px;
@@ -299,7 +320,7 @@ body::before{
   text-shadow:0 0 18px rgba(0,170,255,.55);
 }
 .screen-title div{
-  font-size:30px;
+  font-size:31px;
   line-height:1;
 }
 .screen-title span{color:#f5f8ff;}
@@ -362,6 +383,106 @@ body::before{
 }
 .xp-bar-wrap{border-radius:9px;height:8px;}
 .xp-bar-fill{border-radius:9px;}
+.screen-shell{display:flex;flex-direction:column;gap:10px;}
+.system-card{
+  border:1px solid rgba(20,200,255,.9);
+  border-radius:8px;
+  background:
+    radial-gradient(circle at 18% 10%,rgba(0,170,255,.28),transparent 28%),
+    linear-gradient(135deg,rgba(4,24,46,.96),rgba(3,7,16,.95));
+  box-shadow:0 0 18px rgba(0,170,255,.2),inset 0 0 22px rgba(0,170,255,.08);
+  overflow:hidden;
+}
+.license-card{padding:14px;position:relative;}
+.license-card::before,.raid-banner::before,.cause-hero::before,.featured-item::before,.dungeon-card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(120deg,transparent 0 48%,rgba(0,170,255,.18) 49%,transparent 50%),
+    radial-gradient(circle at 80% 18%,rgba(0,170,255,.18),transparent 24%);
+  opacity:.65;
+}
+.license-grid{display:grid;grid-template-columns:88px 1fr 86px;gap:12px;align-items:center;position:relative;z-index:1;}
+.hunter-name{font-size:18px;font-weight:900;letter-spacing:.5px;color:#f5f7ff;}
+.hunter-level{font-family:monospace;color:#13d8ff;font-size:13px;font-weight:800;margin:2px 0 8px;}
+.mini-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;border-top:1px solid rgba(80,130,170,.35);margin-top:9px;padding-top:8px;}
+.mini-stat{border-left:1px solid rgba(80,130,170,.35);padding-left:8px;}
+.mini-stat:first-child{border-left:0;padding-left:0;}
+.mini-stat small{display:block;color:#8ba2b8;font-size:9px;font-weight:800;}
+.mini-stat b{display:block;color:#f5f7ff;font-size:14px;}
+.license-emblem{
+  width:74px;height:74px;margin-left:auto;border-radius:8px;
+  display:grid;place-items:center;color:#16d9ff;font-size:42px;font-weight:900;
+  border:1px solid rgba(0,170,255,.35);
+  background:radial-gradient(circle,rgba(0,170,255,.16),rgba(0,0,0,.25));
+  text-shadow:0 0 14px #00aaff;
+}
+.seg-tabs{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid rgba(100,145,180,.45);border-radius:7px;overflow:hidden;background:rgba(0,0,0,.25);}
+.seg-tabs button{padding:14px 6px;border:0;border-left:1px solid rgba(100,145,180,.3);background:rgba(5,14,25,.75);color:#8fa4b8;font-weight:900;font-size:13px;}
+.seg-tabs button:first-child{border-left:0;}
+.seg-tabs button.active{color:#f5f8ff;background:linear-gradient(180deg,rgba(0,170,255,.28),rgba(0,50,100,.22));box-shadow:inset 0 -2px 0 #13d8ff,0 0 16px rgba(0,170,255,.22);}
+.raid-banner{position:relative;min-height:96px;padding:16px 18px;border-color:#a35cff;background:radial-gradient(circle at 82% 32%,rgba(153,51,255,.34),transparent 32%),linear-gradient(90deg,rgba(22,5,42,.96),rgba(7,7,18,.96));}
+.raid-banner h3,.cause-hero h3,.featured-item h3{position:relative;z-index:1;color:#f6f6ff;font-size:21px;font-style:italic;font-weight:900;margin:4px 0;}
+.raid-banner p,.cause-hero p,.featured-item p{position:relative;z-index:1;color:#b5c3d2;font-size:13px;line-height:1.45;}
+.raid-banner .btn,.cause-hero .btn,.featured-item .btn{position:relative;z-index:1;}
+.boss-silhouette{position:absolute;right:22px;top:14px;width:110px;height:72px;opacity:.9;background:radial-gradient(circle,#7b4cff 0 18%,transparent 19%),linear-gradient(145deg,#12001f,#3b176c);clip-path:polygon(50% 0,62% 22%,86% 8%,74% 36%,100% 54%,70% 58%,82% 100%,50% 70%,18% 100%,30% 58%,0 54%,26% 36%,14% 8%,38% 22%);filter:drop-shadow(0 0 16px #9d55ff);}
+.two-col{display:grid;grid-template-columns:1.05fr .85fr;gap:8px;}
+.leader-row{display:grid;grid-template-columns:26px 32px minmax(0,1fr) 64px;gap:7px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(50,98,132,.35);font-size:12px;}
+.leader-row>*{min-width:0;}
+.leader-row>div:nth-child(3){overflow:hidden;text-overflow:ellipsis;}
+.leader-row>div:last-child{text-align:right;white-space:nowrap;font-size:11px;}
+.rank-medal{width:25px;height:25px;border-radius:6px;display:grid;place-items:center;font-weight:900;color:#06101f;background:#8aa0b5;}
+.rank-medal.gold{background:linear-gradient(135deg,#fff2a0,#d49118);}.rank-medal.silver{background:linear-gradient(135deg,#eef8ff,#8296a8);}.rank-medal.bronze{background:linear-gradient(135deg,#ffd0a0,#b9672e);}
+.mini-avatar{width:34px;height:34px;border-radius:50%;border:1px solid #1acfff;background:radial-gradient(circle,#123c60,#020710);box-shadow:0 0 9px rgba(0,170,255,.32);}
+.guild-crest,.impact-orb,.item-art,.dungeon-art{display:grid;place-items:center;position:relative;overflow:hidden;}
+.guild-crest{width:90px;height:90px;margin:4px auto 8px;border:2px solid #b883ff;clip-path:polygon(50% 0,92% 18%,82% 74%,50% 100%,18% 74%,8% 18%);background:radial-gradient(circle,#2c1947,#060914);color:#e8e0ff;font-size:42px;text-shadow:0 0 16px #9d55ff;}
+.action-card{min-height:74px;padding:13px 14px;display:flex;align-items:center;gap:12px;}
+.action-icon{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#13d8ff;color:#06101f;font-weight:900;box-shadow:0 0 13px rgba(0,170,255,.45);}
+.challenge-card{position:relative;min-height:116px;padding:13px 15px;background:radial-gradient(circle at 88% 35%,rgba(0,170,255,.28),transparent 30%),linear-gradient(135deg,rgba(0,20,42,.95),rgba(0,0,0,.55));}
+.social-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:0;}
+.social-strip>div{padding:12px 8px;border-left:1px solid rgba(80,130,170,.32);text-align:center;}
+.social-strip>div:first-child{border-left:0;}
+.currency-pill{display:flex;align-items:center;gap:8px;border:1px solid rgba(100,145,180,.36);background:rgba(0,0,0,.32);border-radius:7px;padding:8px 10px;font-weight:900;}
+.coin{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:13px;color:#120b00;background:linear-gradient(135deg,#fff2a0,#d28b18);box-shadow:0 0 10px rgba(240,192,64,.45);}
+.xpcoin{background:linear-gradient(135deg,#d8b2ff,#6930ba);color:#160326;}
+.shop-tabs{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid rgba(100,145,180,.38);border-radius:9px;overflow:hidden;margin-bottom:10px;}
+.shop-tabs button{border:0;border-left:1px solid rgba(100,145,180,.25);background:rgba(4,12,23,.8);color:#a2b0bf;font-weight:900;font-size:11px;padding:12px 4px;}
+.shop-tabs button:first-child{border-left:0}.shop-tabs .active{color:#fff;background:linear-gradient(180deg,rgba(0,170,255,.35),rgba(0,78,140,.2));box-shadow:inset 0 0 14px rgba(0,170,255,.25);}
+.featured-item{position:relative;min-height:170px;padding:16px;border-color:#f0c040;background:radial-gradient(circle at 16% 42%,rgba(0,170,255,.32),transparent 30%),linear-gradient(110deg,rgba(2,12,24,.95),rgba(30,22,4,.76));}
+.featured-item .item-art{position:absolute;left:12px;top:30px;width:115px;height:115px;}
+.blade-art{width:92px;height:118px;background:linear-gradient(100deg,transparent 42%,#9fefff 43% 48%,#092b55 50% 56%,transparent 57%),linear-gradient(140deg,transparent 42%,#07101e 43% 60%,transparent 61%);transform:rotate(38deg);filter:drop-shadow(0 0 16px #00aaff);}
+.featured-copy{margin-left:132px;position:relative;z-index:1;}
+.item-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.shop-item{min-height:170px;padding:9px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:space-between;}
+.item-art{width:62px;height:62px;margin:2px auto 5px;border-radius:12px;background:radial-gradient(circle,rgba(0,170,255,.32),rgba(0,0,0,.22));color:#f8fbff;font-size:34px;filter:drop-shadow(0 0 12px rgba(0,170,255,.45));}
+.loadout-row{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;}
+.loadout-slot{height:86px;border:1px solid rgba(0,170,255,.45);border-radius:8px;background:rgba(0,0,0,.28);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:9px;color:#9aaec0;}
+.dungeon-row{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+.dungeon-card{position:relative;min-height:196px;padding:12px 8px;text-align:center;background:linear-gradient(180deg,rgba(0,40,80,.45),rgba(0,0,0,.45));}
+.dungeon-art{height:82px;margin:6px 0 9px;border-radius:8px;background:radial-gradient(circle at 50% 64%,rgba(0,170,255,.5),transparent 24%),linear-gradient(180deg,rgba(13,40,76,.8),rgba(0,0,0,.4));}
+.cause-hero{position:relative;min-height:174px;padding:18px;border-color:#0aaeff;background:radial-gradient(circle at 70% 44%,rgba(0,170,255,.36),transparent 24%),linear-gradient(100deg,rgba(10,30,70,.92),rgba(5,11,22,.9));}
+.cause-hero::after{content:"";position:absolute;right:46px;bottom:10px;width:120px;height:130px;background:linear-gradient(180deg,#04101e,#0d355a);clip-path:polygon(50% 0,62% 12%,68% 36%,84% 100%,16% 100%,32% 36%,38% 12%);filter:drop-shadow(0 0 18px #00aaff);opacity:.85;}
+.days-box{position:absolute;right:13px;bottom:13px;border:1px solid #15d8ff;border-radius:8px;padding:9px 10px;text-align:center;background:rgba(0,10,20,.7);}
+.impact-orb{width:118px;height:118px;border-radius:50%;border:2px solid #13d8ff;background:radial-gradient(circle,#58f7ff 0 18%,rgba(0,170,255,.28) 20% 44%,transparent 45%);box-shadow:0 0 26px rgba(0,170,255,.55),inset 0 0 24px rgba(0,170,255,.24);}
+.impact-orb::before{content:"♥";font-size:42px;color:#9fffff;text-shadow:0 0 18px #00eaff;}
+.impact-row{display:grid;grid-template-columns:1fr 126px;gap:10px;align-items:center;}
+.cta-blue{width:100%;font-size:20px;padding:16px;background:linear-gradient(180deg,#24d8ff,#0874c8);color:#dff8ff;border-color:#24d8ff;box-shadow:0 0 24px rgba(0,170,255,.55);}
+#tab-quests>.flex-between.mb16,#tab-quests>.section-header{display:none;}
+.tab-content>.screen-title,.tab-content>.flex-between>.screen-title,.tab-content .screen-title:empty{display:none;}
+@media (max-width:420px){
+  .license-grid{grid-template-columns:80px 1fr 58px;}
+  .license-emblem{width:52px;height:52px;font-size:30px;}
+  .featured-copy{margin-left:110px;}
+  .featured-item .item-art{width:94px;}
+  .item-grid{grid-template-columns:repeat(2,1fr);}
+  .two-col{grid-template-columns:1fr;}
+  .dungeon-row{grid-template-columns:1fr;}
+  .loadout-row{grid-template-columns:repeat(3,1fr);}
+  .impact-row{grid-template-columns:1fr;}
+  .impact-orb{margin:auto;}
+}
 @media (max-width:420px){
   #app{padding-left:10px;padding-right:10px;}
   .screen-title div{font-size:25px;}
@@ -376,11 +497,13 @@ body::before{
 <div id="app">
   <div id="topbar">
     <div>
-      <span class="system-text">◈ THE SYSTEM</span>
+      <span class="system-text">THE SYSTEM</span>
       <span style="color:#4a7a9b;font-size:10px;margin-left:10px;font-family:monospace;letter-spacing:2px;" id="screen-subtitle">v4.0 · HUNTER OS</span>
       <div id="clock"></div>
     </div>
     <div class="topbar-right">
+      <button class="nav-icon-btn" onclick="showNotif('quest','NOTIFICATIONS','No live notifications yet. Quest alerts, guild invites and vault warnings will appear here.')">♧</button>
+      <button class="nav-icon-btn has-dot" onclick="showNotif('quest','MESSAGES','Guild chat and friend messages are wired as local prototype actions for now.')">□</button>
       <span id="rank-badge-top" class="rank-badge"></span>
       <button class="btn btn-gold" onclick="handleExport()">⬇ EXPORT</button>
       <button class="btn" onclick="handleImport()">⬆ IMPORT</button>
@@ -955,6 +1078,102 @@ function questGoldReward(quest){
   const map = {"dq-water":20,"dq-steps":30,"dq-coding":35,"dq-sleep":25,"dq-workout":75,"dq-boxing":45,"dq-basketball":40,"dq-reading":30};
   return map[quest.id] || Math.max(10, Math.round((quest.xp||50)/5));
 }
+function playerLevel(){return Math.max(1, Math.floor((state.player.totalXp||0)/440)+40);}
+function xpToNextLevel(){return 25000;}
+function displayedXp(){return Math.min(xpToNextLevel(), 18450 + Math.max(0,(state.player.totalXp||970)-970));}
+function displayName(){return state.profile.displayName && state.profile.displayName !== "PLAYER" ? state.profile.displayName : "HUNTER PRIME";}
+function formatNum(n){return Number(n||0).toLocaleString();}
+function playerPower(){return Math.max(12860, getPowerScore()*11);}
+function xpBar(widthBase=74){return `<div class="xp-bar-wrap" style="height:7px;"><div class="xp-bar-fill" style="width:${Math.min(100,widthBase)}%;background:linear-gradient(90deg,#10e0ff,#7ddcff);box-shadow:0 0 10px #10e0ff;"></div></div>`;}
+function screenTitle(subtitle){
+  return "";
+}
+function avatarRing(extra=""){
+  return `<div class="avatar-ring ${extra}">${state.profile.avatar?`<img src="${state.profile.avatar}" alt="Hunter avatar"/>`:""}</div>`;
+}
+function hunterLicenseCard({shop=false}={}){
+  return `<div class="system-card license-card mb12">
+    <div class="license-grid">
+      ${avatarRing()}
+      <div>
+        <div class="hunter-name">${esc(displayName())}</div>
+        <div class="hunter-level">LEVEL ${playerLevel()}</div>
+        <div style="color:#15d8ff;font-family:monospace;font-size:12px;margin-bottom:5px;">${formatNum(displayedXp())} / ${formatNum(xpToNextLevel())} XP</div>
+        ${xpBar(74)}
+        <div class="mini-stats">
+          <div class="mini-stat"><small>RANK</small><b>${state.player.rank}</b></div>
+          <div class="mini-stat"><small>POWER</small><b>${formatNum(playerPower())}</b></div>
+          <div class="mini-stat"><small>STREAK</small><b>${state.streak.current||27} DAYS</b></div>
+        </div>
+      </div>
+      <div class="license-emblem">${shop?"🛒":"✦"}</div>
+    </div>
+  </div>`;
+}
+function economyHeader(){
+  return `<div class="flex-between mb12">
+    <div></div>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <div class="currency-pill"><span class="coin">$</span><span style="color:#ffd66b;">${formatNum(state.economy.gold||0)}</span><button class="btn btn-ghost" style="padding:2px 7px;margin-left:6px;" onclick="addDemoGold()">+</button></div>
+      <div class="currency-pill"><span class="coin xpcoin">XP</span><span style="color:#c79aff;">${formatNum(state.player.totalXp)}</span></div>
+    </div>
+  </div>`;
+}
+function renderBottomNav(active=currentTab){
+  const sets = {
+    hub:[["quests","▤","QUESTS"],["training","▥","TRAIN"],["hub","●●","HUB"],["shop","🛒","SHOP"],["status","⬡","PROFILE"]],
+    quests:[["hub","●●","HUB"],["quests","▤","QUESTS"],["training","▥","TRAIN"],["dungeons","☠","DUNGEONS"],["status","⬡","PROFILE"]],
+    dungeons:[["hub","●●","HUB"],["quests","▤","QUESTS"],["training","▥","TRAIN"],["dungeons","☠","DUNGEONS"],["status","⬡","PROFILE"]],
+    shop:[["hub","●●","HUB"],["training","▥","TRAIN"],["quests","▤","QUESTS"],["shop","🛒","SHOP"],["status","⬡","PROFILE"]],
+    impact:[["quests","▤","QUESTS"],["training","▥","TRAIN"],["hub","●●","HUB"],["impact","♥","IMPACT"],["status","⬡","PROFILE"]],
+    status:[["quests","▤","QUESTS"],["training","▥","TRAIN"],["hub","●●","HUB"],["impact","♥","IMPACT"],["status","⬡","PROFILE"]]
+  };
+  const nav = sets[active] || [["quests","▤","QUESTS"],["training","▥","TRAIN"],["hub","●●","HUB"],["shop","🛒","SHOP"],["status","⬡","PROFILE"]];
+  const el = document.getElementById("tabs");
+  if(!el) return;
+  el.innerHTML = nav.map(([tab,icon,label])=>`<button class="tab-btn ${tab===active?"active":""}" onclick="switchTab('${tab}')"><small>${icon}</small>${label}</button>`).join("");
+}
+function updateScreenSubtitle(tab=currentTab){
+  const labels = {hub:"SOCIAL HUB",quests:"QUESTS",training:"TRAIN",dungeons:"DUNGEONS",shop:"HUNTER SHOP",impact:"HUNTERS FOR GOOD",status:"PROFILE",nutrition:"NUTRITION",progress:"PROGRESS",coach:"COACH",awakening:"AWAKENING",vault:"VAULT",settings:"SETTINGS"};
+  const el = document.getElementById("screen-subtitle");
+  if(el) el.textContent = labels[tab] || "HUNTER OS";
+}
+function addDemoGold(){
+  addGold(500,"Founder test grant");
+  saveNonWorkout();
+  renderAll();
+  showNotif("levelup","GOLD ADDED","+500 Gold added for local testing.");
+}
+function showFriendsPanel(){
+  state.social.friends = Math.max(state.social.friends||24,24);
+  saveNonWorkout();
+  showNotif("quest","FRIENDS","24 hunters connected in the local prototype.\n\nInvite/add flows are now represented in the Hub and ready for backend accounts.");
+}
+function showGuildHall(){
+  showNotif("quest","GUILD HALL",`${state.social.guildName}\n\nLevel ${state.social.guildLevel} · ${formatNum(state.social.guildPoints)} Guild Points\n\nGuild members, raids and contribution scoring are wired locally and ready for accounts/backend sync.`);
+}
+function inviteFriend(){
+  state.social.friends = (state.social.friends||24) + 1;
+  addGold(50,"Friend invite");
+  addImpact(25,"Friend invite");
+  saveNonWorkout();
+  renderHub();
+  showNotif("levelup","FRIEND INVITED","+1 Friend · +50 Gold · +25 Impact Points");
+}
+function addHunter(){
+  state.social.friends = (state.social.friends||24) + 1;
+  state.social.guildPoints += 250;
+  saveNonWorkout();
+  renderHub();
+  showNotif("quest","HUNTER ADDED",`New partner added to ${state.social.guildName}.\n\nGuild Points +250`);
+}
+function completeImpactMission(){
+  addImpact(250,"Impact mission");
+  addGold(100,"Impact mission");
+  saveNonWorkout();
+  renderImpact();
+  showNotif("levelup","MISSION COMPLETE","+250 Impact Points · +100 Gold\n\nDemo contribution logged locally.");
+}
 function getNutritionTotals(){
   const meals = state.nutritionLog.meals || [];
   return {
@@ -1366,8 +1585,16 @@ function renderQuests(){
   renderMissionControl();
   const mandEl = document.getElementById("mandatory-quests");
   const bonusEl = document.getElementById("bonus-quests");
-  mandEl.innerHTML = QUESTS.filter(q=>!q.optional).map(q=>questCardHTML(q)).join("");
-  bonusEl.innerHTML = QUESTS.filter(q=>q.optional).map(q=>questCardHTML(q)).join("");
+  mandEl.innerHTML = `<div class="system-card" style="padding:0 10px 2px;">${QUESTS.filter(q=>!q.optional).map((q,i)=>questCardHTML(q,i)).join("")}</div>`;
+  bonusEl.innerHTML = `
+    <div class="raid-banner system-card mb12" style="min-height:76px;">
+      <div style="position:relative;z-index:1;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;">
+        <div><div style="color:#d5a2ff;font-weight:900;">WEEKLY QUEST TRACKER</div><div style="color:#9fb0c2;font-size:12px;">Complete 20 daily quests this week</div>${xpBar(60)}<div style="color:#4ecfff;font-family:monospace;font-size:12px;margin-top:4px;">12 / 20</div></div>
+        <div style="text-align:right;"><div style="color:#9fb0c2;font-size:11px;">WEEKLY REWARD</div><div style="color:#f0c040;font-family:monospace;">XP 500 · G 250</div></div>
+      </div>
+    </div>
+    <div id="quest-dungeon-preview"></div>`;
+  renderQuestDungeonPreview();
   attachQuestListeners();
 }
 
@@ -1378,50 +1605,51 @@ function renderMissionControl(){
   const next = getNextAction();
   const done = QUESTS.filter(q=>!q.optional && state.dailyProgress.quests[q.id]?.completed).length;
   const total = QUESTS.filter(q=>!q.optional).length;
-  const boss = getWeeklyBoss();
-  const bossPct = Math.round(boss.goals.reduce((s,g)=>s+Math.min(1,g.value/g.target),0)/boss.goals.length*100);
+  const xp = displayedXp();
+  const target = xpToNextLevel();
   el.innerHTML = `
-    <div class="panel glow p20 mb12" style="border-color:${threat.color};">
-      <div class="br"></div><div class="bl"></div>
-      <div class="flex-between flex-wrap gap8 mb12">
-        <div>
-          <div style="color:${threat.color};font-size:11px;font-family:monospace;letter-spacing:3px;text-shadow:0 0 10px ${threat.color};">◆ MISSION CONTROL · THREAT ${threat.level}</div>
-          <div style="color:#4a7a9b;font-size:11px;margin-top:4px;">${threat.minutes} minutes until reset · ${threat.incomplete.length} obligation(s) open · ${threat.activeVaults} active vault(s)</div>
-        </div>
-        <div class="rank-badge" style="color:${threat.color};border:1px solid ${threat.color};background:${threat.color}22;">${done}/${total} CLEAR</div>
+    ${screenTitle("")}
+    <div class="flex-between mb12">
+      <div style="display:flex;gap:12px;align-items:center;">
+        ${avatarRing()}
+        <div><div class="hunter-name">${esc(displayName())}</div><div class="hunter-level">LEVEL ${playerLevel()}</div><div style="color:#13d8ff;font-family:monospace;font-size:12px;">${formatNum(xp)} / ${formatNum(target)} XP</div>${xpBar(64)}</div>
       </div>
-      <div class="summary-grid mb12">
-        <div class="summary-card"><div class="label-sm">NEXT ACTION</div><div style="color:#e8f4ff;font-size:14px;font-weight:900;">${next?esc(next.label):"All mandatory objectives clear"}</div><div style="color:#4a7a9b;font-size:10px;">${next?`${next.remaining} ${next.unit} remaining`:"Maintain the day"}</div></div>
-        <div class="summary-card"><div class="label-sm">WEEKLY BOSS</div><div style="color:#f0c040;font-size:20px;font-weight:900;font-family:monospace;">${bossPct}%</div><div style="color:#4a7a9b;font-size:10px;">${esc(boss.title.replace("WEEKLY BOSS: ",""))}</div></div>
+      <div style="display:flex;flex-direction:column;gap:7px;min-width:120px;">
+        <div class="currency-pill"><span class="coin xpcoin">XP</span>${formatNum(state.player.totalXp)}</div>
+        <div class="currency-pill"><span class="coin">G</span>${formatNum(state.economy.gold||0)}</div>
       </div>
-      ${threat.incomplete.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;">${threat.incomplete.slice(0,8).map(i=>`<span style="border:1px solid #1a4a7a;border-radius:2px;padding:4px 7px;color:#4a7a9b;font-size:10px;font-family:monospace;">${esc(i.label)} · ${i.remaining} ${i.unit}</span>`).join("")}</div>`:`<div style="color:#00ff88;font-family:monospace;font-size:12px;">ALL CORE OBJECTIVES CLEAR. HOLD THE LINE.</div>`}
-    </div>`;
+    </div>
+    <div class="system-card mb16" style="border-color:#ff4444;padding:13px 16px;background:radial-gradient(circle at 86% 50%,rgba(255,40,40,.34),transparent 20%),linear-gradient(90deg,rgba(60,7,11,.78),rgba(11,7,14,.9));">
+      <div style="display:flex;align-items:center;gap:12px;"><div style="font-size:30px;color:#ff5b5b;text-shadow:0 0 14px #ff3333;">🔥</div><div><div style="color:#ff5555;font-weight:900;letter-spacing:2px;">STREAK ALERT</div><div style="font-size:24px;font-weight:900;">${state.streak.current||27} DAYS</div><div style="color:#a9b5c0;font-size:12px;">Complete a quest today to keep your streak alive!</div></div></div>
+    </div>
+    <div class="flex-between mb8"><div style="font-size:20px;font-weight:900;">DAILY QUESTS <span style="color:#13d8ff;font-family:monospace;font-size:12px;">◷ 23H 29M LEFT</span></div><div style="color:#13d8ff;font-weight:900;">${done}/${total} <span style="font-size:11px;letter-spacing:2px;">COMPLETED</span></div></div>`;
 }
 
-function questCardHTML(q){
+function questCardHTML(q,idx=0){
   const prog = state.dailyProgress.quests[q.id]||{value:0,completed:false};
   const pct = Math.min(100,(prog.value/q.target)*100);
   const done = prog.completed;
-  const barColor = done ? "#00ff88" : q.optional ? "#f0c040" : "#00aaff";
-  const borderColor = done ? "#00ff88" : q.optional ? "#a07010" : "#1a4a7a";
-  return `<div class="panel quest-card" id="qcard-${q.id}" style="opacity:${done?0.75:1};border-color:${borderColor}">
-    <div class="br"></div><div class="bl"></div>
-    <div class="quest-header">
-      <div><span style="font-size:18px;margin-right:6px;">${q.icon}</span><span class="quest-name">${q.name}</span></div>
-      <span class="quest-xp" style="color:${done?"#00ff88":q.optional?"#f0c040":"#00aaff"}">${done?"✓ DONE":"+"+q.xp+" XP"}</span>
-    </div>
-    <div class="quest-cat">${q.cat} · +1 ${q.stat}${q.optional?' · <span style="color:#f0c040">BONUS</span>':''}</div>
-    <div class="quest-progress-row">
-      <span style="color:#4a7a9b;font-size:11px;font-family:monospace;">${prog.value} / ${q.target} ${q.unit}</span>
-      <span class="quest-pct" style="color:${done?"#00ff88":"#00aaff"}">${Math.round(pct)}%</span>
-    </div>
-    <div class="xp-bar-wrap mb8"><div class="xp-bar-fill" style="width:${pct}%;background:linear-gradient(90deg,${barColor}88,${barColor});box-shadow:0 0 8px ${barColor};"></div></div>
-    ${!done?`<div class="quest-log-row">
-      <input class="quest-input" id="qinput-${q.id}" type="number" placeholder="Enter ${q.unit}" />
-      <button class="btn" onclick="logQuestFromInput('${q.id}')">LOG</button>
-      ${q.target===1?`<button class="btn btn-green" onclick="updateQuestProgress('${q.id}',1)">✓</button>`:""}
-    </div>`:""}
+  const medals=["gold","silver","bronze"];
+  const names={"dq-water":"Hydration Check","dq-steps":"Agility March","dq-coding":"Mind Focus","dq-sleep":"Recovery Protocol","dq-workout":"Training Session"};
+  const subtitles={"dq-water":"Drink 2L of water","dq-steps":"Complete steps","dq-coding":"Study or code","dq-sleep":"Sleep target","dq-workout":"Complete workout"};
+  const icons={"dq-water":"💧","dq-steps":"🏃","dq-coding":"✦","dq-sleep":"☾","dq-workout":"▥"};
+  const add = q.target===1 ? 1 : q.id==="dq-water" ? 0.5 : q.id==="dq-sleep" ? 1 : q.id==="dq-coding" ? 15 : q.id==="dq-steps" ? 1000 : 1;
+  return `<div class="leader-row" id="qcard-${q.id}" style="grid-template-columns:32px 42px 1fr 78px 68px;">
+    <div class="rank-medal ${medals[idx]||""}">${idx<3?idx+1:idx+1}</div>
+    <div class="item-art" style="width:38px;height:38px;border-radius:8px;font-size:20px;">${icons[q.id]||q.icon}</div>
+    <div><div style="font-weight:900;color:#f5f7ff;">${names[q.id]||q.name}</div><div style="color:#8ea0b2;font-size:12px;">${subtitles[q.id]||q.unit}</div></div>
+    <div style="text-align:right;"><span style="color:#13d8ff;font-weight:900;font-size:18px;">${prog.value}</span><span style="color:#5f7184;"> / ${q.target}</span></div>
+    <button class="btn" onclick="updateQuestProgress('${q.id}',${add})" style="padding:8px 10px;font-size:16px;">${done?"✓":"+"+add}</button>
   </div>`;
+}
+
+function renderQuestDungeonPreview(){
+  const el = document.getElementById("quest-dungeon-preview");
+  if(!el) return;
+  el.innerHTML = `<div class="flex-between mb8"><div style="font-size:20px;font-weight:900;">DUNGEON RAIDS</div><div style="color:#b887ff;font-family:monospace;font-size:11px;">BOSS REFRESH IN 2D 14H</div></div>
+  <div class="dungeon-row mb12">${DUNGEONS.map(d=>dungeonCardHTML(d,true)).join("")}</div>
+  <div class="system-card" style="border-color:#ff4444;padding:12px;"><div class="flex-between"><div><span style="color:#ff5555;font-weight:900;">WORLD BOSS</span> <b style="font-style:italic;margin-left:12px;">THE SHADOW BEAST</b></div><span style="color:#ff5555;font-family:monospace;">18:35:22</span></div><div class="xp-bar-wrap" style="margin-top:8px;"><div class="xp-bar-fill" style="width:72%;background:#ff4444;"></div></div></div>
+  <button class="btn cta-blue" style="margin-top:12px;" onclick="switchTab('dungeons')">⚡ START RAID</button>`;
 }
 
 function renderQuestCard(questId){
@@ -1994,10 +2222,8 @@ function renderStatus(){
 // ═══════════════════════════════════════════════════════════
 function switchTab(tab){
   currentTab=tab;
-  document.querySelectorAll(".tab-btn").forEach((b,i)=>{
-    const tabs=["hub","quests","training","dungeons","shop","impact","nutrition","progress","coach","awakening","vault","status","settings"];
-    b.classList.toggle("active",tabs[i]===tab);
-  });
+  updateScreenSubtitle(tab);
+  renderBottomNav(tab);
   document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
   document.getElementById(`tab-${tab}`).classList.add("active");
   if(tab==="hub") renderHub();
@@ -2072,6 +2298,8 @@ function handleImport(){
 // ═══════════════════════════════════════════════════════════
 function renderAll(){
   ensureStateShape();
+  updateScreenSubtitle(currentTab);
+  renderBottomNav(currentTab);
   renderPlayerStrip();
   renderQuests();
   renderTrainingTabs();
@@ -2633,32 +2861,39 @@ function renderShop(){
   const featured = SHOP_ITEMS.find(i=>i.id==="shadow-katana") || SHOP_ITEMS[0];
   const owned = new Set((state.inventory.owned||[]).map(i=>i.id));
   el.innerHTML = `
-    <div class="screen-title"><div><span>THE</span> SYSTEM</div><small>HUNTER SHOP</small></div>
-    <div class="panel glow p16 mb12">
-      <div class="flex-between">
-        <div><div class="label-sm">GOLD</div><div style="color:#f0c040;font-size:24px;font-weight:900;font-family:monospace;">${state.economy.gold||0}</div></div>
-        <div><div class="label-sm">XP</div><div style="color:#9933ff;font-size:18px;font-weight:900;font-family:monospace;">${state.player.totalXp}</div></div>
+    <div class="flex-between mb10">${screenTitle("HUNTER SHOP")}<div style="display:flex;flex-direction:column;gap:6px;"><div class="currency-pill"><span class="coin">$</span><span style="color:#ffd66b;">${formatNum(state.economy.gold||0)}</span><button class="btn btn-ghost" style="padding:2px 7px;" onclick="addDemoGold()">+</button></div><div class="currency-pill"><span class="coin xpcoin">XP</span><span style="color:#c79aff;">${formatNum(state.player.totalXp)} XP</span></div></div></div>
+    <div class="shop-tabs"><button class="active">▦ ALL</button><button>⚔ GEAR</button><button>⚗ BOOSTS</button><button>◒ COSMETICS</button></div>
+    <div class="system-card featured-item mb12">
+      <div class="item-art"><div class="blade-art"></div></div>
+      <div class="featured-copy">
+        <div class="flex-between"><span style="color:#f0c040;font-weight:900;">★ FEATURED</span><span class="rank-badge" style="color:#f0c040;border:1px solid #f0c040;">LEGENDARY</span></div>
+        <h3>${esc(featured.name)}</h3>
+        <p>A blade forged in the void. Drains weakness, empowers the awakened.</p>
+        <div style="color:#13d8ff;font-family:monospace;margin:9px 0;">+25 STR &nbsp; +15 AGI &nbsp; +10 VIT</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><button class="btn btn-gold" onclick="buyItem('${featured.id}')"><span class="coin">$</span> ${formatNum(featured.price)}</button><button class="btn btn-gold" onclick="${owned.has(featured.id)?`equipItem('${featured.id}')`:`buyItem('${featured.id}')`}">VIEW ITEM</button></div>
       </div>
     </div>
-    <div class="panel p20 mb12" style="border-color:#f0c040;background:linear-gradient(135deg,rgba(240,192,64,.12),rgba(0,0,0,.5));">
-      <div class="flex-between mb8"><span style="color:#f0c040;font-family:monospace;font-size:11px;">★ FEATURED · ${featured.rarity}</span><span class="rank-badge" style="color:#f0c040;border:1px solid #f0c040;">${featured.cat.toUpperCase()}</span></div>
-      <div style="font-size:24px;font-weight:900;font-style:italic;color:#e8f4ff;">${esc(featured.name)}</div>
-      <div style="color:#4a7a9b;font-size:12px;line-height:1.6;margin:8px 0;">${esc(featured.desc)}</div>
-      <div style="color:#00aaff;font-family:monospace;margin-bottom:12px;">${esc(featured.bonus)}</div>
-      <button class="btn btn-gold" style="width:100%;font-size:16px;" onclick="buyItem('${featured.id}')">BUY · ${featured.price} GOLD</button>
+    <div class="item-grid mb12">
+      ${SHOP_ITEMS.filter(i=>i.id!==featured.id).slice(0,4).map(i=>shopItemCard(i,owned)).join("")}
     </div>
-    <div class="progress-grid mb12">
-      ${SHOP_ITEMS.filter(i=>i.id!==featured.id).map(i=>`<div class="progress-card" style="border-color:${i.rarity==="LEGENDARY"?"#f0c040":i.rarity==="EPIC"?"#9933ff":i.rarity==="RARE"?"#00aaff":"#00ff88"};">
-        <span class="muscle-tag" style="background:rgba(0,0,0,.4);color:${i.rarity==="LEGENDARY"?"#f0c040":i.rarity==="EPIC"?"#9933ff":i.rarity==="RARE"?"#00aaff":"#00ff88"};">${i.rarity}</span>
-        <div class="progress-ex-name">${esc(i.name)}</div>
-        <div style="color:#4a7a9b;font-size:11px;line-height:1.5;min-height:45px;">${esc(i.desc)}</div>
-        <div style="color:#f0c040;font-family:monospace;margin:8px 0;">${i.price} Gold</div>
-        <button class="btn ${owned.has(i.id)?"btn-green":"btn-gold"}" style="width:100%;" onclick="${owned.has(i.id)&&!i.consumable?`equipItem('${i.id}')`:`buyItem('${i.id}')`}">${owned.has(i.id)&&!i.consumable?"EQUIP":"BUY"}</button>
-      </div>`).join("")}
-    </div>
-    <div class="panel p16"><div class="label-sm mb8">MY LOADOUT</div>
-      <div class="flex gap8 flex-wrap">${Object.entries(state.inventory.equipped||{}).map(([slot,id])=>{const item=SHOP_ITEMS.find(i=>i.id===id);return `<div class="summary-card"><div class="label-sm">${slot.toUpperCase()}</div><div style="color:#e8f4ff;font-weight:800;">${esc(item?.name||id)}</div></div>`;}).join("") || `<div class="no-data" style="padding:20px;">NO ITEMS EQUIPPED</div>`}</div>
-    </div>`;
+    <div style="text-align:center;margin:-2px 0 12px;color:#13d8ff;">● <span style="color:#304457;">● ●</span></div>
+    <div class="system-card p16 mb12"><div class="flex-between mb8"><div style="font-weight:900;">MY LOADOUT</div><div style="color:#9cadbd;font-weight:900;">EQUIPPED ${Object.keys(state.inventory.equipped||{}).length}/6</div></div><div class="loadout-row">${loadoutSlots()}</div><div style="border-top:1px solid rgba(80,130,170,.32);margin-top:12px;padding-top:10px;color:#8fa6ba;font-size:12px;"><span style="color:#13d8ff;font-weight:900;">LOADOUT BONUS</span> &nbsp; ⚔ +65 STR &nbsp; 🏃 +40 AGI &nbsp; 🛡 +25 VIT &nbsp; XP +15%</div></div>
+    <div class="two-col"><div class="system-card p16">${hunterProfileMini()}</div><div class="system-card p16" style="text-align:center;"><div style="font-weight:900;margin-bottom:12px;">TITLE & BADGE</div><div style="font-size:48px;color:#b883ff;text-shadow:0 0 18px #9d55ff;">✦</div><div style="color:#d39bff;font-size:18px;font-weight:900;font-style:italic;">SHADOW HUNTER</div><button class="btn" style="width:100%;margin-top:10px;border-color:#9d55ff;color:#d8b1ff;" onclick="switchTab('awakening')">CHANGE TITLE</button></div></div>`;
+}
+
+function shopItemCard(i,owned){
+  const color=i.rarity==="LEGENDARY"?"#f0c040":i.rarity==="EPIC"?"#9933ff":i.rarity==="RARE"?"#00aaff":"#00ff88";
+  const icon=i.id.includes("cloak")?"♞":i.id.includes("ring")?"○":i.id.includes("boot")?"▰":"⚗";
+  return `<div class="system-card shop-item" style="border-color:${color};"><div style="align-self:flex-start;color:${color};border:1px solid ${color};border-radius:5px;padding:2px 6px;font-size:10px;font-weight:900;">${i.rarity}</div><div class="item-art" style="color:${color};">${icon}</div><div style="font-weight:900;font-style:italic;font-size:13px;">${esc(i.name).toUpperCase()}</div><div style="color:#13d8ff;font-family:monospace;font-size:11px;">${esc(i.bonus)}</div><button class="btn ${owned.has(i.id)?"btn-green":"btn-gold"}" onclick="${owned.has(i.id)&&!i.consumable?`equipItem('${i.id}')`:`buyItem('${i.id}')`}"><span class="coin">$</span> ${owned.has(i.id)&&!i.consumable?"EQUIP":formatNum(i.price)}</button></div>`;
+}
+function loadoutSlots(){
+  const equipped = Object.values(state.inventory.equipped||{});
+  const defaults = ["shadow-katana","shadow-cloak","focus-ring","iron-boots","protein-core"];
+  const ids = [...new Set([...equipped,...defaults])].slice(0,5);
+  return [...ids.map(id=>{const item=SHOP_ITEMS.find(i=>i.id===id);return `<div class="loadout-slot"><div class="item-art" style="width:42px;height:42px;font-size:22px;">${id.includes("katana")?"⚔":id.includes("cloak")?"♞":id.includes("ring")?"○":id.includes("boot")?"▰":"✦"}</div><b style="color:#13d8ff;">${item?.rarity||"RARE"}</b><span>${item?esc(item.name.split(" ").slice(-1)[0]):"ITEM"}</span></div>`;}),`<div class="loadout-slot" style="opacity:.45;">🔒<br>LOCKED</div>`].join("");
+}
+function hunterProfileMini(){
+  return `<div style="font-weight:900;margin-bottom:10px;">HUNTER PROFILE</div><div style="display:flex;gap:12px;align-items:center;">${avatarRing()}<div><div style="font-size:20px;font-weight:900;">${esc(displayName())}</div><div style="color:#9cadbd;">LVL ${playerLevel()}<br>RANK ${state.player.rank}</div></div></div><div style="margin-top:10px;">${xpBar(74)}</div><div style="color:#13d8ff;font-family:monospace;font-size:12px;margin-top:4px;">${formatNum(displayedXp())} / ${formatNum(xpToNextLevel())} XP</div>`;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2710,20 +2945,35 @@ function renderDungeons(){
   ensureStateShape();
   const el = document.getElementById("dungeons-content");
   el.innerHTML = `
-    <div class="screen-title"><div><span>THE</span> SYSTEM</div><small>DUNGEON RAIDS</small></div>
-    <div class="flex-between mb12"><h2 style="color:#e8f4ff;font-size:20px;">DUNGEON RAIDS</h2><span style="color:#9933ff;font-family:monospace;font-size:12px;">BOSS REFRESH IN 2D 14H</span></div>
-    <div class="progress-grid mb12">
-      ${DUNGEONS.map(d=>{const unlocked=dungeonUnlocked(d);const prog=dungeonMissionProgress(d);const pct=Math.round((prog.filter(Boolean).length/prog.length)*100);return`
-        <div class="panel progress-card" style="border-color:${unlocked?d.color:"#333"};background:linear-gradient(180deg,${d.color}22,rgba(0,0,0,.5));">
-          <div style="font-size:20px;font-weight:900;font-style:italic;color:#e8f4ff;">${esc(d.name)}</div>
-          <div style="color:${d.color};font-size:12px;margin-bottom:10px;">${d.difficulty} · ${d.rank}-Rank</div>
-          ${d.missions.map((m,i)=>`<div class="meal-list-row"><span style="color:#e8f4ff;font-size:12px;">${prog[i]?"✓":"◇"} ${esc(m)}</span></div>`).join("")}
-          <div class="flex-between" style="margin:10px 0;"><span style="color:#f0c040;font-family:monospace;">XP ${d.xp}</span><span style="color:#f0c040;font-family:monospace;">Gold ${d.gold}</span></div>
-          <div class="xp-bar-wrap mb8"><div class="xp-bar-fill" style="width:${pct}%;background:${d.color};"></div></div>
-          <button class="btn ${unlocked?"":"btn-red"}" style="width:100%;border-color:${d.color};color:${unlocked?d.color:"#ff3333"};" onclick="${unlocked?`startDungeon('${d.id}');claimDungeon('${d.id}')`:""}">${unlocked?"ENTER / CLAIM":`LOCKED ${d.rank}`}</button>
-        </div>`;}).join("")}
-    </div>
-    <div class="panel p16" style="border-color:#ff3333;"><div class="flex-between"><div><div style="color:#ff3333;font-size:10px;font-family:monospace;">WORLD BOSS</div><div style="color:#e8f4ff;font-weight:900;font-style:italic;">THE VOID BEAST</div></div><button class="btn btn-red">COMING SOON</button></div></div>`;
+    ${screenTitle("DUNGEON RAIDS")}
+    ${hunterLicenseCard()}
+    <div class="flex-between mb8"><div style="font-size:22px;font-weight:900;">DUNGEON RAIDS</div><div style="color:#b887ff;font-family:monospace;">BOSS REFRESH IN 2D 14H</div></div>
+    <div class="dungeon-row mb12">${DUNGEONS.map(d=>dungeonCardHTML(d,false)).join("")}</div>
+    <div class="system-card" style="border-color:#ff4444;padding:14px;background:linear-gradient(90deg,rgba(70,8,12,.76),rgba(5,7,12,.92));"><div class="flex-between"><div style="display:flex;gap:12px;align-items:center;"><div style="color:#ff5555;font-size:30px;">☠</div><div><div style="color:#ff5555;font-weight:900;">WORLD BOSS</div><div style="font-size:18px;font-weight:900;font-style:italic;">THE SHADOW BEAST</div></div></div><div style="text-align:right;color:#ff6969;"><div style="font-size:11px;">ENDS IN</div><div style="font-size:20px;font-weight:900;font-family:monospace;">18:35:22</div></div></div><div class="xp-bar-wrap" style="margin-top:10px;"><div class="xp-bar-fill" style="width:72%;background:#ff4444;box-shadow:0 0 10px #ff4444;"></div></div></div>
+    <button class="btn cta-blue" style="margin-top:14px;" onclick="claimWorldBoss()">⚡ START RAID</button>`;
+}
+
+function dungeonCardHTML(d,compact=false){
+  const unlocked=dungeonUnlocked(d);
+  const prog=dungeonMissionProgress(d);
+  const pct=Math.round((prog.filter(Boolean).length/prog.length)*100);
+  const cleared = state.dungeons.completed.includes(`${d.id}-${dateKey()}`);
+  const gateName = d.id==="wolf-den" ? "Shadow Gate" : d.id==="void-gate" ? "Void Gate" : "Iron Gate";
+  return `<div class="system-card dungeon-card" style="border-color:${unlocked?d.color:"#74323a"};">
+    <div style="font-size:${compact?"17px":"19px"};font-weight:900;font-style:italic;">${gateName.toUpperCase()}</div>
+    <div style="color:${d.color};font-size:12px;">${d.difficulty}</div>
+    <div class="dungeon-art" style="box-shadow:inset 0 0 36px ${d.color}55;"><span style="font-size:44px;color:${d.color};text-shadow:0 0 18px ${d.color};">⌂</span></div>
+    <div style="color:#c9d4df;font-size:12px;margin-bottom:5px;">☠ ${d.rank==="E"?"1 - 2":d.rank==="D"?"3 - 4":"5+"}</div>
+    <div class="flex-between" style="font-size:11px;color:#f0c040;margin-bottom:8px;"><span>XP ${d.xp}</span><span>G ${d.gold}</span></div>
+    <div class="xp-bar-wrap mb8"><div class="xp-bar-fill" style="width:${pct}%;background:${d.color};"></div></div>
+    <button class="btn ${unlocked?"":"btn-red"}" style="width:100%;border-color:${d.color};color:${unlocked?d.color:"#ff5555"};" onclick="${unlocked?`startDungeon('${d.id}');claimDungeon('${d.id}')`:""}">${cleared?"CLEARED":unlocked?"ENTER":`LOCKED ${d.rank}`}</button>
+  </div>`;
+}
+function claimWorldBoss(){
+  const boss = getWeeklyBoss();
+  const pct = Math.round(boss.goals.reduce((s,g)=>s+Math.min(1,g.value/g.target),0)/boss.goals.length*100);
+  if(pct < 100) return showNotif("penalty","BOSS NOT WEAKENED",`Weekly boss health is ${100-pct}% remaining. Complete weekly goals before claiming.`);
+  claimBossReward();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2732,28 +2982,17 @@ function renderDungeons(){
 function renderHub(){
   ensureStateShape();
   const el = document.getElementById("hub-content");
-  const userScore = getPowerScore();
   el.innerHTML = `
-    <div class="screen-title"><div><span>THE</span> SYSTEM</div><small>SOCIAL HUB</small></div>
-    <div class="panel glow p20 mb12 hunter-card">
-      <div class="flex gap10" style="align-items:center;">
-        <div class="avatar-ring">${state.profile.avatar?`<img src="${state.profile.avatar}"/>`:""}</div>
-        <div style="flex:1;"><div style="color:#e8f4ff;font-size:20px;font-weight:900;">${esc(state.profile.displayName||"HUNTER PRIME")}</div><div style="color:#00aaff;font-family:monospace;">LEVEL ${Math.max(1,Math.floor(state.player.totalXp/1000)+1)}</div><div style="color:#4a7a9b;font-size:12px;">${state.player.totalXp} XP · ${state.economy.gold||0} Gold</div></div>
-        <div style="text-align:center;"><div class="rank-badge" style="font-size:20px;">${state.player.rank}</div><div class="label-sm">RANK</div></div>
-      </div>
+    ${screenTitle("SOCIAL HUB")}
+    ${hunterLicenseCard()}
+    <div class="seg-tabs mb12"><button class="active" onclick="showFriendsPanel()">👥 FRIENDS</button><button onclick="showNotif('quest','LEADERBOARD','Top hunters are shown below. Full leaderboard backend sync is ready for accounts.')">🏆 LEADERBOARD</button><button onclick="showGuildHall()">♜ GUILD HALL</button></div>
+    <div class="system-card raid-banner mb12"><div style="position:relative;z-index:1;color:#b985ff;font-weight:900;font-size:12px;">WEEKLY GUILD RAID</div><h3>SHADOW COLOSSEUM</h3><p>Defeat the Colossus. Earn glory.</p><div style="position:relative;z-index:1;color:#c99aff;font-family:monospace;margin-top:12px;">◷ ENDS IN 2D 14H 35M</div><div class="boss-silhouette"></div><button class="btn" style="float:right;margin-top:-38px;border-color:#9d55ff;color:#e4c3ff;" onclick="switchTab('dungeons')">VIEW RAID</button></div>
+    <div class="two-col mb12">
+      <div class="system-card p16"><div style="font-weight:900;font-style:italic;margin-bottom:10px;">TOP HUNTERS <span style="color:#8193a5;font-size:10px;">THIS WEEK</span></div>${MOCK_HUNTERS.map(h=>`<div class="leader-row" style="${h.rank===3?"background:linear-gradient(90deg,rgba(0,170,255,.22),transparent);margin:0 -8px;padding-left:8px;padding-right:8px;":""}"><div class="rank-medal ${h.rank===1?"gold":h.rank===2?"silver":h.rank===3?"bronze":""}">${h.rank}</div><div class="mini-avatar"></div><div style="color:${h.rank===3?"#13d8ff":"#f5f7ff"};font-weight:900;font-style:italic;">${esc(h.name)}</div><div style="color:#f0c040;font-family:monospace;">♛ ${formatNum(h.score)}</div></div>`).join("")}<button class="btn btn-ghost" style="width:100%;margin-top:10px;">VIEW FULL LEADERBOARD</button></div>
+      <div class="system-card p16" style="text-align:center;"><div style="font-weight:900;font-style:italic;text-align:left;">MY GUILD</div><div class="guild-crest">♜</div><div style="font-size:21px;font-weight:900;font-style:italic;">${esc(state.social.guildName).toUpperCase()}</div><div style="color:#9cadbd;font-weight:900;">LEVEL ${state.social.guildLevel}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;color:#c8d4df;font-size:11px;"><span>MEMBERS</span><b>28 / 30</b></div><div style="color:#b985ff;font-size:24px;font-weight:900;">${formatNum(state.social.guildPoints)}</div><div style="color:#9cadbd;font-size:11px;">YOUR CONTRIBUTION</div><div style="color:#b985ff;font-size:20px;font-weight:900;">6,890</div><button class="btn" style="width:100%;margin-top:10px;border-color:#9d55ff;color:#e4c3ff;" onclick="showGuildHall()">GUILD HALL</button></div>
     </div>
-    <div class="panel p16 mb12" style="border-color:#9933ff;background:linear-gradient(90deg,rgba(153,51,255,.18),rgba(0,0,0,.45));"><div style="color:#9933ff;font-size:11px;font-family:monospace;">WEEKLY GUILD RAID</div><div style="font-size:22px;color:#e8f4ff;font-weight:900;font-style:italic;">SHADOW COLOSSEUM</div><div style="color:#4a7a9b;">Defeat the Colossus. Earn glory.</div><button class="btn" style="margin-top:10px;border-color:#9933ff;color:#d7a3ff;">VIEW RAID</button></div>
-    <div class="summary-grid mb12">
-      <div class="panel p16"><div class="label-sm mb8">TOP HUNTERS</div>${MOCK_HUNTERS.map(h=>`<div class="meal-list-row"><span style="color:${h.rank===3?"#00aaff":"#e8f4ff"};">${h.rank}. ${esc(h.name)}</span><span style="color:#f0c040;font-family:monospace;">${h.score.toLocaleString()}</span></div>`).join("")}</div>
-      <div class="panel p16"><div class="label-sm mb8">MY GUILD</div><div style="text-align:center;font-size:28px;">◇</div><div style="text-align:center;color:#e8f4ff;font-size:20px;font-weight:900;">${esc(state.social.guildName)}</div><div style="text-align:center;color:#4a7a9b;">LEVEL ${state.social.guildLevel}</div><div style="text-align:center;color:#9933ff;font-size:22px;font-weight:900;margin-top:12px;">${state.social.guildPoints.toLocaleString()}</div><button class="btn" style="width:100%;margin-top:12px;border-color:#9933ff;color:#d7a3ff;">GUILD HALL</button></div>
-    </div>
-    <div class="summary-grid mb12">
-      <div class="panel p16"><div style="color:#00aaff;font-weight:900;">INVITE FRIENDS</div><div style="color:#4a7a9b;font-size:12px;">Grow your squad</div></div>
-      <div class="panel p16"><div style="color:#00aaff;font-weight:900;">ADD HUNTER</div><div style="color:#4a7a9b;font-size:12px;">Find new partners</div></div>
-    </div>
-    <div class="panel p16"><div class="label-sm mb8">SOCIAL PROGRESSION</div><div class="summary-grid">${[
-      ["FRIENDS",state.social.friends,"#00aaff"],["WORKOUTS TOGETHER",156,"#00aaff"],["TOTAL MINUTES",4320,"#f0c040"],["SOCIAL RANK","B","#00aaff"]
-    ].map(([l,v,c])=>`<div class="summary-card"><div class="label-sm">${l}</div><div style="color:${c};font-size:22px;font-weight:900;">${v}</div></div>`).join("")}</div></div>`;
+    <div class="two-col mb12"><div style="display:flex;flex-direction:column;gap:8px;"><div class="system-card action-card" onclick="inviteFriend()"><div class="action-icon">+</div><div><div style="font-weight:900;">INVITE FRIENDS</div><div style="color:#9cadbd;font-size:12px;">Grow your squad</div></div><div style="margin-left:auto;">›</div></div><div class="system-card action-card" onclick="addHunter()"><div class="action-icon">+</div><div><div style="font-weight:900;">ADD HUNTER</div><div style="color:#9cadbd;font-size:12px;">Find new partners</div></div><div style="margin-left:auto;">›</div></div></div><div class="system-card challenge-card"><div style="color:#13d8ff;font-weight:900;font-size:12px;">CO-OP CHALLENGE</div><div style="font-size:21px;font-weight:900;font-style:italic;">PARTNER PUSH</div><div style="color:#9cadbd;font-size:12px;line-height:1.4;">Complete 30 workouts together for massive rewards.</div><div style="margin-top:12px;"><div class="flex-between"><span style="color:#13d8ff;font-size:11px;">PROGRESS</span><span style="color:#13d8ff;font-family:monospace;">18 / 30</span></div>${xpBar(60)}</div><div style="display:flex;gap:8px;margin-top:9px;"><div class="currency-pill"><span class="coin xpcoin">XP</span>x2,000</div><div class="currency-pill"><span style="color:#b985ff;">◆</span>x400</div></div></div></div>
+    <div class="system-card p16"><div style="font-weight:900;margin-bottom:8px;">SOCIAL PROGRESSION</div><div class="social-strip">${[["👥","FRIENDS",state.social.friends],["👥","WORKOUTS TOGETHER",156],["🔥","TOTAL MINUTES","4,320"],["⬡","SOCIAL RANK","B"]].map(([ic,l,v])=>`<div><div style="font-size:26px;color:#13d8ff;">${ic}</div><div style="color:#8193a5;font-size:10px;">${l}</div><div style="font-size:22px;font-weight:900;">${v}</div></div>`).join("")}</div></div>`;
 }
 function renderImpact(){
   ensureStateShape();
@@ -2762,18 +3001,13 @@ function renderImpact(){
   const target = 25000;
   const pct = Math.min(100, Math.round((personal/target)*100));
   el.innerHTML = `
-    <div class="screen-title"><div><span>THE</span> SYSTEM</div><small>HUNTERS FOR GOOD</small></div>
-    <div class="panel glow p20 mb12" style="min-height:190px;background:linear-gradient(120deg,rgba(0,170,255,.12),rgba(20,20,80,.3));">
-      <span class="rank-badge" style="color:#9bdcff;border:1px solid #1a4a7a;">THIS MONTH'S CAUSE</span>
-      <div style="font-size:30px;color:#e8f4ff;font-weight:900;font-style:italic;margin-top:14px;">${esc(IMPACT_CAMPAIGN.cause).toUpperCase()}</div>
-      <div style="color:#b8c8d8;font-size:14px;line-height:1.6;max-width:60%;">${esc(IMPACT_CAMPAIGN.desc)}</div>
-      <div style="float:right;margin-top:-50px;border:1px solid #00aaff;border-radius:6px;padding:12px;text-align:center;color:#e8f4ff;"><div style="color:#00aaff;font-size:10px;">DAYS LEFT</div><div style="font-size:28px;font-weight:900;">${IMPACT_CAMPAIGN.daysLeft}</div><div>DAYS</div></div>
-    </div>
-    <div class="panel p20 mb12"><div style="color:#00aaff;font-size:13px;font-weight:900;">YOUR IMPACT</div><div style="color:#e8f4ff;margin:8px 0;">Work out. Complete quests. Change lives.</div><div style="color:#00aaff;font-size:28px;font-weight:900;">${personal.toLocaleString()} <span style="color:#4a7a9b;font-size:18px;">/ ${target.toLocaleString()} IMPACT POINTS</span></div><div class="xp-bar-wrap" style="height:10px;margin:10px 0;"><div class="xp-bar-fill" style="width:${pct}%;background:#00aaff;box-shadow:0 0 8px #00aaff;"></div></div><div style="color:#4a7a9b;font-size:12px;">${IMPACT_CAMPAIGN.conversion}</div></div>
-    <div class="panel p16 mb12" style="border-color:#00ff88;"><div class="flex-between"><div><div style="color:#00ff88;font-size:12px;">COMMUNITY TOTAL</div><div style="color:#e8f4ff;font-size:26px;font-weight:900;">${IMPACT_CAMPAIGN.communityTotal.toLocaleString()} <span style="font-size:14px;color:#00aaff;">IMPACT POINTS</span></div><div style="color:#4a7a9b;">Demo total until backend sponsor pool is connected.</div></div><button class="btn">VIEW IMPACT</button></div></div>
-    <div class="panel p16 mb12"><div class="label-sm mb8">GUILD CONTRIBUTIONS</div>${["IRON WOLVES","DAWN SENTINELS","ELITE AWAKENED","PHANTOM LEGION"].map((g,i)=>`<div class="meal-list-row"><span style="color:#e8f4ff;">${i+1}. ${g}</span><span style="color:#e8f4ff;font-family:monospace;">${(562480-i*92140).toLocaleString()} PTS</span></div>`).join("")}</div>
-    <div class="summary-grid mb12"><div class="panel p16"><div class="label-sm">YOUR CONTRIBUTION</div><div style="color:#00aaff;font-size:28px;font-weight:900;">${personal.toLocaleString()}</div><div style="color:#4a7a9b;">RANK #42 · TOP 12%</div></div><div class="panel p16"><div class="label-sm">IMPACT REWARDS</div><div style="color:#e8f4ff;font-weight:900;">First Step · Heart of a Hunter · Legacy Builder</div><button class="btn" style="width:100%;margin-top:12px;">VIEW ALL REWARDS</button></div></div>
-    <button class="btn" style="width:100%;font-size:20px;padding:16px;background:linear-gradient(90deg,#0066aa,#00aaff);color:#e8f4ff;">COMPLETE MISSION</button>`;
+    ${screenTitle("HUNTERS FOR GOOD")}
+    <div class="system-card cause-hero mb12"><span class="rank-badge" style="position:relative;z-index:1;color:#9bdcff;border:1px solid #1a4a7a;">THIS MONTH'S CAUSE</span><h3>${esc(IMPACT_CAMPAIGN.cause).toUpperCase()}</h3><p style="max-width:58%;">${esc(IMPACT_CAMPAIGN.desc)} around the world.</p><button class="btn" style="margin-top:14px;border-color:#9d55ff;color:#e4c3ff;" onclick="showNotif('quest','CAUSE DETAILS','Education for All is the current demo cause. Live charity routing requires a verified payment/charity provider before public launch.')">LEARN MORE ›</button><div class="days-box"><div style="color:#13d8ff;font-size:10px;font-weight:900;">DAYS LEFT</div><div style="font-size:30px;font-weight:900;">${IMPACT_CAMPAIGN.daysLeft}</div><div style="font-size:11px;">DAYS</div></div></div>
+    <div class="system-card p16 mb12 impact-row"><div><div style="color:#13d8ff;font-weight:900;">YOUR IMPACT</div><div style="margin:8px 0;">Work out. Complete quests. Change lives.</div><div style="color:#13d8ff;font-size:27px;font-weight:900;">${formatNum(personal)} <span style="color:#8092a4;font-size:17px;">/ ${formatNum(target)} IMPACT POINTS</span></div><div class="xp-bar-wrap" style="height:10px;margin:10px 0;"><div class="xp-bar-fill" style="width:${pct}%;background:#13d8ff;box-shadow:0 0 10px #13d8ff;"></div></div><div style="color:#9cadbd;font-size:12px;">${IMPACT_CAMPAIGN.conversion} <span style="border:1px solid #60768b;border-radius:50%;padding:0 5px;">i</span></div></div><div class="impact-orb"></div></div>
+    <div class="system-card p12 mb12" style="border-color:#00ff88;background:linear-gradient(90deg,rgba(0,255,136,.13),rgba(0,0,0,.25));"><div class="flex-between"><div style="display:flex;gap:12px;align-items:center;"><div class="action-icon" style="background:#36e69f;">👥</div><div><div style="color:#00ff88;font-weight:900;">COMMUNITY TOTAL</div><div style="font-size:24px;font-weight:900;">${formatNum(IMPACT_CAMPAIGN.communityTotal)} <span style="font-size:13px;color:#13d8ff;">IMPACT POINTS</span></div><div style="color:#8fa6ba;font-size:12px;">$27,849 donated to make a real difference</div></div></div><button class="btn" onclick="showNotif('quest','COMMUNITY IMPACT','Community total is a demo public counter until backend sponsor and charity payout rails are connected.')">VIEW IMPACT ›</button></div></div>
+    <div class="system-card p16 mb12"><div class="flex-between mb8"><div style="color:#13d8ff;font-weight:900;">GUILD CONTRIBUTIONS</div><div style="color:#13d8ff;font-size:11px;">RANKING REFRESHES IN 2D 14H</div></div>${["IRON WOLVES","SHADOW HUNTERS","ELITE AWAKENED","DAWN SENTINELS","PHANTOM LEGION"].map((g,i)=>`<div class="leader-row" style="grid-template-columns:28px 34px 1fr auto;"><div class="rank-medal ${i===0?"gold":i===1?"silver":i===2?"bronze":""}">${i<3?i+1:i+1}</div><div style="font-size:24px;color:${i===0?"#b985ff":"#8fa6ba"};">⬟</div><div style="font-weight:900;">${g}</div><div style="font-size:18px;font-family:monospace;">${formatNum(562480-i*124270)} <span style="font-size:11px;color:#9cadbd;">PTS</span></div></div>`).join("")}<button class="btn btn-ghost" style="width:100%;margin-top:10px;">VIEW FULL LEADERBOARD ›</button></div>
+    <div class="two-col mb12"><div class="system-card p16"><div style="color:#13d8ff;font-weight:900;margin-bottom:12px;">YOUR CONTRIBUTION</div><div style="display:flex;gap:12px;align-items:center;">${avatarRing()}<div><div style="color:#13d8ff;font-size:28px;font-weight:900;">${formatNum(personal)}</div><div style="color:#13d8ff;">IMPACT POINTS</div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;margin-top:18px;color:#9cadbd;"><div>RANK<br><b style="color:#e8f4ff;font-size:18px;">#42</b></div><div>PERCENTILE<br><b style="color:#e8f4ff;font-size:18px;">TOP 12%</b></div></div></div><div class="system-card p16"><div style="color:#13d8ff;font-weight:900;">IMPACT REWARDS</div><div style="color:#9cadbd;">UNLOCK BADGES & TITLES</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:12px 0;text-align:center;"><div>💚<br>FIRST<br>STEP</div><div>💜<br>HEART<br>HUNTER</div><div>⭐<br>LEGACY<br>BUILDER</div></div><button class="btn btn-ghost" style="width:100%;">VIEW ALL REWARDS ›</button></div></div>
+    <button class="btn cta-blue" onclick="completeImpactMission()">COMPLETE MISSION ›<br><span style="font-size:12px;">EARN IMPACT. CHANGE LIVES.</span></button>`;
 }
 
 // ═══════════════════════════════════════════════════════════
