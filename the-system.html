@@ -1208,6 +1208,21 @@ function hotspot(label,left,top,width,height,action){
 function pixelScreen(src,hotspots=[],liveText=""){
   return `<div class="pixel-screen"><img src="${src}" alt="THE SYSTEM interface"/>${hotspots.join("")}</div>${liveText?`<div class="functional-layer">${liveText}</div>`:""}`;
 }
+function refreshCurrentView(){
+  if(currentTab==="hub") renderHub();
+  if(currentTab==="quests") renderQuests();
+  if(currentTab==="training"){renderTrainingTabs();renderTrainingContent();}
+  if(currentTab==="dungeons") renderDungeons();
+  if(currentTab==="shop") renderShop();
+  if(currentTab==="impact") renderImpact();
+  if(currentTab==="nutrition") renderNutrition();
+  if(currentTab==="progress"){renderProgressTabs();renderProgressContent();}
+  if(currentTab==="coach") renderCoach();
+  if(currentTab==="awakening") renderAwakening();
+  if(currentTab==="vault") renderVault();
+  if(currentTab==="status") renderStatus();
+  if(currentTab==="settings") renderSettings();
+}
 function liveHeader(title, subtitle=""){
   return `<div class="flex-between mb10"><div><div style="color:#13d8ff;font-weight:900;letter-spacing:1px;">${esc(title)}</div>${subtitle?`<div style="color:#8fa6ba;font-size:12px;">${esc(subtitle)}</div>`:""}</div><div class="currency-pill"><span class="coin">$</span>${formatNum(state.economy.gold||0)}</div></div>`;
 }
@@ -1230,7 +1245,7 @@ function questLivePanel(){
   const qRows = QUESTS.map(q=>{
     const p = state.dailyProgress.quests[q.id] || {value:0,completed:false};
     const add = q.unit==="L"?0.5:q.unit==="min"?5:q.target>=1000?1000:1;
-    return `<div class="live-row"><div><strong>${esc(q.name)}</strong><small>${formatNum(p.value||0)} / ${formatNum(q.target)} ${esc(q.unit)} · ${q.optional?"Bonus":"Mandatory"}</small>${xpBar(Math.min(100,((p.value||0)/q.target)*100))}</div><button class="btn ${p.completed?"btn-green":""}" data-quest-action="${q.id}" onclick="updateQuestProgress('${q.id}',${add})">${p.completed?"DONE":"+"+add}</button></div>`;
+    return `<div class="live-row"><div><strong>${esc(q.name)}</strong><small>${formatNum(p.value||0)} / ${formatNum(q.target)} ${esc(q.unit)} · ${q.optional?"Bonus":"Mandatory"}</small>${xpBar(Math.min(100,((p.value||0)/q.target)*100))}</div><button class="btn ${p.completed?"btn-green":""}" data-quest-action="${q.id}" ${p.completed?"disabled":""} onclick="updateQuestProgress('${q.id}',${add})">${p.completed?"DONE":"+"+add}</button></div>`;
   }).join("");
   return `${liveHeader("LIVE QUEST LOG",`${getIncompleteObligations().length} obligations open · ${getMinutesToMidnight()} minutes left`)}
     <div class="action-grid mb12"><button class="btn btn-red" onclick="checkPenalty()">CHECK PENALTY</button><button class="btn" onclick="switchTab('nutrition')">LOG FOOD</button><button class="btn" onclick="switchTab('training')">TRAINING</button><button class="btn" onclick="switchTab('dungeons')">DUNGEONS</button></div>
@@ -1315,7 +1330,7 @@ function completeIntro(){
 function addDemoGold(){
   addGold(500,"Founder test grant");
   saveNonWorkout();
-  renderAll();
+  refreshCurrentView();
   showNotif("levelup","GOLD ADDED","+500 Gold added for local testing.");
 }
 function showFriendsPanel(){
@@ -1335,7 +1350,7 @@ function inviteFriend(){
   addGold(50,"Friend invite");
   addImpact(25,"Friend invite");
   saveNonWorkout();
-  renderHub();
+  refreshCurrentView();
   showNotif("levelup","FRIEND INVITED",`Invite sent.\n\n+1 Friend · +50 Gold · +25 Impact Points\nTotal invites: ${state.social.invitesSent}`);
 }
 function addHunter(){
@@ -1348,14 +1363,14 @@ function addHunter(){
   state.social.guildPoints += 250;
   state.social.partnerPush = Math.min(30,(state.social.partnerPush||18)+1);
   saveNonWorkout();
-  renderHub();
+  refreshCurrentView();
   showNotif("quest","HUNTER ADDED",`${recruit.name} joined ${state.social.guildName}.\n\nGuild Points +250\nPartner Push ${state.social.partnerPush}/30`);
 }
 function completeImpactMission(){
   addImpact(250,"Impact mission");
   addGold(100,"Impact mission");
   saveNonWorkout();
-  renderImpact();
+  refreshCurrentView();
   showNotif("levelup","MISSION COMPLETE","+250 Impact Points · +100 Gold\n\nContribution recorded in your impact ledger.");
 }
 function getNutritionTotals(){
@@ -1714,7 +1729,8 @@ function updateQuestProgress(questId, value, mode="add"){
   }else{
     saveNonWorkout();
   }
-  renderQuestCard(questId);
+  if(currentTab==="quests") renderQuests();
+  else renderQuestCard(questId);
   renderPlayerStrip();
 }
 
@@ -2443,8 +2459,29 @@ function renderHunterProfile(){
   const meals = getMealCount();
   const owned = state.inventory.owned?.length || 0;
   const cleared = state.dungeons.raidHistory?.length || 0;
+  const threat = getThreatReport();
+  const next = getNextAction();
+  const nextRoute = next?.type==="nutrition" ? "nutrition" : next?.id==="dq-workout" ? "training" : next ? "quests" : "impact";
+  const nextText = next ? `${next.label}: ${formatNum(next.remaining)} ${next.unit} remaining` : "All core obligations clear. Build impact or start a raid.";
   el.innerHTML = `
     ${hunterLicenseCard()}
+    <div class="system-card p16 mb12" style="border-color:${threat.color};background:linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,25,45,.36));">
+      <div class="flex-between flex-wrap gap8">
+        <div>
+          <div style="color:${threat.color};font-weight:900;letter-spacing:2px;">HUNTER COMMAND · ${threat.level}</div>
+          <div style="color:#9cadbd;font-size:12px;margin-top:4px;">${esc(nextText)}</div>
+        </div>
+        <button class="btn btn-gold" onclick="switchTab('${nextRoute}')">GO NOW</button>
+      </div>
+      <div class="action-grid" style="margin-top:12px;">
+        <button class="btn" onclick="switchTab('quests')">QUESTS</button>
+        <button class="btn" onclick="switchTab('training')">TRAIN</button>
+        <button class="btn" onclick="switchTab('nutrition')">NUTRITION</button>
+        <button class="btn" onclick="switchTab('impact')">IMPACT</button>
+        <button class="btn" onclick="switchTab('vault')">VAULT</button>
+        <button class="btn" onclick="switchTab('shop')">SHOP</button>
+      </div>
+    </div>
     <div class="two-col mb12">
       <div class="system-card p16">
         <div style="font-weight:900;margin-bottom:10px;">HUNTER LICENSE</div>
@@ -3125,17 +3162,21 @@ function buyItem(id){
   state.inventory.purchaseHistory = state.inventory.purchaseHistory.slice(0,80);
   addAudit("shop-buy", `Purchased ${item.name}`, {item:id});
   saveNonWorkout();
-  renderAll();
+  refreshCurrentView();
   showNotif("levelup","ITEM ACQUIRED",`${item.name}\n\n${item.desc}`);
 }
 function equipItem(id){
   const item = SHOP_ITEMS.find(i=>i.id===id);
   if(!item || !ownsItem(id)) return;
   const slot = item.cat==="badges"?"badge":item.cat==="cosmetics"?"cosmetic":item.cat==="gear"?"gear":"boost";
+  if(state.inventory.equipped[slot] === id){
+    showNotif("quest","ALREADY EQUIPPED",`${item.name} is already active in your loadout.`);
+    return;
+  }
   state.inventory.equipped[slot] = id;
   addAudit("item-equipped", `Equipped ${item.name}`, {item:id,slot});
   saveNonWorkout();
-  renderAll();
+  refreshCurrentView();
 }
 function renderShop(){
   ensureStateShape();
