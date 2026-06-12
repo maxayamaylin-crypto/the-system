@@ -471,6 +471,28 @@ body::before{
 .cta-blue{width:100%;font-size:20px;padding:16px;background:linear-gradient(180deg,#24d8ff,#0874c8);color:#dff8ff;border-color:#24d8ff;box-shadow:0 0 24px rgba(0,170,255,.55);}
 #tab-quests>.flex-between.mb16,#tab-quests>.section-header{display:none;}
 .tab-content>.screen-title,.tab-content>.flex-between>.screen-title,.tab-content .screen-title:empty{display:none;}
+.intro-sequence{position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 38%,rgba(0,170,255,.22),transparent 24%),linear-gradient(180deg,#01040a,#06101f 48%,#01040a);overflow:hidden;}
+.intro-sequence.show{display:flex;}
+.intro-sequence::before{content:"";position:absolute;inset:-20%;background:linear-gradient(115deg,transparent 0 47%,rgba(0,170,255,.55) 48%,transparent 49% 100%),linear-gradient(245deg,transparent 0 58%,rgba(0,100,255,.35) 59%,transparent 60% 100%);animation:introPulse 2.4s ease-in-out infinite;opacity:.7;}
+.intro-core{position:relative;width:min(88vw,420px);padding:28px 22px;border:1px solid #16d8ff;border-radius:12px;background:linear-gradient(180deg,rgba(4,15,30,.92),rgba(1,5,12,.96));box-shadow:0 0 50px rgba(0,170,255,.42),inset 0 0 30px rgba(0,170,255,.13);text-align:center;}
+.intro-mark{font-family:'Arial Black','Segoe UI',sans-serif;font-style:italic;font-size:36px;letter-spacing:2px;background:linear-gradient(90deg,#fff 0 35%,#12d9ff 35% 70%,#f4f8ff 70%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 22px rgba(0,170,255,.75);}
+.intro-sub{color:#13d8ff;font-family:monospace;letter-spacing:5px;font-size:12px;margin:8px 0 22px;}
+.intro-scan{height:160px;border:1px solid rgba(0,170,255,.55);border-radius:10px;margin-bottom:18px;position:relative;background:radial-gradient(circle,rgba(0,170,255,.22),rgba(0,0,0,.22));overflow:hidden;}
+.intro-scan::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:#13d8ff;box-shadow:0 0 18px #13d8ff;animation:scanLine 2.1s linear infinite;}
+.intro-scan span{position:absolute;border:1px solid rgba(0,170,255,.36);border-radius:50%;inset:34px;box-shadow:0 0 18px rgba(0,170,255,.24);}
+.intro-scan span:nth-child(2){inset:52px;animation:introPulse 1.8s ease-in-out infinite;}
+.intro-scan span:nth-child(3){inset:70px;background:linear-gradient(145deg,#05090f,#0e2a45);clip-path:polygon(48% 0,72% 14%,84% 44%,100% 100%,0 100%,18% 44%,27% 13%);border-radius:0;opacity:.9;}
+.intro-lines{font-family:monospace;color:#9fdff0;font-size:12px;line-height:2;text-align:left;margin:0 0 18px 18px;}
+@keyframes scanLine{0%{top:0;}100%{top:100%;}}
+@keyframes introPulse{0%,100%{opacity:.45;filter:brightness(1);}50%{opacity:1;filter:brightness(1.45);}}
+.pixel-screen{position:relative;width:100%;line-height:0;}
+.pixel-screen img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none;}
+.pixel-hotspot{position:absolute;display:block;border:0;background:rgba(0,0,0,0);color:transparent;cursor:pointer;padding:0;z-index:4;}
+.pixel-hotspot:focus{outline:1px solid rgba(19,216,255,.8);outline-offset:2px;}
+.pixel-live{position:absolute;left:50%;top:7.3%;transform:translateX(-50%);z-index:3;min-width:120px;padding:3px 8px;border:1px solid rgba(19,216,255,.55);border-radius:999px;background:rgba(0,5,14,.72);color:#13d8ff;font-family:monospace;font-size:10px;line-height:1.2;text-align:center;box-shadow:0 0 12px rgba(0,170,255,.28);pointer-events:none;}
+body:has(.pixel-screen){background:#000;}
+body:has(.pixel-screen) #app{width:min(100vw,520px);max-width:520px;padding:0;background:transparent;border:0;box-shadow:none;}
+body:has(.pixel-screen) #topbar,body:has(.pixel-screen) #tabs,body:has(.pixel-screen) #player-strip{display:none!important;}
 @media (max-width:420px){
   .license-grid{grid-template-columns:80px 1fr 58px;}
   .license-emblem{width:52px;height:52px;font-size:30px;}
@@ -494,6 +516,21 @@ body::before{
 </style>
 </head>
 <body>
+<div id="intro-sequence" class="intro-sequence">
+  <div class="intro-core">
+    <div class="intro-mark">THE SYSTEM</div>
+    <div class="intro-sub">AWAKENING PROTOCOL</div>
+    <div class="intro-scan">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="intro-lines">
+      <div>[ PLAYER FILE DETECTED ]</div>
+      <div>[ DAILY QUEST ENGINE ONLINE ]</div>
+      <div>[ HUNTER LICENSE ISSUED ]</div>
+    </div>
+    <button class="btn cta-blue" onclick="completeIntro()">ENTER SYSTEM</button>
+  </div>
+</div>
 <div id="app">
   <div id="topbar">
     <div>
@@ -1112,6 +1149,12 @@ function screenTitle(subtitle){
 function avatarRing(extra=""){
   return `<div class="avatar-ring ${extra}">${state.profile.avatar?`<img src="${state.profile.avatar}" alt="Hunter avatar"/>`:""}</div>`;
 }
+function hotspot(label,left,top,width,height,action){
+  return `<button class="pixel-hotspot" aria-label="${esc(label)}" title="${esc(label)}" style="left:${left}%;top:${top}%;width:${width}%;height:${height}%;" onclick="${action}">${esc(label)}</button>`;
+}
+function pixelScreen(src,hotspots=[],liveText=""){
+  return `<div class="pixel-screen"><img src="${src}" alt="THE SYSTEM interface"/>${hotspots.join("")}</div>`;
+}
 function hunterLicenseCard({shop=false}={}){
   return `<div class="system-card license-card mb12">
     <div class="license-grid">
@@ -1141,23 +1184,27 @@ function economyHeader(){
   </div>`;
 }
 function renderBottomNav(active=currentTab){
-  const sets = {
-    hub:[["quests","▤","QUESTS"],["training","▥","TRAIN"],["hub","●●","HUB"],["shop","🛒","SHOP"],["status","⬡","PROFILE"]],
-    quests:[["hub","●●","HUB"],["quests","▤","QUESTS"],["training","▥","TRAIN"],["dungeons","☠","DUNGEONS"],["status","⬡","PROFILE"]],
-    dungeons:[["hub","●●","HUB"],["quests","▤","QUESTS"],["training","▥","TRAIN"],["dungeons","☠","DUNGEONS"],["status","⬡","PROFILE"]],
-    shop:[["hub","●●","HUB"],["training","▥","TRAIN"],["quests","▤","QUESTS"],["shop","🛒","SHOP"],["status","⬡","PROFILE"]],
-    impact:[["quests","▤","QUESTS"],["training","▥","TRAIN"],["hub","●●","HUB"],["impact","♥","IMPACT"],["status","⬡","PROFILE"]],
-    status:[["quests","▤","QUESTS"],["training","▥","TRAIN"],["hub","●●","HUB"],["impact","♥","IMPACT"],["status","⬡","PROFILE"]]
-  };
-  const nav = sets[active] || [["quests","▤","QUESTS"],["training","▥","TRAIN"],["hub","●●","HUB"],["shop","🛒","SHOP"],["status","⬡","PROFILE"]];
+  const nav = [["quests","▤","QUESTS"],["training","▥","TRAIN"],["hub","●●","HUB"],["shop","🛒","SHOP"],["impact","♥","IMPACT"],["status","⬡","PROFILE"]];
   const el = document.getElementById("tabs");
   if(!el) return;
-  el.innerHTML = nav.map(([tab,icon,label])=>`<button class="tab-btn ${tab===active?"active":""}" onclick="switchTab('${tab}')"><small>${icon}</small>${label}</button>`).join("");
+  const activeAlias = active==="dungeons" ? "quests" : active;
+  el.innerHTML = nav.map(([tab,icon,label])=>`<button class="tab-btn ${tab===activeAlias?"active":""}" onclick="switchTab('${tab}')"><small>${icon}</small>${label}</button>`).join("");
 }
 function updateScreenSubtitle(tab=currentTab){
   const labels = {hub:"SOCIAL HUB",quests:"QUESTS",training:"TRAIN",dungeons:"DUNGEONS",shop:"HUNTER SHOP",impact:"HUNTERS FOR GOOD",status:"PROFILE",nutrition:"NUTRITION",progress:"PROGRESS",coach:"COACH",awakening:"AWAKENING",vault:"VAULT",settings:"SETTINGS"};
   const el = document.getElementById("screen-subtitle");
   if(el) el.textContent = labels[tab] || "HUNTER OS";
+}
+function showIntro(force=false){
+  const intro = document.getElementById("intro-sequence");
+  if(!intro) return;
+  if(force || localStorage.getItem("system-intro-seen") !== "1"){
+    intro.classList.add("show");
+  }
+}
+function completeIntro(){
+  localStorage.setItem("system-intro-seen","1");
+  document.getElementById("intro-sequence")?.classList.remove("show");
 }
 function addDemoGold(){
   addGold(500,"Founder test grant");
@@ -1380,6 +1427,7 @@ function init(){
   renderAll();
   startClock();
   startMidnightWatcher();
+  showIntro(false);
 }
 
 function isRestDay(dayName){
@@ -1613,6 +1661,27 @@ function renderPlayerStrip(){
 // RENDER QUESTS
 // ═══════════════════════════════════════════════════════════
 function renderQuests(){
+  const h = [
+    hotspot("Hub",15,90,13,6,"switchTab('hub')"),
+    hotspot("Quests",30,90,17,6,"switchTab('quests')"),
+    hotspot("Train",49,90,15,6,"switchTab('training')"),
+    hotspot("Dungeons",65,90,17,6,"switchTab('dungeons')"),
+    hotspot("Profile",83,90,14,6,"switchTab('status')"),
+    hotspot("Push-Up Power",78,25.7,11,3.2,"updateQuestProgress('dq-workout',1)"),
+    hotspot("Leg Day",78,30.2,11,3.2,"updateQuestProgress('dq-workout',1)"),
+    hotspot("Core Stability",78,34.9,11,3.2,"updateQuestProgress('dq-workout',1)"),
+    hotspot("Flexibility Flow",78,39.7,11,3.2,"updateQuestProgress('dq-reading',5)"),
+    hotspot("Hydration Check",78,44.5,11,3.2,"updateQuestProgress('dq-water',0.5)"),
+    hotspot("Iron Gate",18,72.7,19,3.4,"startDungeon('iron-gate');claimDungeon('iron-gate')"),
+    hotspot("Shadow Gate",43,72.7,19,3.4,"startDungeon('wolf-den');claimDungeon('wolf-den')"),
+    hotspot("Void Gate",68,72.7,19,3.4,"startDungeon('void-gate');claimDungeon('void-gate')"),
+    hotspot("World Boss",82,78.1,8,4,"claimWorldBoss()"),
+    hotspot("Start Raid",16,84,68,5.2,"switchTab('dungeons')")
+  ];
+  document.getElementById("mission-control").innerHTML = pixelScreen("assets/screens/quests.png",h,`Gold ${formatNum(state.economy.gold||0)} · Impact ${formatNum(state.economy.impactPoints||0)}`);
+  document.getElementById("mandatory-quests").innerHTML = "";
+  document.getElementById("bonus-quests").innerHTML = "";
+  return;
   renderMissionControl();
   const mandEl = document.getElementById("mandatory-quests");
   const bonusEl = document.getElementById("bonus-quests");
@@ -2954,6 +3023,25 @@ function renderShop(){
   ensureStateShape();
   const el = document.getElementById("shop-content");
   const featured = SHOP_ITEMS.find(i=>i.id==="shadow-katana") || SHOP_ITEMS[0];
+  const itemIds = ["shadow-cloak","focus-ring","iron-boots","training-elixir"];
+  const h = [
+    hotspot("Hub",18,91,11,5.5,"switchTab('hub')"),
+    hotspot("Train",33,91,12,5.5,"switchTab('training')"),
+    hotspot("Quests",50,91,12,5.5,"switchTab('quests')"),
+    hotspot("Shop",65,91,12,5.5,"switchTab('shop')"),
+    hotspot("Profile",82,91,12,5.5,"switchTab('status')"),
+    hotspot("Add Gold",73,5.2,8,4,"addDemoGold()"),
+    hotspot("Cart",82,4.7,10,6,"showNotif('quest','HUNTER CART','Cart and checkout are ready for store integration. Purchases currently use earned Gold.')"),
+    hotspot("Buy Featured",42,28.2,20,3.8,`buyItem('${featured.id}')`),
+    hotspot("View Featured",63,28.2,25,3.8,`buyItem('${featured.id}');equipItem('${featured.id}')`),
+    hotspot("Buy Armor",16,50.2,17,3.4,`buyItem('${itemIds[0]}')`),
+    hotspot("Buy Ring",36,50.2,17,3.4,`buyItem('${itemIds[1]}')`),
+    hotspot("Buy Boots",55,50.2,17,3.4,`buyItem('${itemIds[2]}')`),
+    hotspot("Buy Elixir",74,50.2,17,3.4,`buyItem('${itemIds[3]}')`),
+    hotspot("Change Title",63,84.2,25,3.3,"switchTab('awakening')")
+  ];
+  el.innerHTML = pixelScreen("assets/screens/shop.png",h,`Gold ${formatNum(state.economy.gold||0)} · Items ${state.inventory.owned.length}`);
+  return;
   const owned = new Set((state.inventory.owned||[]).map(i=>i.id));
   el.innerHTML = `
     <div class="flex-between mb10">${screenTitle("HUNTER SHOP")}<div style="display:flex;flex-direction:column;gap:6px;"><div class="currency-pill"><span class="coin">$</span><span style="color:#ffd66b;">${formatNum(state.economy.gold||0)}</span><button class="btn btn-ghost" style="padding:2px 7px;" onclick="addDemoGold()">+</button></div><div class="currency-pill"><span class="coin xpcoin">XP</span><span style="color:#c79aff;">${formatNum(state.player.totalXp)} XP</span></div></div></div>
@@ -3041,6 +3129,20 @@ function claimDungeon(id){
 function renderDungeons(){
   ensureStateShape();
   const el = document.getElementById("dungeons-content");
+  const h = [
+    hotspot("Hub",15,90,13,6,"switchTab('hub')"),
+    hotspot("Quests",30,90,17,6,"switchTab('quests')"),
+    hotspot("Train",49,90,15,6,"switchTab('training')"),
+    hotspot("Dungeons",65,90,17,6,"switchTab('dungeons')"),
+    hotspot("Profile",83,90,14,6,"switchTab('status')"),
+    hotspot("Iron Gate",18,72.7,19,3.4,"startDungeon('iron-gate');claimDungeon('iron-gate')"),
+    hotspot("Shadow Gate",43,72.7,19,3.4,"startDungeon('wolf-den');claimDungeon('wolf-den')"),
+    hotspot("Void Gate",68,72.7,19,3.4,"startDungeon('void-gate');claimDungeon('void-gate')"),
+    hotspot("World Boss",82,78.1,8,4,"claimWorldBoss()"),
+    hotspot("Start Raid",16,84,68,5.2,"claimWorldBoss()")
+  ];
+  el.innerHTML = pixelScreen("assets/screens/quests.png",h,`Raids ${state.dungeons.raidHistory?.length||0} · Gold ${formatNum(state.economy.gold||0)}`);
+  return;
   el.innerHTML = `
     ${screenTitle("DUNGEON RAIDS")}
     ${hunterLicenseCard()}
@@ -3079,6 +3181,26 @@ function claimWorldBoss(){
 function renderHub(){
   ensureStateShape();
   const el = document.getElementById("hub-content");
+  const h = [
+    hotspot("Quests",18,89.5,12,6,"switchTab('quests')"),
+    hotspot("Train",32,89.5,14,6,"switchTab('training')"),
+    hotspot("Hub",47,89.5,13,6,"switchTab('hub')"),
+    hotspot("Shop",62,89.5,14,6,"switchTab('shop')"),
+    hotspot("Profile",78,89.5,14,6,"switchTab('status')"),
+    hotspot("Notifications",69,5.1,7,5,"showNotif('quest','NOTIFICATIONS','No new system alerts.')"),
+    hotspot("Messages",76,5.1,8,5,"showNotif('quest','MESSAGES','Guild chat and friend messages will live here.')"),
+    hotspot("View License",70,18.1,18,4.5,"switchTab('status')"),
+    hotspot("Friends",17,24.2,21,3.8,"showFriendsPanel()"),
+    hotspot("Leaderboard",40,24.2,22,3.8,"showNotif('quest','LEADERBOARD','Weekly rankings update from quest, raid, guild and impact activity.')"),
+    hotspot("Guild Hall",64,24.2,22,3.8,"showGuildHall()"),
+    hotspot("View Raid",66,35.4,20,4,"switchTab('dungeons')"),
+    hotspot("Full Leaderboard",20,61.1,30,3.4,"showNotif('quest','LEADERBOARD','Full leaderboard coming through account sync. Current local ranks are active in this build.')"),
+    hotspot("Guild Hall Card",58,62.8,28,3.3,"showGuildHall()"),
+    hotspot("Invite Friends",17,68.4,22,5,"inviteFriend()"),
+    hotspot("Add Hunter",17,75,22,5,"addHunter()")
+  ];
+  el.innerHTML = pixelScreen("assets/screens/hub.png",h,`Friends ${state.social.friends} · Guild ${formatNum(state.social.guildPoints)}`);
+  return;
   el.innerHTML = `
     ${screenTitle("SOCIAL HUB")}
     ${hunterLicenseCard()}
@@ -3094,6 +3216,22 @@ function renderHub(){
 function renderImpact(){
   ensureStateShape();
   const el = document.getElementById("impact-content");
+  const h = [
+    hotspot("Quests",18,91,12,5.5,"switchTab('quests')"),
+    hotspot("Train",34,91,12,5.5,"switchTab('training')"),
+    hotspot("Hub",49,91,12,5.5,"switchTab('hub')"),
+    hotspot("Impact",64,91,12,5.5,"switchTab('impact')"),
+    hotspot("Profile",80,91,12,5.5,"switchTab('status')"),
+    hotspot("Notifications",70,5.4,7,5,"showNotif('quest','NOTIFICATIONS','No new impact alerts.')"),
+    hotspot("Messages",77,5.4,8,5,"showNotif('quest','MESSAGES','Impact squad messages will appear here.')"),
+    hotspot("Learn More",18,21.8,18,4,"showNotif('quest','CAUSE DETAILS','Education for All is the current featured cause. Live charity routing requires verified payout rails before public launch.')"),
+    hotspot("View Impact",66,42.4,21,4,"showNotif('quest','COMMUNITY IMPACT','Community totals are tracked as impact value until sponsor funding and charity payout rails are connected.')"),
+    hotspot("Full Impact Leaderboard",18,65,67,3.5,"showNotif('quest','IMPACT LEADERBOARD','Guild contribution rankings are tracked from impact points and mission activity.')"),
+    hotspot("Impact Rewards",59,80.6,28,3.4,"switchTab('awakening')"),
+    hotspot("Complete Mission",16,86,68,5.2,"completeImpactMission()")
+  ];
+  el.innerHTML = pixelScreen("assets/screens/impact.png",h,`Impact ${formatNum(state.economy.impactPoints||0)} · ${IMPACT_CAMPAIGN.cause}`);
+  return;
   const personal = state.economy.impactPoints||0;
   const target = 25000;
   const pct = Math.min(100, Math.round((personal/target)*100));
@@ -3317,6 +3455,7 @@ function renderSettings(){
       <div class="flex gap8 flex-wrap">
         <button class="btn btn-gold" onclick="handleExport()">EXPORT BACKUP</button>
         <button class="btn" onclick="handleImport()">IMPORT BACKUP</button>
+        <button class="btn" onclick="showIntro(true)">REPLAY INTRO</button>
         <button class="btn btn-red" onclick="resetLocalData()">DELETE LOCAL DATA</button>
       </div>
     </div>`;

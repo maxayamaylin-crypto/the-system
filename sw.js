@@ -1,5 +1,13 @@
-const CACHE = "system-v4-0";
-const FILES = ["./", "./the-system.html", "./manifest.json"];
+const CACHE = "system-v4-1-pixel";
+const FILES = [
+  "./",
+  "./the-system.html",
+  "./manifest.json",
+  "./assets/screens/hub.png",
+  "./assets/screens/quests.png",
+  "./assets/screens/shop.png",
+  "./assets/screens/impact.png"
+];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
 });
