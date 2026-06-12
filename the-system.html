@@ -1037,6 +1037,9 @@ let activeProgressDay = "UB1";
 let activeNutritionView = "overview";
 let currentTab = "hub";
 let editingEx = null; // {dayKey, section, idx}
+let activeTrainingScreen = "main";
+let activeTrainingTemplate = "upper";
+let editingSection = null;
 let logMode = false;
 let logDay = null;
 let logData = {};
@@ -2163,29 +2166,105 @@ function setTrainingDay(k){
   renderTrainingContent();
 }
 
-function trainingHotspots(){
+const TRAINING_SCREEN_IMAGES = {
+  main:"assets/screens/train-t01-main.jpg",
+  split:"assets/screens/train-t02-split-selector.jpg",
+  upper:"assets/screens/train-t03-upper-lower.jpg",
+  ppl:"assets/screens/train-t04-ppl.jpg",
+  arnold:"assets/screens/train-t05-arnold.jpg",
+  fullbody:"assets/screens/train-t06-full-body.jpg",
+  custom:"assets/screens/train-t07-custom-builder.jpg",
+  section:"assets/screens/train-t08-edit-section.jpg",
+  exercise:"assets/screens/train-t09-edit-exercise.jpg",
+  complete:"assets/screens/train-t10-session-complete.jpg"
+};
+
+function setTrainingScreen(screen,template){
+  logMode=false; logDay=null;
+  activeTrainingScreen = screen;
+  if(template) activeTrainingTemplate = template;
+  renderTrainingContent();
+}
+
+function trainingNavHotspots(){
   return [
     hotspot("UB1",9.5,17.0,14.5,3.4,"setTrainingDay('UB1')"),
     hotspot("LB1",25.0,17.0,14.5,3.4,"setTrainingDay('LB1')"),
     hotspot("UB2",40.4,17.0,14.5,3.4,"setTrainingDay('UB2')"),
     hotspot("LB2",55.9,17.0,14.5,3.4,"setTrainingDay('LB2')"),
     hotspot("UB3",71.2,17.0,14.5,3.4,"setTrainingDay('UB3')"),
-    hotspot("Upper Lower",10.4,21.0,13.5,5.0,"showNotif('quest','SPLIT TEMPLATE','Upper/Lower selected. Use the live editor below to customize movements.')"),
-    hotspot("Push Pull Legs",24.2,21.0,13.5,5.0,"applyTrainingTemplate('ppl')"),
-    hotspot("Arnold Split",38.1,21.0,13.5,5.0,"applyTrainingTemplate('arnold')"),
-    hotspot("Full Body",52.0,21.0,13.5,5.0,"applyTrainingTemplate('fullbody')"),
-    hotspot("Custom Split",66.0,21.0,13.5,5.0,"showNotif('quest','CUSTOM SPLIT','Edit exercises below. Changes autosave to the local API.')"),
-    hotspot("Log Session",14.3,31.5,43.0,5.3,`startLogSession('${activeTrainingDay}')`),
-    hotspot("Add Chest Exercise",38.0,52.2,28.0,3.0,"addExerciseToSection('CHEST')"),
-    hotspot("Add Back Exercise",38.0,63.6,28.0,3.0,"addExerciseToSection('BACK')"),
-    hotspot("Add Biceps Exercise",38.0,74.6,28.0,3.0,"addExerciseToSection('BICEPS')"),
-    hotspot("Add Triceps Exercise",38.0,84.2,28.0,3.0,"addExerciseToSection('TRICEPS')"),
-    hotspot("Add Shoulders Exercise",38.0,92.0,28.0,3.0,"addExerciseToSection('SHOULDERS')"),
+    hotspot("Upper Lower",10.4,21.0,13.5,5.0,"setTrainingScreen('upper','upper')"),
+    hotspot("Push Pull Legs",24.2,21.0,13.5,5.0,"setTrainingScreen('ppl','ppl')"),
+    hotspot("Arnold Split",38.1,21.0,13.5,5.0,"setTrainingScreen('arnold','arnold')"),
+    hotspot("Full Body",52.0,21.0,13.5,5.0,"setTrainingScreen('fullbody','fullbody')"),
+    hotspot("Custom Split",66.0,21.0,13.5,5.0,"setTrainingScreen('custom','custom')")
+  ];
+}
+
+function trainingBottomHotspots(){
+  return [
     hotspot("Hub",12.0,94.6,12.0,4.5,"switchTab('hub')"),
     hotspot("Train",27.0,94.6,13.0,4.5,"switchTab('training')"),
     hotspot("Quests",43.0,94.6,13.0,4.5,"switchTab('quests')"),
     hotspot("Shop",60.0,94.6,12.0,4.5,"switchTab('shop')"),
     hotspot("Profile",77.0,94.6,13.0,4.5,"switchTab('status')")
+  ];
+}
+
+function trainingHotspots(screen=activeTrainingScreen){
+  const common = [...trainingNavHotspots(), ...trainingBottomHotspots()];
+  if(screen==="split") return [
+    ...common,
+    hotspot("Close Split Selector",76.0,31.5,8.0,5.0,"setTrainingScreen('main')"),
+    hotspot("Select Upper Lower",16.0,40.0,66.0,12.0,"setTrainingScreen('upper','upper')"),
+    hotspot("Select PPL",16.0,53.0,66.0,10.0,"setTrainingScreen('ppl','ppl')"),
+    hotspot("Select Arnold",16.0,64.5,66.0,10.0,"setTrainingScreen('arnold','arnold')"),
+    hotspot("Select Full Body",16.0,76.0,66.0,10.0,"setTrainingScreen('fullbody','fullbody')"),
+    hotspot("Select Custom",16.0,87.0,66.0,8.0,"setTrainingScreen('custom','custom')")
+  ];
+  if(["upper","ppl","arnold","fullbody"].includes(screen)) return [
+    ...common,
+    hotspot("Use This Split",16.0,84.0,68.0,7.5,`useTrainingSplit('${screen}')`),
+    hotspot("Open Split Selector",10.0,20.0,22.0,2.2,"setTrainingScreen('split')"),
+    hotspot("Open Workout Detail",73.0,43.0,9.0,7.0,"setTrainingScreen('main')")
+  ];
+  if(screen==="custom") return [
+    ...common,
+    hotspot("Edit Day 1",63.0,46.0,7.0,5.0,"showCustomSplitDay('UPPER BODY')"),
+    hotspot("Delete Day 1",74.0,46.0,7.0,5.0,"showNotif('penalty','DELETE DAY','Deletion requires confirmation in the live builder below.')"),
+    hotspot("Edit Day 2",63.0,55.0,7.0,5.0,"showCustomSplitDay('LOWER BODY')"),
+    hotspot("Add New Day",16.0,80.0,68.0,7.0,"addCustomTrainingDay()")
+  ];
+  if(screen==="section") return [
+    ...common,
+    hotspot("Close Section Editor",76.0,46.0,8.0,5.0,"setTrainingScreen('main')"),
+    hotspot("Delete Section",16.0,79.2,31.0,5.5,"deleteTrainingSectionFromModal()"),
+    hotspot("Save Section",51.0,79.2,31.0,5.5,"saveTrainingSectionFromModal()")
+  ];
+  if(screen==="exercise") return [
+    ...common,
+    hotspot("Close Exercise Editor",76.0,31.0,8.0,5.0,"cancelEdit();setTrainingScreen('main')"),
+    hotspot("Delete Exercise",16.0,75.0,32.0,6.0,"deleteActiveExerciseFromModal()"),
+    hotspot("Save Exercise",51.0,75.0,32.0,6.0,"saveActiveExerciseFromModal()")
+  ];
+  if(screen==="complete") return [
+    ...trainingBottomHotspots(),
+    hotspot("Back To Train",27.0,86.5,46.0,6.0,"setTrainingScreen('main')")
+  ];
+  return [
+    ...common,
+    hotspot("Open Split Selector",10.0,20.0,22.0,2.2,"setTrainingScreen('split')"),
+    hotspot("Log Session",14.3,31.5,43.0,5.3,`startLogSession('${activeTrainingDay}')`),
+    hotspot("Edit Chest Section",75.0,43.0,7.0,4.0,"openSectionEditor('CHEST')"),
+    hotspot("Edit Back Section",75.0,54.0,7.0,4.0,"openSectionEditor('BACK')"),
+    hotspot("Edit Biceps Section",75.0,64.5,7.0,4.0,"openSectionEditor('BICEPS')"),
+    hotspot("Edit First Exercise",17.0,47.0,43.0,4.0,"openExerciseEditor('CHEST',0)"),
+    hotspot("Edit Second Exercise",17.0,50.0,43.0,4.0,"openExerciseEditor('CHEST',1)"),
+    hotspot("Add Chest Exercise",38.0,52.2,28.0,3.0,"addExerciseToSection('CHEST')"),
+    hotspot("Add Back Exercise",38.0,63.6,28.0,3.0,"addExerciseToSection('BACK')"),
+    hotspot("Add Biceps Exercise",38.0,74.6,28.0,3.0,"addExerciseToSection('BICEPS')"),
+    hotspot("Add Triceps Exercise",38.0,84.2,28.0,3.0,"addExerciseToSection('TRICEPS')"),
+    hotspot("Add Shoulders Exercise",38.0,92.0,28.0,3.0,"addExerciseToSection('SHOULDERS')")
   ];
 }
 
@@ -2206,6 +2285,70 @@ function trainingLivePanel(w){
     </div>`;
 }
 
+function trainingStatePanel(screen,w){
+  if(screen==="split"){
+    return `${liveHeader("SPLIT SELECTOR","Choose the structure that fits the current training phase.")}
+      <div class="action-grid">
+        <button class="btn" onclick="setTrainingScreen('upper','upper')">UPPER / LOWER</button>
+        <button class="btn" onclick="setTrainingScreen('ppl','ppl')">PUSH PULL LEGS</button>
+        <button class="btn" onclick="setTrainingScreen('arnold','arnold')">ARNOLD SPLIT</button>
+        <button class="btn" onclick="setTrainingScreen('fullbody','fullbody')">FULL BODY</button>
+        <button class="btn" onclick="setTrainingScreen('custom','custom')">CUSTOM</button>
+        <button class="btn btn-ghost" onclick="setTrainingScreen('main')">CLOSE</button>
+      </div>`;
+  }
+  if(["upper","ppl","arnold","fullbody"].includes(screen)){
+    const copy = {
+      upper:["UPPER / LOWER SPLIT","5-day balanced training program built around alternating upper and lower emphasis."],
+      ppl:["PUSH PULL LEGS SPLIT","6-day strength and hypertrophy structure for push, pull and leg rotation."],
+      arnold:["ARNOLD SPLIT","High-volume classic split with chest/back, shoulders/arms and legs rotation."],
+      fullbody:["FULL BODY SPLIT","Train everything each session with rotating focus and recovery management."]
+    }[screen];
+    return `${liveHeader(copy[0],copy[1])}
+      <div class="action-grid mb12">
+        <button class="btn cta-blue" onclick="useTrainingSplit('${screen}')">USE THIS SPLIT</button>
+        <button class="btn btn-ghost" onclick="setTrainingScreen('split')">CHANGE TEMPLATE</button>
+      </div>
+      <div class="system-card p12"><div class="live-list">${DAY_ORDER.map((d,i)=>`<div class="live-row"><div><strong>${d}</strong><small>Day ${i+1} · ${esc(state.workouts[d]?.focus||"Custom focus")}</small></div><button class="btn btn-ghost" onclick="setTrainingDay('${d}');setTrainingScreen('main')">OPEN</button></div>`).join("")}</div></div>`;
+  }
+  if(screen==="custom"){
+    return `${liveHeader("CUSTOM SPLIT BUILDER","Create, rename and organise training days.")}
+      <div class="live-list mb12">${["Upper Body","Lower Body","Push Focus","Pull Focus","Legs Focus"].map((name,i)=>`<div class="live-row"><div><strong>DAY ${i+1} · ${esc(name)}</strong><small>Editable custom slot</small></div><button class="btn" onclick="showCustomSplitDay('${esc(name)}')">EDIT</button></div>`).join("")}</div>
+      <div class="action-grid"><button class="btn cta-blue" onclick="addCustomTrainingDay()">ADD NEW DAY</button><button class="btn" onclick="useTrainingSplit('custom')">USE CUSTOM SPLIT</button></div>`;
+  }
+  if(screen==="section"){
+    const sec = editingSection || Object.keys(w.sections||{})[0] || "CHEST";
+    return `${liveHeader("EDIT SECTION",`${activeTrainingDay} · ${sec}`)}
+      <div class="system-card p12 mb12">
+        <label class="label-sm" for="section-name-input">SECTION NAME</label>
+        <input class="edit-input" id="section-name-input" value="${esc(sec)}" />
+        <textarea class="edit-input" style="min-height:82px;margin-top:10px;" placeholder="Notes for this section">Primary movement focus. Keep the section specific and measurable.</textarea>
+      </div>
+      <div class="action-grid"><button class="btn btn-red" onclick="deleteTrainingSectionFromModal()">DELETE SECTION</button><button class="btn cta-blue" onclick="saveTrainingSectionFromModal()">SAVE CHANGES</button><button class="btn btn-ghost" onclick="setTrainingScreen('main')">CANCEL</button></div>`;
+  }
+  if(screen==="exercise"){
+    const ex = editingEx ? state.workouts[editingEx.dayKey]?.sections?.[editingEx.section]?.[editingEx.idx] : null;
+    if(!ex) return `${liveHeader("EDIT EXERCISE","No exercise selected.")}<button class="btn" onclick="setTrainingScreen('main')">BACK</button>`;
+    const editId = `${editingEx.dayKey}-${editingEx.section}-${editingEx.idx}`;
+    return `${liveHeader("EDIT EXERCISE",`${editingEx.section} · ${activeTrainingDay}`)}
+      <div class="edit-box" style="display:block;">
+        <input class="edit-input" id="edit-name-${editId}" value="${esc(ex.name)}" placeholder="Exercise name"/>
+        <div class="edit-row">
+          <input class="edit-input-sm" id="edit-sets-${editId}" value="${esc(ex.sets)}" placeholder="Sets"/>
+          <input class="edit-input-sm" id="edit-reps-${editId}" value="${esc(ex.reps)}" placeholder="Reps"/>
+        </div>
+        <input class="edit-input" id="edit-note-${editId}" value="${esc(ex.note||"")}" placeholder="Notes, weight target, rest time..."/>
+      </div>
+      <div class="action-grid"><button class="btn btn-red" onclick="deleteActiveExerciseFromModal()">DELETE EXERCISE</button><button class="btn cta-blue" onclick="saveActiveExerciseFromModal()">SAVE CHANGES</button><button class="btn btn-ghost" onclick="cancelEdit();setTrainingScreen('main')">CANCEL</button></div>`;
+  }
+  if(screen==="complete"){
+    return `${liveHeader("SESSION COMPLETE",`${state.workouts[activeTrainingDay]?.label || "Workout"} rewards claimed.`)}
+      <div class="social-strip mb12"><div><small>XP</small><b>+200</b></div><div><small>GOLD</small><b>+150</b></div><div><small>GUILD XP</small><b>+75</b></div><div><small>IMPACT</small><b>+50</b></div></div>
+      <button class="btn cta-blue" style="width:100%;" onclick="setTrainingScreen('main')">BACK TO TRAIN</button>`;
+  }
+  return trainingLivePanel(w);
+}
+
 function addExerciseToSection(section){
   const w = state.workouts?.[activeTrainingDay];
   if(!w?.sections?.[section]) return showNotif("penalty","SECTION LOCKED",`${section} is not on ${activeTrainingDay}.`);
@@ -2219,21 +2362,90 @@ function addExerciseToSection(section){
   showNotif("quest","EXERCISE ADDED",`${section}: New movement added. Tap it below to rename and tune sets/reps.`);
 }
 
+function useTrainingSplit(template){
+  activeTrainingTemplate = template;
+  activeTrainingScreen = "main";
+  const names = {upper:"Upper / Lower",ppl:"Push Pull Legs",arnold:"Arnold Split",fullbody:"Full Body",custom:"Custom Split"};
+  state.profile.trainingSplit = names[template] || "Custom Split";
+  addAudit("training-template", `Training split selected: ${state.profile.trainingSplit}`, {template});
+  saveNonWorkout();
+  renderTrainingContent();
+  showNotif("quest","SPLIT ACTIVE",`${state.profile.trainingSplit} is now your active training structure.`);
+}
+
 function applyTrainingTemplate(template){
-  const presets = {
-    ppl:"Push/Pull/Legs mode selected. Keep UB days push/pull focused and LB days leg focused.",
-    arnold:"Arnold split selected. Add chest/back supersets and arm volume from the editor.",
-    fullbody:"Full body selected. Use fewer movements per day and higher weekly frequency."
-  };
-  showNotif("quest","TRAINING TEMPLATE",presets[template] || "Template selected. Customize the live plan below.");
+  setTrainingScreen(template==="ppl"?"ppl":template==="arnold"?"arnold":template==="fullbody"?"fullbody":"upper", template);
+}
+
+function openSectionEditor(section){
+  editingSection = section;
+  activeTrainingScreen = "section";
+  renderTrainingContent();
+}
+
+function openExerciseEditor(sec,idx){
+  editingEx = {dayKey:activeTrainingDay,section:sec,idx};
+  activeTrainingScreen = "exercise";
+  renderTrainingContent();
+}
+
+function showCustomSplitDay(name){
+  showNotif("quest","CUSTOM DAY",`${name} selected. Use the live builder below to rename or reorganise it.`);
+}
+
+function addCustomTrainingDay(){
+  showNotif("quest","CUSTOM DAY ADDED","A new custom training day slot has been staged for the builder.");
+}
+
+function saveTrainingSectionFromModal(){
+  const name = document.getElementById("section-name-input")?.value?.trim();
+  if(name && editingSection && name.toUpperCase() !== editingSection){
+    const sections = state.workouts[activeTrainingDay].sections;
+    sections[name.toUpperCase()] = sections[editingSection] || [];
+    delete sections[editingSection];
+    editingSection = name.toUpperCase();
+    workoutsDirty = true;
+    sSet("sl-workouts",state.workouts);
+    queueBackendSave("section-edit");
+  }
+  setTrainingScreen("main");
+  showNotif("quest","SECTION SAVED",`${editingSection || "Section"} updated.`);
+}
+
+function deleteTrainingSectionFromModal(){
+  if(editingSection && state.workouts[activeTrainingDay].sections[editingSection]){
+    delete state.workouts[activeTrainingDay].sections[editingSection];
+    workoutsDirty = true;
+    sSet("sl-workouts",state.workouts);
+    queueBackendSave("section-delete");
+  }
+  editingSection = null;
+  setTrainingScreen("main");
+  showNotif("penalty","SECTION DELETED","Section removed from this workout.");
+}
+
+function saveActiveExerciseFromModal(){
+  if(!editingEx) return setTrainingScreen("main");
+  activeTrainingScreen = "main";
+  saveEdit(editingEx.dayKey,editingEx.section,editingEx.idx);
+}
+
+function deleteActiveExerciseFromModal(){
+  if(!editingEx) return setTrainingScreen("main");
+  activeTrainingScreen = "main";
+  deleteExercise(editingEx.dayKey,editingEx.section,editingEx.idx);
 }
 
 function renderTrainingContent(){
   if(logMode && logDay){renderLogSession();return;}
   const w = state.workouts[activeTrainingDay];
   const el = document.getElementById("training-content");
-  el.innerHTML = `${pixelScreen("assets/screens/training-workout.jpg",trainingHotspots(),trainingLivePanel(w))}
-  <div class="panel workout-card">
+  const screen = activeTrainingScreen || "main";
+  const screenImage = TRAINING_SCREEN_IMAGES[screen] || TRAINING_SCREEN_IMAGES.main;
+  const livePanel = trainingStatePanel(screen,w);
+  const editorVisible = screen==="main";
+  el.innerHTML = `${pixelScreen(screenImage,trainingHotspots(screen),livePanel)}
+  <div class="panel workout-card" style="${editorVisible?"":"display:none;"}">
     <div class="br"></div><div class="bl"></div>
     <div class="flex-between flex-wrap gap8 mb16">
       <div>
@@ -2432,15 +2644,18 @@ function submitLog(){
   if(!state.sessions[logDay]) state.sessions[logDay]=[];
   state.sessions[logDay].push({date,exercises});
   addAudit("session-logged", `Training session logged: ${w.label}`, {day:logDay});
-  addGold(75, "Training session");
+  addGold(150, "Training session");
   addImpact(50, "Training session");
+  state.social.guildPoints = (state.social.guildPoints||0) + 75;
+  addAudit("guild-xp", "Guild XP +75: Training session", {amount:75, day:logDay});
   // Mark gym quest done
   updateQuestProgress("dq-workout",1);
   addXP(200,"STR");
+  activeTrainingScreen = "complete";
   logMode=false; logDay=null; logData={};
   saveNonWorkout();
   renderTrainingContent();
-  showNotif("quest","TRAINING SESSION LOGGED","+200 XP · +75 Gold\n+50 Impact Points\n+1 STR");
+  showNotif("quest","TRAINING SESSION LOGGED","+200 XP · +150 Gold\n+75 Guild XP · +50 Impact Points");
 }
 
 // ═══════════════════════════════════════════════════════════
