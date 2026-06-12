@@ -182,7 +182,7 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
   <div id="topbar">
     <div>
       <span class="system-text">◈ THE SYSTEM</span>
-      <span style="color:#4a7a9b;font-size:10px;margin-left:10px;font-family:monospace;letter-spacing:2px;">v3.5 · ONLINE</span>
+      <span style="color:#4a7a9b;font-size:10px;margin-left:10px;font-family:monospace;letter-spacing:2px;">v3.6 · ONLINE</span>
       <div id="clock"></div>
     </div>
     <div class="topbar-right">
@@ -225,6 +225,7 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
     <button class="tab-btn" onclick="switchTab('awakening')">◇ AWAKENING</button>
     <button class="tab-btn" onclick="switchTab('vault')">⬥ VAULT</button>
     <button class="tab-btn" onclick="switchTab('status')">👤 STATUS</button>
+    <button class="tab-btn" onclick="switchTab('settings')">⚙ SETTINGS</button>
   </div>
 
   <!-- QUESTS TAB -->
@@ -399,6 +400,11 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
     </div>
     <div class="footer-hint">— STATS INCREASE AS YOU COMPLETE DAILY QUESTS —</div>
   </div>
+
+  <!-- SETTINGS TAB -->
+  <div id="tab-settings" class="tab-content">
+    <div id="settings-content"></div>
+  </div>
 </div>
 
 <!-- Notification overlay -->
@@ -417,14 +423,20 @@ input:focus{outline:2px solid #00aaff;outline-offset:1px;}
 // DATA & CONSTANTS
 // ═══════════════════════════════════════════════════════════
 const RANKS = ["E","D","C","B","A","S"];
-const APP_SCHEMA_VERSION = 4;
+const APP_SCHEMA_VERSION = 5;
 const RANK_THRESHOLDS = {E:0,D:2000,C:6000,B:15000,A:35000,S:80000};
 const RANK_COLORS = {E:"#aaa",D:"#66cc44",C:"#4488ff",B:"#aa44ff",A:"#ffaa00",S:"#ff4400"};
 const NUTRITION_TARGETS = {calories:2900,protein:176};
 const AI_ENDPOINT_URL = window.SYSTEM_AI_ENDPOINT_URL || localStorage.getItem("system-ai-endpoint-url") || "";
 const MUSCLE_COLORS = {CHEST:"#FF6B35",BACK:"#4ECDC4",BICEPS:"#A855F7",TRICEPS:"#EF4444",SHOULDERS:"#F59E0B",QUADS:"#10B981",HAMSTRINGS:"#06B6D4",GLUTES:"#EC4899",CALVES:"#84CC16",ABS:"#FF6EC7"};
 const DAY_ORDER = ["UB1","LB1","UB2","LB2","UB3"];
-const DEFAULT_SETTINGS = {restDays:["Sunday"],graceTokens:2,subscriptionPlan:"founder"};
+const DEFAULT_SETTINGS = {restDays:["Sunday"],graceTokens:2,subscriptionPlan:"founder",units:"metric",aiEndpoint:""};
+const DEFAULT_PROFILE = {displayName:"PLAYER",goal:"lean-bulk",heightCm:191,weightKg:81,trainingLevel:"intermediate"};
+const SUBSCRIPTION_PLANS = [
+  {id:"initiate",name:"Initiate",price:"£3.99/mo",desc:"Core quests, workout logging, nutrition targets, backup/export."},
+  {id:"ascended",name:"Ascended",price:"£7.99/mo",desc:"AI food tools, adaptive targets, advanced analytics, boss battles."},
+  {id:"founder",name:"Founder",price:"£9.99/mo",desc:"Discipline Vault, charity contracts, early features, founder badge."}
+];
 const MEAL_TEMPLATES = [
   {name:"Chicken rice power bowl",calories:750,protein:62},
   {name:"Greek yoghurt protein bowl",calories:420,protein:42},
@@ -485,6 +497,7 @@ let state = {
   nutritionTargets: {calories:2900,protein:176,mode:"lean bulk",lastAdjusted:null},
   vaultContracts: [],
   unlocks: {titles:["initiate"],activeTitle:"E-Rank Initiate",skills:[],achievements:[]},
+  profile: JSON.parse(JSON.stringify(DEFAULT_PROFILE)),
 };
 let activeTrainingDay = "UB1";
 let activeProgressDay = "UB1";
@@ -574,6 +587,8 @@ function prepareFoodImage(file, maxSize=1024, quality=0.82){
 function ensureStateShape(){
   state.meta = {...{schemaVersion:APP_SCHEMA_VERSION,createdAt:new Date().toISOString(),lastBackupAt:null}, ...(state.meta||{}), schemaVersion:APP_SCHEMA_VERSION};
   state.settings = {...DEFAULT_SETTINGS, ...(state.settings||{})};
+  state.profile = {...DEFAULT_PROFILE, ...(state.profile||{})};
+  if(!state.settings.aiEndpoint && AI_ENDPOINT_URL) state.settings.aiEndpoint = AI_ENDPOINT_URL;
   state.streak = {...{current:0,best:0,lastPerfectDate:null,graceTokens:state.settings.graceTokens,restDaysUsed:[]}, ...(state.streak||{})};
   state.dailyHistory = Array.isArray(state.dailyHistory) ? state.dailyHistory : [];
   state.auditLog = Array.isArray(state.auditLog) ? state.auditLog : [];
@@ -612,6 +627,7 @@ function getFullSave(){
     nutritionTargets:state.nutritionTargets,
     vaultContracts:state.vaultContracts,
     unlocks:state.unlocks,
+    profile:state.profile,
     exportedAt:new Date().toISOString()
   };
 }
@@ -624,6 +640,7 @@ function restoreExtraState(data){
   if(data.nutritionTargets) state.nutritionTargets = data.nutritionTargets;
   if(data.vaultContracts) state.vaultContracts = data.vaultContracts;
   if(data.unlocks) state.unlocks = data.unlocks;
+  if(data.profile) state.profile = data.profile;
   ensureStateShape();
 }
 
@@ -716,6 +733,7 @@ function saveAll(){
   sSet("sl-targets",state.nutritionTargets);
   sSet("sl-vault",state.vaultContracts);
   sSet("sl-unlocks",state.unlocks);
+  sSet("sl-profile",state.profile);
 }
 function saveNonWorkout(){
   ensureStateShape();
@@ -732,6 +750,7 @@ function saveNonWorkout(){
   sSet("sl-targets",state.nutritionTargets);
   sSet("sl-vault",state.vaultContracts);
   sSet("sl-unlocks",state.unlocks);
+  sSet("sl-profile",state.profile);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -753,11 +772,12 @@ function init(){
   const savedTargets = sGet("sl-targets");
   const savedVault = sGet("sl-vault");
   const savedUnlocks = sGet("sl-unlocks");
+  const savedProfile = sGet("sl-profile");
 
   state.workouts = savedWorkouts || JSON.parse(JSON.stringify(DEFAULT_WORKOUTS));
   state.sessions = savedSessions || {};
   state.weightLog = savedWeight || [];
-  restoreExtraState({meta:savedMeta,settings:savedSettings,streak:savedStreak,dailyHistory:savedHistory,auditLog:savedAudit,nutritionTargets:savedTargets,vaultContracts:savedVault,unlocks:savedUnlocks});
+  restoreExtraState({meta:savedMeta,settings:savedSettings,streak:savedStreak,dailyHistory:savedHistory,auditLog:savedAudit,nutritionTargets:savedTargets,vaultContracts:savedVault,unlocks:savedUnlocks,profile:savedProfile});
 
   // Restore player — use saved if totalXp >= what we know is correct
   if(savedPlayer && savedPlayer.totalXp >= 970){
@@ -988,7 +1008,7 @@ function renderPlayerStrip(){
   const p = state.player;
   const xpPct = Math.min(100,(p.xp/(p.xpNeeded||2000))*100);
   const nameEl = document.getElementById("player-name-label");
-  if(nameEl) nameEl.textContent = `[ ${state.unlocks.activeTitle || "PLAYER"} ]`;
+  if(nameEl) nameEl.textContent = `[ ${state.profile.displayName || "PLAYER"} · ${state.unlocks.activeTitle || "E-Rank Initiate"} ]`;
   document.getElementById("xp-bar").style.width = xpPct+"%";
   document.getElementById("xp-label").textContent = `XP: ${p.xp} / ${p.xpNeeded||2000}`;
   const badge = document.getElementById("rank-badge-top");
@@ -1609,7 +1629,7 @@ function renderStatus(){
 function switchTab(tab){
   currentTab=tab;
   document.querySelectorAll(".tab-btn").forEach((b,i)=>{
-    const tabs=["quests","training","nutrition","progress","coach","awakening","vault","status"];
+    const tabs=["quests","training","nutrition","progress","coach","awakening","vault","status","settings"];
     b.classList.toggle("active",tabs[i]===tab);
   });
   document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
@@ -1621,6 +1641,7 @@ function switchTab(tab){
   if(tab==="awakening") renderAwakening();
   if(tab==="vault") renderVault();
   if(tab==="status") renderStatus();
+  if(tab==="settings") renderSettings();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1691,6 +1712,7 @@ function renderAll(){
   if(currentTab==="awakening") renderAwakening();
   if(currentTab==="vault") renderVault();
   if(currentTab==="status") renderStatus();
+  if(currentTab==="settings") renderSettings();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2166,6 +2188,121 @@ function renderVault(){
           ${c.status==="active"?`<div class="flex gap6" style="margin-top:10px;"><input id="proof-${c.id}" class="quest-input" placeholder="Proof note: what did you do today?" /><button class="btn btn-green" onclick="addVaultProof('${c.id}')">LOG PROOF</button></div>`:""}
           ${(c.proofs||[]).slice(0,2).map(p=>`<div style="color:#4a7a9b;font-size:10px;margin-top:6px;border-top:1px solid #1a4a7a;padding-top:6px;">${p.dateKey}: ${esc(p.note)}</div>`).join("")}
         </div>`).join(""):`<div class="no-data" style="padding:20px;">NO CONTRACTS CREATED YET</div>`}
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SETTINGS / PUBLIC LAUNCH FOUNDATION
+// ═══════════════════════════════════════════════════════════
+function saveSettings(){
+  const name = document.getElementById("set-name")?.value.trim() || "PLAYER";
+  const goal = document.getElementById("set-goal")?.value || "lean-bulk";
+  const level = document.getElementById("set-level")?.value || "intermediate";
+  const height = clampNumber(document.getElementById("set-height")?.value, 120, 230, DEFAULT_PROFILE.heightCm);
+  const weight = clampNumber(document.getElementById("set-weight")?.value, 35, 250, DEFAULT_PROFILE.weightKg);
+  const calories = clampNumber(document.getElementById("set-calories")?.value, 1200, 6000, NUTRITION_TARGETS.calories);
+  const protein = clampNumber(document.getElementById("set-protein")?.value, 50, 350, NUTRITION_TARGETS.protein);
+  const restDays = Array.from(document.querySelectorAll(".rest-day-check:checked")).map(i=>i.value);
+  const aiEndpoint = document.getElementById("set-ai-endpoint")?.value.trim() || "";
+  state.profile = {displayName:name,goal,heightCm:height,weightKg:weight,trainingLevel:level};
+  state.nutritionTargets.calories = calories;
+  state.nutritionTargets.protein = protein;
+  state.nutritionTargets.mode = goal.replace("-", " ");
+  state.settings.restDays = restDays.length ? restDays : ["Sunday"];
+  state.settings.graceTokens = clampNumber(document.getElementById("set-grace")?.value, 0, 7, 2);
+  state.streak.graceTokens = Math.min(state.streak.graceTokens ?? state.settings.graceTokens, state.settings.graceTokens);
+  state.settings.aiEndpoint = aiEndpoint;
+  if(aiEndpoint) localStorage.setItem("system-ai-endpoint-url", aiEndpoint);
+  addAudit("settings-saved", "Profile and launch settings updated", {goal,level});
+  saveAll();
+  renderAll();
+  showNotif("quest","SETTINGS SAVED","Your player file, nutrition targets, rest days and launch settings are updated.");
+}
+function setPlan(planId){
+  if(!SUBSCRIPTION_PLANS.some(p=>p.id===planId)) return;
+  state.settings.subscriptionPlan = planId;
+  addAudit("plan-selected", `Plan selected: ${planId}`, {planId});
+  saveNonWorkout();
+  renderSettings();
+  showNotif("quest","PLAN SELECTED",`${SUBSCRIPTION_PLANS.find(p=>p.id===planId).name}\n\nThis is the current product plan for launch modelling.`);
+}
+function copyPublicSummary(){
+  const summary = `THE SYSTEM\nOriginal fitness RPG for workouts, nutrition, progression and accountability.\n\nPlan: ${state.settings.subscriptionPlan}\nGoal: ${state.profile.goal}\nVault model: user stake returns on success, chosen charity receives stake on failed contract, app revenue comes from subscription.`;
+  navigator.clipboard?.writeText(summary).then(()=>showNotif("quest","PUBLIC SUMMARY COPIED","Launch positioning copied to clipboard.")).catch(()=>showNotif("quest","PUBLIC SUMMARY","THE SYSTEM launch summary is ready in Settings."));
+}
+function resetLocalData(){
+  const ok = window.prompt("Type DELETE to clear local app data on this device:");
+  if(ok !== "DELETE") return;
+  Object.keys(localStorage).filter(k=>k.startsWith("sl-") || k.startsWith("system-ai-")).forEach(k=>localStorage.removeItem(k));
+  showNotif("penalty","LOCAL DATA CLEARED","Refresh the app to start from a clean player file on this device.");
+}
+function renderSettings(){
+  ensureStateShape();
+  const el = document.getElementById("settings-content");
+  const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  const activePlan = state.settings.subscriptionPlan || "founder";
+  el.innerHTML = `
+    <div class="panel glow p20 mb12"><div class="br"></div><div class="bl"></div>
+      <div style="color:#f0c040;font-size:11px;font-family:monospace;letter-spacing:3px;margin-bottom:12px;">⚙ PLAYER FILE</div>
+      <input id="set-name" class="quest-input w100 mb8" value="${esc(state.profile.displayName)}" placeholder="Display name" />
+      <div class="flex gap8 mb8">
+        <select id="set-goal" class="quest-input">
+          ${[["lean-bulk","Lean bulk"],["cut","Cut"],["maintenance","Maintenance"],["performance","Performance"]].map(([v,l])=>`<option value="${v}" ${state.profile.goal===v?"selected":""}>${l}</option>`).join("")}
+        </select>
+        <select id="set-level" class="quest-input">
+          ${["beginner","intermediate","advanced"].map(v=>`<option value="${v}" ${state.profile.trainingLevel===v?"selected":""}>${v.toUpperCase()}</option>`).join("")}
+        </select>
+      </div>
+      <div class="flex gap8 mb8">
+        <input id="set-height" class="quest-input" type="number" value="${state.profile.heightCm}" placeholder="Height cm" />
+        <input id="set-weight" class="quest-input" type="number" value="${state.profile.weightKg}" placeholder="Weight kg" />
+      </div>
+      <div class="flex gap8 mb8">
+        <input id="set-calories" class="quest-input" type="number" value="${state.nutritionTargets.calories}" placeholder="Calories" />
+        <input id="set-protein" class="quest-input" type="number" value="${state.nutritionTargets.protein}" placeholder="Protein g" />
+      </div>
+      <div class="label-sm mb8">REST DAYS</div>
+      <div class="flex gap6 flex-wrap mb12">
+        ${days.map(d=>`<label class="btn btn-ghost" style="font-size:10px;"><input class="rest-day-check" type="checkbox" value="${d}" ${state.settings.restDays.includes(d)?"checked":""}/> ${d.slice(0,3).toUpperCase()}</label>`).join("")}
+      </div>
+      <div class="flex gap8 mb8">
+        <input id="set-grace" class="quest-input" type="number" value="${state.settings.graceTokens}" placeholder="Grace tokens" />
+        <input id="set-ai-endpoint" class="quest-input" value="${esc(state.settings.aiEndpoint||localStorage.getItem("system-ai-endpoint-url")||"")}" placeholder="Private AI endpoint URL" />
+      </div>
+      <button class="btn btn-green" style="width:100%;" onclick="saveSettings()">SAVE PLAYER FILE</button>
+    </div>
+    <div class="panel p16 mb12"><div class="br"></div><div class="bl"></div>
+      <div style="color:#00aaff;font-size:10px;font-family:monospace;letter-spacing:2px;margin-bottom:10px;">◆ SUBSCRIPTION MODEL</div>
+      <div class="progress-grid">
+        ${SUBSCRIPTION_PLANS.map(p=>`<div class="progress-card" style="border-color:${activePlan===p.id?"#f0c040":"#1a4a7a"};">
+          <div class="progress-ex-name">${esc(p.name)}</div>
+          <div style="color:#f0c040;font-family:monospace;font-size:14px;margin-bottom:6px;">${esc(p.price)}</div>
+          <div style="color:#4a7a9b;font-size:11px;line-height:1.5;min-height:46px;">${esc(p.desc)}</div>
+          <button class="btn ${activePlan===p.id?"btn-gold":"btn-ghost"}" style="width:100%;margin-top:10px;" onclick="setPlan('${p.id}')">${activePlan===p.id?"ACTIVE":"SELECT"}</button>
+        </div>`).join("")}
+      </div>
+    </div>
+    <div class="panel p16 mb12"><div class="br"></div><div class="bl"></div>
+      <div style="color:#00ff88;font-size:10px;font-family:monospace;letter-spacing:2px;margin-bottom:10px;">◆ PUBLIC LAUNCH POSITIONING</div>
+      <div style="color:#4a7a9b;font-size:12px;line-height:1.8;">Original progression-fitness system for workouts, nutrition, ranks, quests and accountability. The charity Vault creates a public-good discipline mechanic while monthly plans fund the business.</div>
+      <div class="summary-grid" style="margin-top:12px;">
+        ${[
+          ["IP SAFETY","Original naming, no franchise affiliation"],
+          ["REVENUE","Subscription first"],
+          ["VAULT","Success returns stake, failure routes to chosen charity"],
+          ["TRUST","Local export, data controls, endpoint transparency"]
+        ].map(([a,b])=>`<div class="summary-card"><div class="label-sm">${a}</div><div style="color:#e8f4ff;font-size:12px;line-height:1.5;">${b}</div></div>`).join("")}
+      </div>
+      <button class="btn btn-gold" style="width:100%;margin-top:12px;" onclick="copyPublicSummary()">COPY PUBLIC SUMMARY</button>
+    </div>
+    <div class="panel p16"><div class="br"></div><div class="bl"></div>
+      <div style="color:#ff3333;font-size:10px;font-family:monospace;letter-spacing:2px;margin-bottom:10px;">◆ DATA CONTROL</div>
+      <div style="color:#4a7a9b;font-size:12px;line-height:1.7;margin-bottom:10px;">Your current PWA data is stored locally on this device. Use Export before major changes. Delete only clears this device.</div>
+      <div class="flex gap8 flex-wrap">
+        <button class="btn btn-gold" onclick="handleExport()">EXPORT BACKUP</button>
+        <button class="btn" onclick="handleImport()">IMPORT BACKUP</button>
+        <button class="btn btn-red" onclick="resetLocalData()">DELETE LOCAL DATA</button>
+      </div>
     </div>`;
 }
 
