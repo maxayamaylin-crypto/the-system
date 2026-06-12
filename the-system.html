@@ -490,9 +490,17 @@ body::before{
 .pixel-hotspot{position:absolute;display:block;border:0;background:rgba(0,0,0,0);color:transparent;cursor:pointer;padding:0;z-index:4;}
 .pixel-hotspot:focus{outline:1px solid rgba(19,216,255,.8);outline-offset:2px;}
 .pixel-live{position:absolute;left:50%;top:7.3%;transform:translateX(-50%);z-index:3;min-width:120px;padding:3px 8px;border:1px solid rgba(19,216,255,.55);border-radius:999px;background:rgba(0,5,14,.72);color:#13d8ff;font-family:monospace;font-size:10px;line-height:1.2;text-align:center;box-shadow:0 0 12px rgba(0,170,255,.28);pointer-events:none;}
+.functional-layer{line-height:1.35;padding:12px;background:linear-gradient(180deg,#020812,#061427 38%,#020812);border-top:1px solid rgba(19,216,255,.45);}
+.functional-layer .system-card{box-shadow:0 0 18px rgba(0,170,255,.12);}
+.action-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.action-grid .btn{width:100%;}
+.live-list{display:flex;flex-direction:column;gap:7px;}
+.live-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;border:1px solid rgba(80,130,170,.32);background:rgba(0,0,0,.24);border-radius:7px;padding:9px;}
+.live-row strong{color:#f5f8ff;}
+.live-row small{display:block;color:#8fa6ba;font-size:11px;margin-top:2px;}
+.live-row .btn{padding:7px 10px;font-size:11px;white-space:nowrap;}
 body.pixel-mode{background:#000;}
-body.pixel-mode #app{width:min(100vw,520px);max-width:520px;padding:0;background:transparent;border:0;box-shadow:none;}
-body.pixel-mode #topbar,body.pixel-mode #tabs,body.pixel-mode #player-strip{display:none!important;}
+body.pixel-mode #app{max-width:960px;padding:12px;padding-bottom:80px;}
 @media (max-width:420px){
   .license-grid{grid-template-columns:80px 1fr 58px;}
   .license-emblem{width:52px;height:52px;font-size:30px;}
@@ -1198,7 +1206,57 @@ function hotspot(label,left,top,width,height,action){
   return `<button class="pixel-hotspot" aria-label="${esc(label)}" title="${esc(label)}" style="left:${left}%;top:${top}%;width:${width}%;height:${height}%;" onclick="${action}">${esc(label)}</button>`;
 }
 function pixelScreen(src,hotspots=[],liveText=""){
-  return `<div class="pixel-screen"><img src="${src}" alt="THE SYSTEM interface"/>${hotspots.join("")}</div>`;
+  return `<div class="pixel-screen"><img src="${src}" alt="THE SYSTEM interface"/>${hotspots.join("")}</div>${liveText?`<div class="functional-layer">${liveText}</div>`:""}`;
+}
+function liveHeader(title, subtitle=""){
+  return `<div class="flex-between mb10"><div><div style="color:#13d8ff;font-weight:900;letter-spacing:1px;">${esc(title)}</div>${subtitle?`<div style="color:#8fa6ba;font-size:12px;">${esc(subtitle)}</div>`:""}</div><div class="currency-pill"><span class="coin">$</span>${formatNum(state.economy.gold||0)}</div></div>`;
+}
+function hubLivePanel(){
+  return `${liveHeader("LIVE SOCIAL HUB","Friends, guild, raids and impact routes are active.")}
+    <div class="action-grid mb12">
+      <button class="btn" onclick="showFriendsPanel()">FRIENDS</button>
+      <button class="btn" onclick="showGuildHall()">GUILD HALL</button>
+      <button class="btn btn-gold" onclick="inviteFriend()">INVITE FRIEND</button>
+      <button class="btn btn-green" onclick="addHunter()">ADD HUNTER</button>
+      <button class="btn" onclick="switchTab('dungeons')">VIEW RAID</button>
+      <button class="btn" onclick="switchTab('impact')">CHARITY IMPACT</button>
+    </div>
+    <div class="two-col">
+      <div class="system-card p12"><div class="label-sm mb8">TOP HUNTERS</div><div class="live-list">${MOCK_HUNTERS.map(h=>`<div class="live-row"><div><strong>#${h.rank} ${esc(h.name)}</strong><small>Power ${formatNum(h.score)}</small></div><button class="btn btn-ghost" onclick="showNotif('quest','${esc(h.name)}','Weekly score: ${formatNum(h.score)}')">VIEW</button></div>`).join("")}</div></div>
+      <div class="system-card p12"><div class="label-sm mb8">MY GUILD</div><div class="live-list">${state.social.guildMembers.slice(0,5).map(m=>`<div class="live-row"><div><strong>${esc(m.name)}</strong><small>${esc(m.role)} · ${formatNum(m.contribution)} pts</small></div><button class="btn btn-ghost" onclick="showGuildHall()">OPEN</button></div>`).join("")}</div></div>
+    </div>`;
+}
+function questLivePanel(){
+  const qRows = QUESTS.map(q=>{
+    const p = state.dailyProgress.quests[q.id] || {value:0,completed:false};
+    const add = q.unit==="L"?0.5:q.unit==="min"?5:q.target>=1000?1000:1;
+    return `<div class="live-row"><div><strong>${esc(q.name)}</strong><small>${formatNum(p.value||0)} / ${formatNum(q.target)} ${esc(q.unit)} · ${q.optional?"Bonus":"Mandatory"}</small>${xpBar(Math.min(100,((p.value||0)/q.target)*100))}</div><button class="btn ${p.completed?"btn-green":""}" data-quest-action="${q.id}" onclick="updateQuestProgress('${q.id}',${add})">${p.completed?"DONE":"+"+add}</button></div>`;
+  }).join("");
+  return `${liveHeader("LIVE QUEST LOG",`${getIncompleteObligations().length} obligations open · ${getMinutesToMidnight()} minutes left`)}
+    <div class="action-grid mb12"><button class="btn btn-red" onclick="checkPenalty()">CHECK PENALTY</button><button class="btn" onclick="switchTab('nutrition')">LOG FOOD</button><button class="btn" onclick="switchTab('training')">TRAINING</button><button class="btn" onclick="switchTab('dungeons')">DUNGEONS</button></div>
+    <div class="system-card p12"><div class="live-list">${qRows}</div></div>`;
+}
+function shopLivePanel(){
+  const owned = new Set((state.inventory.owned||[]).map(i=>i.id));
+  return `${liveHeader("LIVE HUNTER SHOP",`${state.inventory.owned.length} owned · purchases spend earned gold`)}
+    <div class="action-grid mb12"><button class="btn btn-gold" onclick="addDemoGold()">ADD TEST GOLD</button><button class="btn" onclick="switchTab('status')">LOADOUT</button></div>
+    <div class="live-list">${SHOP_ITEMS.map(i=>`<div class="live-row"><div><strong>${esc(i.name)}</strong><small>${esc(i.rarity)} · ${esc(i.bonus)} · ${formatNum(i.price)} Gold</small></div><button class="btn ${owned.has(i.id)?"btn-green":"btn-gold"}" data-shop-item="${i.id}" onclick="${owned.has(i.id)&&!i.consumable?`equipItem('${i.id}')`:`buyItem('${i.id}')`}">${owned.has(i.id)&&!i.consumable?"EQUIP":"BUY"}</button></div>`).join("")}</div>`;
+}
+function dungeonLivePanel(){
+  return `${liveHeader("LIVE DUNGEONS","Dungeon rewards require real quest progress.")}
+    <div class="live-list mb12">${DUNGEONS.map(d=>{
+      const prog = dungeonMissionProgress(d);
+      const pct = prog.length ? Math.round(prog.filter(Boolean).length/prog.length*100) : 0;
+      return `<div class="live-row"><div><strong>${esc(d.name)}</strong><small>${d.rank}-Rank · ${pct}% clear requirements · ${d.xp} XP · ${d.gold} Gold</small>${xpBar(pct)}</div><button class="btn ${dungeonUnlocked(d)?"":"btn-red"}" onclick="startDungeon('${d.id}');claimDungeon('${d.id}')">${dungeonUnlocked(d)?"ENTER":"LOCKED"}</button></div>`;
+    }).join("")}</div>
+    <button class="btn cta-blue" onclick="claimWorldBoss()">START WORLD BOSS</button>`;
+}
+function impactLivePanel(){
+  const personal = state.economy.impactPoints || 0;
+  return `${liveHeader("LIVE IMPACT",`${formatNum(personal)} personal points · ${IMPACT_CAMPAIGN.cause}`)}
+    <div class="system-card p12 mb12"><div class="label-sm">THIS MONTH'S CAUSE</div><div style="font-size:22px;font-weight:900;">${esc(IMPACT_CAMPAIGN.cause)}</div><div style="color:#9cadbd;font-size:12px;line-height:1.6;">${esc(IMPACT_CAMPAIGN.desc)}. ${esc(IMPACT_CAMPAIGN.conversion)} once sponsor and charity payout rails are connected.</div></div>
+    <div class="action-grid mb12"><button class="btn cta-blue" onclick="completeImpactMission()">COMPLETE MISSION</button><button class="btn" onclick="switchTab('vault')">VAULT CONTRACTS</button></div>
+    <div class="live-list">${(state.economy.impactLedger||[]).slice(0,8).map(x=>`<div class="live-row"><div><strong>+${formatNum(x.amount)} Impact</strong><small>${esc(x.reason)} · ${new Date(x.at).toLocaleDateString()}</small></div><button class="btn btn-ghost" onclick="showNotif('quest','IMPACT ENTRY','${esc(x.reason)} · +${formatNum(x.amount)} points')">VIEW</button></div>`).join("") || `<div class="no-data" style="padding:18px;">NO IMPACT YET. COMPLETE A MISSION.</div>`}</div>`;
 }
 function hunterLicenseCard({shop=false}={}){
   return `<div class="system-card license-card mb12">
@@ -1737,7 +1795,7 @@ function renderQuests(){
     hotspot("World Boss",82,78.1,8,4,"claimWorldBoss()"),
     hotspot("Start Raid",16,84,68,5.2,"switchTab('dungeons')")
   ];
-  document.getElementById("mission-control").innerHTML = pixelScreen("assets/screens/quests.png",h,`Gold ${formatNum(state.economy.gold||0)} · Impact ${formatNum(state.economy.impactPoints||0)}`);
+  document.getElementById("mission-control").innerHTML = pixelScreen("assets/screens/quests.png",h,questLivePanel());
   document.getElementById("mandatory-quests").innerHTML = "";
   document.getElementById("bonus-quests").innerHTML = "";
   return;
@@ -2524,7 +2582,6 @@ function renderAll(){
   updateScreenSubtitle(currentTab);
   renderBottomNav(currentTab);
   renderPlayerStrip();
-  renderQuests();
   renderTrainingTabs();
   renderTrainingContent();
   renderProgressTabs();
@@ -3101,7 +3158,7 @@ function renderShop(){
     hotspot("Buy Elixir",74,50.2,17,3.4,`buyItem('${itemIds[3]}')`),
     hotspot("Change Title",63,84.2,25,3.3,"switchTab('awakening')")
   ];
-  el.innerHTML = pixelScreen("assets/screens/shop.png",h,`Gold ${formatNum(state.economy.gold||0)} · Items ${state.inventory.owned.length}`);
+  el.innerHTML = pixelScreen("assets/screens/shop.png",h,shopLivePanel());
   return;
   const owned = new Set((state.inventory.owned||[]).map(i=>i.id));
   el.innerHTML = `
@@ -3202,7 +3259,7 @@ function renderDungeons(){
     hotspot("World Boss",82,78.1,8,4,"claimWorldBoss()"),
     hotspot("Start Raid",16,84,68,5.2,"claimWorldBoss()")
   ];
-  el.innerHTML = pixelScreen("assets/screens/quests.png",h,`Raids ${state.dungeons.raidHistory?.length||0} · Gold ${formatNum(state.economy.gold||0)}`);
+  el.innerHTML = pixelScreen("assets/screens/quests.png",h,dungeonLivePanel());
   return;
   el.innerHTML = `
     ${screenTitle("DUNGEON RAIDS")}
@@ -3261,7 +3318,7 @@ function renderHub(){
     hotspot("Add Hunter",17,75,22,5,"addHunter()"),
     hotspot("Impact",17,81.6,69,6.4,"switchTab('impact')")
   ];
-  el.innerHTML = pixelScreen("assets/screens/hub.png",h,`Friends ${state.social.friends} · Guild ${formatNum(state.social.guildPoints)}`);
+  el.innerHTML = pixelScreen("assets/screens/hub.png",h,hubLivePanel());
   return;
   el.innerHTML = `
     ${screenTitle("SOCIAL HUB")}
@@ -3292,7 +3349,7 @@ function renderImpact(){
     hotspot("Impact Rewards",59,80.6,28,3.4,"switchTab('awakening')"),
     hotspot("Complete Mission",16,86,68,5.2,"completeImpactMission()")
   ];
-  el.innerHTML = pixelScreen("assets/screens/impact.png",h,`Impact ${formatNum(state.economy.impactPoints||0)} · ${IMPACT_CAMPAIGN.cause}`);
+  el.innerHTML = pixelScreen("assets/screens/impact.png",h,impactLivePanel());
   return;
   const personal = state.economy.impactPoints||0;
   const target = 25000;
