@@ -1028,6 +1028,7 @@ let state = {
   unlocks: {titles:["initiate"],activeTitle:"E-Rank Initiate",skills:[],achievements:[]},
   profile: JSON.parse(JSON.stringify(DEFAULT_PROFILE)),
   economy: {gold:6890,impactPoints:0},
+  impact: {activeCause:"Education For All",selectedCause:"Education For All",pledge:{duration:14,amount:20,plan:"Fat Loss",active:false},missionsCompleted:0,pactsResolved:0},
   inventory: {owned:[],equipped:{}},
   dungeons: {active:null,completed:[]},
   social: {guildName:"Iron Wolves",guildLevel:7,guildPoints:128450,friends:24,friendsList:JSON.parse(JSON.stringify(DEFAULT_FRIENDS)),guildMembers:JSON.parse(JSON.stringify(DEFAULT_GUILD_MEMBERS)),partnerPush:18,invitesSent:0},
@@ -1041,6 +1042,7 @@ let questProgressDraft = 10;
 let activeDungeonScreen = "main";
 let activeDungeonId = "iron-gate";
 let activeShopScreen = "main";
+let activeImpactScreen = "main";
 let currentTab = "hub";
 let editingEx = null; // {dayKey, section, idx}
 let activeTrainingScreen = "main";
@@ -1191,6 +1193,8 @@ function ensureStateShape(){
   });
   state.unlocks = {...{titles:["initiate"],activeTitle:"E-Rank Initiate",skills:[],achievements:[]}, ...(state.unlocks||{})};
   state.economy = {...{gold:0,impactPoints:0}, ...(state.economy||{})};
+  state.impact = {...{activeCause:"Education For All",selectedCause:"Education For All",pledge:{duration:14,amount:20,plan:"Fat Loss",active:false},missionsCompleted:0,pactsResolved:0}, ...(state.impact||{})};
+  state.impact.pledge = {...{duration:14,amount:20,plan:"Fat Loss",active:false}, ...(state.impact.pledge||{})};
   state.inventory = {...{owned:[],equipped:{}}, ...(state.inventory||{})};
   state.dungeons = {...{active:null,completed:[]}, ...(state.dungeons||{})};
   state.social = {...{guildName:"Iron Wolves",guildLevel:7,guildPoints:128450,friends:24,friendsList:JSON.parse(JSON.stringify(DEFAULT_FRIENDS)),guildMembers:JSON.parse(JSON.stringify(DEFAULT_GUILD_MEMBERS)),partnerPush:18,invitesSent:0}, ...(state.social||{})};
@@ -1641,6 +1645,254 @@ function impactLivePanel(){
     <div class="system-card p12 mb12"><div class="label-sm">THIS MONTH'S CAUSE</div><div style="font-size:22px;font-weight:900;">${esc(IMPACT_CAMPAIGN.cause)}</div><div style="color:#9cadbd;font-size:12px;line-height:1.6;">${esc(IMPACT_CAMPAIGN.desc)}. ${esc(IMPACT_CAMPAIGN.conversion)} once sponsor and charity payout rails are connected.</div></div>
     <div class="action-grid mb12"><button class="btn cta-blue" onclick="completeImpactMission()">COMPLETE MISSION</button><button class="btn" onclick="switchTab('vault')">VAULT CONTRACTS</button></div>
     <div class="live-list">${(state.economy.impactLedger||[]).slice(0,8).map(x=>`<div class="live-row"><div><strong>+${formatNum(x.amount)} Impact</strong><small>${esc(x.reason)} · ${new Date(x.at).toLocaleDateString()}</small></div><button class="btn btn-ghost" onclick="showNotif('quest','IMPACT ENTRY','${esc(x.reason)} · +${formatNum(x.amount)} points')">VIEW</button></div>`).join("") || `<div class="no-data" style="padding:18px;">NO IMPACT YET. COMPLETE A MISSION.</div>`}</div>`;
+}
+
+const IMPACT_SCREEN_IMAGES = {
+  main:"assets/screens/impact.png",
+  causeDetail:"assets/screens/impact-i02-cause-detail.jpg",
+  chooseCause:"assets/screens/impact-i03-choose-cause.jpg",
+  pledge:"assets/screens/impact-i04-pledge-builder.jpg",
+  confirmation:"assets/screens/impact-i05-pact-confirmation.jpg",
+  ledger:"assets/screens/impact-i06-ledger.jpg",
+  leaderboard:"assets/screens/impact-i07-leaderboard.jpg",
+  rewards:"assets/screens/impact-i08-rewards.jpg",
+  missions:"assets/screens/impact-i09-missions.jpg",
+  missionComplete:"assets/screens/impact-i10-mission-complete.jpg",
+  resolved:"assets/screens/impact-i11-pact-resolved.jpg"
+};
+
+function setImpactScreen(screen){
+  activeImpactScreen = screen || "main";
+  renderImpact();
+}
+
+function impactBottomHotspots(){
+  return [
+    hotspot("Quests",18,91,12,5.5,"switchTab('quests')"),
+    hotspot("Train",34,91,12,5.5,"switchTab('training')"),
+    hotspot("Hub",49,91,12,5.5,"switchTab('hub')"),
+    hotspot("Impact",64,91,12,5.5,"setImpactScreen('main')"),
+    hotspot("Profile",80,91,12,5.5,"switchTab('status')")
+  ];
+}
+
+function selectImpactCause(cause){
+  ensureStateShape();
+  state.impact.selectedCause = cause;
+  state.impact.activeCause = cause;
+  addAudit("impact-cause-selected",`Selected impact cause: ${cause}`,{cause});
+  saveNonWorkout();
+  setImpactScreen("causeDetail");
+  showNotif("quest","CAUSE SELECTED",`${cause} is now your active impact cause.`);
+}
+
+function setImpactPledge(field,value){
+  ensureStateShape();
+  state.impact.pledge[field] = value;
+  addAudit("impact-pledge-updated",`Impact pledge ${field}: ${value}`,{field,value});
+  saveNonWorkout();
+  setImpactScreen("pledge");
+}
+
+function reviewImpactPact(){
+  ensureStateShape();
+  state.impact.pledge.reviewedAt = new Date().toISOString();
+  addAudit("impact-pact-review","Impact pact reviewed",state.impact.pledge);
+  saveNonWorkout();
+  setImpactScreen("confirmation");
+}
+
+function activateImpactPact(){
+  ensureStateShape();
+  state.impact.pledge.active = true;
+  state.impact.pledge.startedAt = new Date().toISOString();
+  state.vaultContracts.unshift({
+    id:"impact-"+Date.now(),
+    type:"impact",
+    charity:state.impact.activeCause,
+    pledge:state.impact.pledge.amount,
+    durationDays:state.impact.pledge.duration,
+    goal:state.impact.pledge.plan,
+    status:"active",
+    createdAt:new Date().toISOString(),
+    rules:["Complete 90% of weekly goals","Stay consistent","Pledge routes to chosen charity only if the pact fails"]
+  });
+  state.vaultContracts = state.vaultContracts.slice(0,20);
+  addAudit("impact-pact-activated","Impact accountability pact activated",state.impact.pledge);
+  saveNonWorkout();
+  setImpactScreen("missions");
+  showNotif("levelup","MISSION ACTIVATED",`${state.impact.pledge.duration}-day ${state.impact.pledge.plan} pact is active.`);
+}
+
+function completeImpactPackMission(){
+  ensureStateShape();
+  state.impact.missionsCompleted = (state.impact.missionsCompleted||0) + 1;
+  addImpact(2500,"7-Day Hydration Rescue");
+  addGold(250,"Impact mission");
+  addAudit("impact-mission-complete","Impact mission completed",{mission:"7-Day Hydration Rescue",impact:2500,gold:250});
+  saveNonWorkout();
+  activeImpactScreen = "missionComplete";
+  renderImpact();
+  showNotif("levelup","MISSION COMPLETE","+2,500 Impact Points · +250 Gold\n\nHydration Rescue completed.");
+}
+
+function resolveImpactPact(){
+  ensureStateShape();
+  state.impact.pactsResolved = (state.impact.pactsResolved||0) + 1;
+  state.impact.pledge.active = false;
+  addImpact(80,"Pact resolved donation");
+  state.economy.impactLedger.unshift({id:"donation-"+Date.now(),at:new Date().toISOString(),amount:80,reason:`Pledge donated to ${state.impact.activeCause}`,cause:state.impact.activeCause,status:"donated",value:state.impact.pledge.amount});
+  state.economy.impactLedger = state.economy.impactLedger.slice(0,100);
+  addAudit("impact-pact-resolved","Impact pact resolved as donation",{charity:state.impact.activeCause,amount:state.impact.pledge.amount});
+  saveNonWorkout();
+  setImpactScreen("resolved");
+  showNotif("quest","PACT RESOLVED",`£${state.impact.pledge.amount} recorded for ${state.impact.activeCause}.\n\nYour failure still did good.`);
+}
+
+function shareImpactCard(){
+  showNotif("quest","SHARE IMPACT","Impact share card prepared with your current points, mission status and chosen cause.");
+}
+
+function viewImpactReceipt(){
+  const latest = (state.economy.impactLedger||[]).find(x=>x.status==="donated") || (state.economy.impactLedger||[])[0];
+  showNotif("quest","VERIFIED RECEIPT",latest ? `${latest.reason}\n${new Date(latest.at).toLocaleDateString()}` : "No receipts recorded yet.");
+}
+
+function impactHotspots(screen=activeImpactScreen){
+  const nav = impactBottomHotspots();
+  if(screen==="causeDetail") return [
+    ...nav,
+    hotspot("Back Impact",15,17,9,5,"setImpactScreen('main')"),
+    hotspot("Notifications",71,17,7,5,"showNotif('quest','IMPACT ALERTS','No new impact alerts.')"),
+    hotspot("Messages",79,17,8,5,"showNotif('quest','IMPACT MESSAGES','Impact team messages will appear here.')"),
+    hotspot("Choose This Cause",18,64,38,6,"selectImpactCause('Education For All')"),
+    hotspot("Verified Partner",58,64,30,6,"showNotif('quest','VERIFIED PARTNER','Partner verification details are planned for public launch payout rails.')"),
+    hotspot("Real Outcomes",16,74,70,11,"setImpactScreen('ledger')"),
+    hotspot("Learn More",65,84,18,5,"showNotif('quest','PARTNER STORY','Partner stories and proof links will live here.')")
+  ];
+  if(screen==="chooseCause") return [
+    ...nav,
+    hotspot("Back Impact",15,20,9,5,"setImpactScreen('main')"),
+    hotspot("Search Causes",18,25,58,5,"showNotif('quest','CAUSE SEARCH','Cause search ready.')"),
+    hotspot("Cause Filters",79,25,9,5,"showNotif('quest','CAUSE FILTERS','Charity filters opened.')"),
+    hotspot("Education",20,45,28,13,"selectImpactCause('Education For All')"),
+    hotspot("Mental Health",52,45,28,13,"selectImpactCause('Mental Health Access')"),
+    hotspot("Ocean Recovery",20,58,28,13,"selectImpactCause('Ocean Recovery')"),
+    hotspot("Children Hospitals",52,58,28,13,"selectImpactCause(`Children's Hospitals`)"),
+    hotspot("Animal Rescue",20,72,28,13,"selectImpactCause('Animal Rescue')"),
+    hotspot("Homeless Support",52,72,28,13,"selectImpactCause('Homeless Support')"),
+    hotspot("Continue Charity",16,86,68,6,"setImpactScreen('pledge')")
+  ];
+  if(screen==="pledge") return [
+    ...nav,
+    hotspot("Learn More Cause",67,34,20,5,"setImpactScreen('causeDetail')"),
+    hotspot("14 Days",18,45,12,8,"setImpactPledge('duration',14)"),
+    hotspot("30 Days",34,45,12,8,"setImpactPledge('duration',30)"),
+    hotspot("60 Days",49,45,12,8,"setImpactPledge('duration',60)"),
+    hotspot("90 Days",64,45,12,8,"setImpactPledge('duration',90)"),
+    hotspot("180 Days",79,45,12,8,"setImpactPledge('duration',180)"),
+    hotspot("Pledge 10",18,59,12,6,"setImpactPledge('amount',10)"),
+    hotspot("Pledge 20",34,59,12,6,"setImpactPledge('amount',20)"),
+    hotspot("Pledge 50",49,59,12,6,"setImpactPledge('amount',50)"),
+    hotspot("Pledge 100",64,59,12,6,"setImpactPledge('amount',100)"),
+    hotspot("Custom Pledge",79,59,12,6,"setImpactPledge('amount',20);showNotif('quest','CUSTOM PLEDGE','Custom amount entry will open here.')"),
+    hotspot("Fat Loss",19,72,15,11,"setImpactPledge('plan','Fat Loss')"),
+    hotspot("Muscle Gain",36,72,15,11,"setImpactPledge('plan','Muscle Gain')"),
+    hotspot("Daily Discipline",54,72,15,11,"setImpactPledge('plan','Daily Discipline')"),
+    hotspot("Full System",73,72,16,11,"setImpactPledge('plan','Full System Challenge')"),
+    hotspot("Review Contract",17,85,70,7,"reviewImpactPact()")
+  ];
+  if(screen==="confirmation") return [
+    ...nav,
+    hotspot("Back Pledge",15,19,9,5,"setImpactScreen('pledge')"),
+    hotspot("Terms Checkbox",17,70,10,7,"showNotif('quest','TERMS ACCEPTED','Pact confirmation acknowledged.')"),
+    hotspot("Edit Pact",17,84,28,6,"setImpactScreen('pledge')"),
+    hotspot("Activate Mission",48,84,40,6,"activateImpactPact()")
+  ];
+  if(screen==="ledger") return [
+    ...nav,
+    hotspot("Back Impact",15,19,9,5,"setImpactScreen('main')"),
+    hotspot("Share Impact",67,19,20,5,"shareImpactCard()"),
+    hotspot("Change Charity",54,31,16,7,"setImpactScreen('chooseCause')"),
+    hotspot("Filter Ledger",72,56,14,5,"showNotif('quest','LEDGER FILTER','Impact ledger filters opened.')"),
+    hotspot("View Receipts",67,78,18,5,"viewImpactReceipt()"),
+    hotspot("Download Receipt",79,80,8,6,"viewImpactReceipt()"),
+    hotspot("Full History",16,87,70,6,"showNotif('quest','FULL HISTORY','Full impact history is already represented in the ledger feed.')")
+  ];
+  if(screen==="leaderboard") return [
+    ...nav,
+    hotspot("Back Impact",15,17,9,5,"setImpactScreen('main')"),
+    hotspot("Global Tab",18,22,18,5,"showNotif('quest','GLOBAL LEADERBOARD','Global impact leaderboard selected.')"),
+    hotspot("Guilds Tab",38,22,18,5,"showNotif('quest','GUILD LEADERBOARD','Guild impact leaderboard selected.')"),
+    hotspot("Friends Tab",58,22,18,5,"showNotif('quest','FRIEND LEADERBOARD','Friend impact leaderboard selected.')"),
+    hotspot("Full Leaderboard",18,73,65,5,"showNotif('quest','FULL LEADERBOARD','Full impact leaderboard opened.')"),
+    hotspot("Regional Leaderboard",18,87,32,5,"showNotif('quest','REGIONAL LEADERBOARD','Regional impact leaderboard opened.')"),
+    hotspot("Join Impact Race",55,87,34,5,"setImpactScreen('missions')")
+  ];
+  if(screen==="rewards") return [
+    ...nav,
+    hotspot("Back Impact",15,17,9,5,"setImpactScreen('main')"),
+    hotspot("First Step Reward",24,53,58,9,"showNotif('levelup','FIRST STEP','Impact reward equipped.')"),
+    hotspot("Heart Reward",24,62,58,9,"showNotif('quest','HEART OF A HUNTER','Reach 25,000 Impact Points and maintain the streak to unlock.')"),
+    hotspot("Legacy Reward",24,71,58,9,"showNotif('quest','LEGACY BUILDER','Reach 50,000 Impact Points to unlock.')"),
+    hotspot("Guardian Reward",24,80,58,7,"showNotif('quest','GUARDIAN RANK','Protect. Support. Stand for good.')")
+  ];
+  if(screen==="missions") return [
+    ...nav,
+    hotspot("Active Mission",17,29,70,10,"showNotif('quest','ACTIVE MISSION','7-Day Hydration Rescue is in progress.')"),
+    hotspot("Start Hydration",70,48,17,6,"completeImpactPackMission()"),
+    hotspot("Start Consistency",70,61,17,6,"completeImpactPackMission()"),
+    hotspot("Start Determination",70,74,17,6,"setImpactPledge('duration',90);setImpactScreen('pledge')"),
+    hotspot("Join Community",70,83,17,6,"completeImpactPackMission()"),
+    hotspot("Real Change",17,88,70,7,"setImpactScreen('ledger')")
+  ];
+  if(screen==="missionComplete") return [
+    ...nav,
+    hotspot("View Reward",65,68,22,6,"setImpactScreen('rewards')"),
+    hotspot("Edit Donation",72,80,12,5,"showNotif('quest','DONATION CHOICE','Donation split editing will open here.')"),
+    hotspot("Share Impact",18,86,34,6,"shareImpactCard()"),
+    hotspot("Start New Mission",54,86,34,6,"setImpactScreen('missions')")
+  ];
+  if(screen==="resolved") return [
+    ...nav,
+    hotspot("View Receipt",61,70,24,6,"viewImpactReceipt()"),
+    hotspot("Receipt Bottom",17,86,25,5,"viewImpactReceipt()"),
+    hotspot("Start Again",44,86,25,5,"setImpactScreen('pledge')"),
+    hotspot("Choose New Pact",70,86,25,5,"setImpactScreen('chooseCause')")
+  ];
+  return [
+    ...nav,
+    hotspot("Notifications",70,5.4,7,5,"showNotif('quest','NOTIFICATIONS','No new impact alerts.')"),
+    hotspot("Messages",77,5.4,8,5,"showNotif('quest','MESSAGES','Impact squad messages will appear here.')"),
+    hotspot("Learn More",18,21.8,18,4,"setImpactScreen('causeDetail')"),
+    hotspot("Cause Card",16,13,70,20,"setImpactScreen('causeDetail')"),
+    hotspot("Your Impact",16,33,70,14,"setImpactScreen('ledger')"),
+    hotspot("View Impact",66,42.4,21,4,"setImpactScreen('leaderboard')"),
+    hotspot("Full Impact Leaderboard",18,65,67,3.5,"setImpactScreen('leaderboard')"),
+    hotspot("Impact Rewards",59,80.6,28,3.4,"setImpactScreen('rewards')"),
+    hotspot("Your Contribution",16,74,30,10,"setImpactScreen('ledger')"),
+    hotspot("Complete Mission",16,86,68,5.2,"setImpactScreen('missions')")
+  ];
+}
+
+function impactStatePanel(screen=activeImpactScreen){
+  const cause = state.impact?.activeCause || "Education For All";
+  const pledge = state.impact?.pledge || {};
+  const points = state.economy.impactPoints || 0;
+  const panels = {
+    main:`${liveHeader("LIVE IMPACT",`${formatNum(points)} points · ${cause}`)}<div class="action-grid"><button class="btn cta-blue" onclick="setImpactScreen('missions')">MISSIONS</button><button class="btn" onclick="setImpactScreen('chooseCause')">CHOOSE CAUSE</button><button class="btn" onclick="setImpactScreen('pledge')">CREATE PACT</button><button class="btn" onclick="setImpactScreen('ledger')">LEDGER</button><button class="btn" onclick="setImpactScreen('leaderboard')">LEADERBOARD</button><button class="btn" onclick="setImpactScreen('rewards')">REWARDS</button></div>`,
+    causeDetail:`${liveHeader("CAUSE DETAIL",`${cause} · verified partner concept`)}<div class="action-grid"><button class="btn cta-blue" onclick="selectImpactCause('Education For All')">CHOOSE THIS CAUSE</button><button class="btn" onclick="setImpactScreen('chooseCause')">OTHER CAUSES</button><button class="btn" onclick="setImpactScreen('pledge')">BUILD PACT</button></div>`,
+    chooseCause:`${liveHeader("CHOOSE YOUR CAUSE",`Selected: ${cause}`)}<div class="action-grid"><button class="btn" onclick="selectImpactCause('Mental Health Access')">MENTAL HEALTH</button><button class="btn" onclick="selectImpactCause('Ocean Recovery')">OCEAN</button><button class="btn" onclick="selectImpactCause('Education For All')">EDUCATION</button><button class="btn cta-blue" onclick="setImpactScreen('pledge')">CONTINUE</button></div>`,
+    pledge:`${liveHeader("ACCOUNTABILITY PLEDGE",`${pledge.duration||14} days · £${pledge.amount||20} · ${pledge.plan||"Fat Loss"}`)}<div class="action-grid"><button class="btn" onclick="setImpactPledge('duration',30)">30 DAYS</button><button class="btn" onclick="setImpactPledge('duration',90)">90 DAYS</button><button class="btn" onclick="setImpactPledge('amount',50)">£50</button><button class="btn" onclick="setImpactPledge('plan','Full System Challenge')">FULL SYSTEM</button><button class="btn cta-blue" onclick="reviewImpactPact()">REVIEW CONTRACT</button></div>`,
+    confirmation:`${liveHeader("PACT CONFIRMATION",`${cause} · £${pledge.amount||20} hold`)}<div class="action-grid"><button class="btn" onclick="setImpactScreen('pledge')">EDIT PACT</button><button class="btn cta-blue" onclick="activateImpactPact()">ACTIVATE MISSION</button><button class="btn btn-red" onclick="resolveImpactPact()">SIMULATE RESOLVE</button></div>`,
+    ledger:`${liveHeader("IMPACT LEDGER",`${formatNum(points)} lifetime points`)}<div class="action-grid"><button class="btn" onclick="shareImpactCard()">SHARE</button><button class="btn" onclick="setImpactScreen('chooseCause')">CHANGE CHARITY</button><button class="btn" onclick="viewImpactReceipt()">RECEIPT</button><button class="btn" onclick="setImpactScreen('missions')">MISSIONS</button></div>`,
+    leaderboard:`${liveHeader("GLOBAL LEADERBOARD","Guilds, friends and regional impact rankings.")}<div class="action-grid"><button class="btn" onclick="setImpactScreen('missions')">JOIN RACE</button><button class="btn" onclick="setImpactScreen('ledger')">MY IMPACT</button><button class="btn" onclick="setImpactScreen('main')">BACK</button></div>`,
+    rewards:`${liveHeader("IMPACT REWARDS",`${formatNum(points)} points · next milestone 20,000`)}<div class="action-grid"><button class="btn btn-green" onclick="showNotif('levelup','REWARD EQUIPPED','First Step impact badge equipped.')">EQUIP FIRST STEP</button><button class="btn" onclick="setImpactScreen('missions')">EARN MORE</button><button class="btn" onclick="setImpactScreen('main')">BACK</button></div>`,
+    missions:`${liveHeader("IMPACT MISSIONS",`${state.impact?.missionsCompleted||0} completed · ${pledge.active?"pact active":"no active pact"}`)}<div class="action-grid"><button class="btn cta-blue" onclick="completeImpactPackMission()">COMPLETE HYDRATION</button><button class="btn" onclick="setImpactScreen('pledge')">ATTACH PLEDGE</button><button class="btn" onclick="setImpactScreen('ledger')">REAL CHANGE</button></div>`,
+    missionComplete:`${liveHeader("MISSION COMPLETE","+2,500 Impact Points · reward unlock check.")}<div class="action-grid"><button class="btn" onclick="shareImpactCard()">SHARE IMPACT</button><button class="btn cta-blue" onclick="setImpactScreen('missions')">START NEW MISSION</button><button class="btn" onclick="setImpactScreen('rewards')">VIEW REWARD</button></div>`,
+    resolved:`${liveHeader("PACT RESOLVED",`Donation recorded for ${cause}`)}<div class="action-grid"><button class="btn" onclick="viewImpactReceipt()">VIEW RECEIPT</button><button class="btn cta-blue" onclick="setImpactScreen('pledge')">START AGAIN</button><button class="btn" onclick="setImpactScreen('chooseCause')">NEW PACT</button></div>`
+  };
+  return panels[screen] || panels.main;
 }
 function hunterLicenseCard({shop=false}={}){
   return `<div class="system-card license-card mb12">
@@ -5013,21 +5265,8 @@ function renderHub(){
 function renderImpact(){
   ensureStateShape();
   const el = document.getElementById("impact-content");
-  const h = [
-    hotspot("Quests",18,91,12,5.5,"switchTab('quests')"),
-    hotspot("Train",34,91,12,5.5,"switchTab('training')"),
-    hotspot("Hub",49,91,12,5.5,"switchTab('hub')"),
-    hotspot("Impact",64,91,12,5.5,"switchTab('impact')"),
-    hotspot("Profile",80,91,12,5.5,"switchTab('status')"),
-    hotspot("Notifications",70,5.4,7,5,"showNotif('quest','NOTIFICATIONS','No new impact alerts.')"),
-    hotspot("Messages",77,5.4,8,5,"showNotif('quest','MESSAGES','Impact squad messages will appear here.')"),
-    hotspot("Learn More",18,21.8,18,4,"showNotif('quest','CAUSE DETAILS','Education for All is the current featured cause. Live charity routing requires verified payout rails before public launch.')"),
-    hotspot("View Impact",66,42.4,21,4,"showNotif('quest','COMMUNITY IMPACT','Community totals are tracked as impact value until sponsor funding and charity payout rails are connected.')"),
-    hotspot("Full Impact Leaderboard",18,65,67,3.5,"showNotif('quest','IMPACT LEADERBOARD','Guild contribution rankings are tracked from impact points and mission activity.')"),
-    hotspot("Impact Rewards",59,80.6,28,3.4,"switchTab('awakening')"),
-    hotspot("Complete Mission",16,86,68,5.2,"completeImpactMission()")
-  ];
-  el.innerHTML = pixelScreen("assets/screens/impact.png",h,impactLivePanel());
+  const screen = activeImpactScreen || "main";
+  el.innerHTML = pixelScreen(IMPACT_SCREEN_IMAGES[screen] || IMPACT_SCREEN_IMAGES.main,impactHotspots(screen),impactStatePanel(screen));
   return;
   const personal = state.economy.impactPoints||0;
   const target = 25000;

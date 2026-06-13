@@ -1,4 +1,4 @@
-const CACHE = "system-v4-10-shop-pack";
+const CACHE = "system-v4-11-impact-pack";
 const FILES = [
   "./",
   "./the-system.html",
@@ -72,7 +72,17 @@ const FILES = [
   "./assets/screens/shop-s07-loadout.jpg",
   "./assets/screens/shop-s08-compare.jpg",
   "./assets/screens/shop-s09-cart.jpg",
-  "./assets/screens/shop-s10-vault.jpg"
+  "./assets/screens/shop-s10-vault.jpg",
+  "./assets/screens/impact-i02-cause-detail.jpg",
+  "./assets/screens/impact-i03-choose-cause.jpg",
+  "./assets/screens/impact-i04-pledge-builder.jpg",
+  "./assets/screens/impact-i05-pact-confirmation.jpg",
+  "./assets/screens/impact-i06-ledger.jpg",
+  "./assets/screens/impact-i07-leaderboard.jpg",
+  "./assets/screens/impact-i08-rewards.jpg",
+  "./assets/screens/impact-i09-missions.jpg",
+  "./assets/screens/impact-i10-mission-complete.jpg",
+  "./assets/screens/impact-i11-pact-resolved.jpg"
 ];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
