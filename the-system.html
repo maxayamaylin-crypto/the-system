@@ -1043,6 +1043,7 @@ let activeDungeonScreen = "main";
 let activeDungeonId = "iron-gate";
 let activeShopScreen = "main";
 let activeImpactScreen = "main";
+let activeProfileScreen = "command";
 let currentTab = "hub";
 let editingEx = null; // {dayKey, section, idx}
 let activeTrainingScreen = "main";
@@ -1363,7 +1364,7 @@ function questLivePanel(){
     <div class="system-card p12"><div class="live-list">${qRows}</div></div>`;
 }
 const QUEST_SCREEN_IMAGES = {
-  main:"assets/screens/quests.png",
+  main:"assets/screens/quest-q01-command.jpg",
   detail:"assets/screens/quest-q03-detail.jpg",
   addProgress:"assets/screens/quest-q04-add-progress.jpg",
   advanced:"assets/screens/quest-q04-advanced-progress.jpg",
@@ -1648,7 +1649,7 @@ function impactLivePanel(){
 }
 
 const IMPACT_SCREEN_IMAGES = {
-  main:"assets/screens/impact.png",
+  main:"assets/screens/impact-command.jpg",
   causeDetail:"assets/screens/impact-i02-cause-detail.jpg",
   chooseCause:"assets/screens/impact-i03-choose-cause.jpg",
   pledge:"assets/screens/impact-i04-pledge-builder.jpg",
@@ -2544,7 +2545,7 @@ function setNutritionView(view){
 }
 function nutritionScreenSrc(){
   return {
-    overview:"assets/screens/nutrition-n01-overview.jpg",
+    overview:"assets/screens/nutrition-command.jpg",
     diary:"assets/screens/nutrition-n02-diary.jpg",
     archive:"assets/screens/nutrition-n03-archive.jpg",
     recipe:"assets/screens/nutrition-n04-recipe-detail.jpg",
@@ -3223,7 +3224,7 @@ function setTrainingDay(k){
 }
 
 const TRAINING_SCREEN_IMAGES = {
-  main:"assets/screens/train-t01-main.jpg",
+  main:"assets/screens/train-command.jpg",
   split:"assets/screens/train-t02-split-selector.jpg",
   upper:"assets/screens/train-t03-upper-lower.jpg",
   ppl:"assets/screens/train-t04-ppl.jpg",
@@ -4092,28 +4093,187 @@ function renderStatus(){
   </div>`).join("");
 }
 
-function profileHotspots(nextRoute="quests"){
+const PROFILE_SCREEN_IMAGES = {
+  command:"assets/screens/profile-p01-command.jpg",
+  avatar:"assets/screens/profile-p02-edit-avatar.jpg",
+  license:"assets/screens/profile-p03-edit-license.jpg",
+  title:"assets/screens/profile-p04-title-badge.jpg",
+  vault:"assets/screens/profile-p08-vault.jpg"
+};
+
+function setProfileScreen(screen){
+  activeProfileScreen = screen || "command";
+  renderHunterProfile();
+}
+
+function profileBottomHotspots(){
   return [
-    hotspot("Edit Avatar",29.0,18.6,8.0,7.2,"switchTab('settings')"),
-    hotspot("Quests",51.5,28.5,18.0,6.0,"switchTab('quests')"),
-    hotspot("Train",73.0,28.5,18.0,6.0,"switchTab('training')"),
-    hotspot("Nutrition",51.5,35.2,18.0,6.0,"switchTab('nutrition')"),
-    hotspot("Impact",73.0,35.2,18.0,6.0,"switchTab('impact')"),
-    hotspot("Vault",51.5,42.0,18.0,6.0,"switchTab('vault')"),
-    hotspot("Shop",73.0,42.0,18.0,6.0,"switchTab('shop')"),
-    hotspot("Go Now",9.0,37.0,18.0,5.0,`switchTab('${nextRoute}')`),
-    hotspot("Edit License",8.0,53.0,34.0,4.6,"switchTab('settings')"),
-    hotspot("Change Title",53.0,53.0,34.0,4.6,"switchTab('awakening')"),
-    hotspot("View Activity",50.0,81.0,35.0,4.0,"showNotif('quest','RECENT ACTIVITY',(state.auditLog||[]).slice(0,6).map(a=>a.message).join('\\n') || 'No activity yet.')"),
-    hotspot("Export Backup",68.0,89.2,20.0,4.8,"handleExport()"),
-    hotspot("Settings",68.0,94.0,20.0,4.5,"switchTab('settings')"),
     hotspot("Quests Tab",9.5,94.4,12.0,4.8,"switchTab('quests')"),
     hotspot("Train Tab",24.0,94.4,12.0,4.8,"switchTab('training')"),
     hotspot("Hub Tab",39.0,94.4,12.0,4.8,"switchTab('hub')"),
     hotspot("Shop Tab",55.0,94.4,12.0,4.8,"switchTab('shop')"),
     hotspot("Impact Tab",70.0,94.4,12.0,4.8,"switchTab('impact')"),
-    hotspot("Profile Tab",84.0,94.4,12.0,4.8,"switchTab('status')")
+    hotspot("Profile Tab",84.0,94.4,12.0,4.8,"setProfileScreen('command')")
   ];
+}
+
+function saveAvatarProfile(){
+  ensureStateShape();
+  state.profile.avatarStyle = state.profile.avatarStyle || {};
+  state.profile.avatarStyle.frame = state.profile.avatarStyle.frame || "Electric";
+  state.profile.avatarStyle.aura = state.profile.avatarStyle.aura || "Blue";
+  state.profile.avatarStyle.pose = state.profile.avatarStyle.pose || "Hunter Prime";
+  addAudit("avatar-customized","Avatar style saved",state.profile.avatarStyle);
+  saveNonWorkout();
+  setProfileScreen("command");
+  showNotif("quest","AVATAR SAVED","Your hunter identity has been updated.");
+}
+
+function generateSystemAvatar(){
+  state.profile.avatarStyle = {...(state.profile.avatarStyle||{}), generated:true, aura:"Void Cyan", frame:"Electric"};
+  addAudit("avatar-generated","Generated System avatar",state.profile.avatarStyle);
+  saveNonWorkout();
+  renderHunterProfile();
+  showNotif("levelup","AVATAR GENERATED","System avatar preview generated.");
+}
+
+function saveLicenseProfile(){
+  state.profile.displayName = state.profile.displayName && state.profile.displayName !== "PLAYER" ? state.profile.displayName : "Hunter Prime";
+  state.profile.goal = state.profile.goal || "lean-bulk";
+  state.profile.trainingLevel = state.profile.trainingLevel || "intermediate";
+  addAudit("license-updated","Hunter license updated",{name:state.profile.displayName,goal:state.profile.goal});
+  saveNonWorkout();
+  setProfileScreen("command");
+  showNotif("quest","LICENSE SAVED","Hunter license updated across THE SYSTEM.");
+}
+
+function equipProfileTitle(titleId="initiate"){
+  const title = TITLE_RULES.find(t=>t.id===titleId) || TITLE_RULES[0];
+  if(!state.unlocks.titles.includes(title.id)) state.unlocks.titles.push(title.id);
+  state.unlocks.activeTitle = title.name;
+  addAudit("title-equipped",`Title equipped: ${title.name}`,{titleId:title.id});
+  saveNonWorkout();
+  renderHunterProfile();
+  showNotif("quest","TITLE EQUIPPED",`${title.name} is now active.`);
+}
+
+function profileHotspots(nextRoute="quests",screen=activeProfileScreen){
+  const nav = profileBottomHotspots();
+  if(screen==="avatar") return [
+    ...nav,
+    hotspot("Back Profile",8,14,9,5,"setProfileScreen('command')"),
+    hotspot("Frame Electric",12,40,12,7,"showNotif('quest','FRAME SELECTED','Electric avatar frame selected.')"),
+    hotspot("Frame Void",27,40,12,7,"showNotif('quest','FRAME SELECTED','Void avatar frame selected.')"),
+    hotspot("Aura Blue",14,51,9,6,"showNotif('quest','AURA SELECTED','Blue aura selected.')"),
+    hotspot("Aura Purple",28,51,9,6,"showNotif('quest','AURA SELECTED','Purple aura selected.')"),
+    hotspot("Pose Prime",12,62,14,7,"showNotif('quest','POSE SELECTED','Hunter Prime silhouette selected.')"),
+    hotspot("Background Lightning",12,73,12,7,"showNotif('quest','BACKGROUND','Lightning background selected.')"),
+    hotspot("Badge None",12,83,12,6,"showNotif('quest','BADGE OVERLAY','Badge overlay removed.')"),
+    hotspot("Upload Image",12,89,36,5,"document.getElementById('avatar-upload')?.click()"),
+    hotspot("Generate Avatar",51,89,36,5,"generateSystemAvatar()"),
+    hotspot("Save Profile",11,94,78,5,"saveAvatarProfile()")
+  ];
+  if(screen==="license") return [
+    ...nav,
+    hotspot("Back Profile",8,15,9,5,"setProfileScreen('command')"),
+    hotspot("Hunter Name",8,33,36,7,"showNotif('quest','EDIT NAME','Name editing is available in Settings; this preview will sync to profile state.')"),
+    hotspot("Archetype",53,33,36,7,"showNotif('quest','ARCHETYPE','Lone Wolf archetype selected.')"),
+    hotspot("Rank Title",8,45,36,7,"setProfileScreen('title')"),
+    hotspot("Playstyle",53,45,36,7,"showNotif('quest','PLAYSTYLE','Balanced playstyle selected.')"),
+    hotspot("Goal",8,57,36,7,"switchTab('settings')"),
+    hotspot("Training Focus",8,69,36,7,"switchTab('training')"),
+    hotspot("Frame Electric",10,81,13,8,"showNotif('quest','FRAME STYLE','Electric rank frame selected.')"),
+    hotspot("Save License",10,90,40,6,"saveLicenseProfile()"),
+    hotspot("Reset License",52,90,36,6,"showNotif('penalty','RESET LICENSE','Reset requires confirmation in Settings.')")
+  ];
+  if(screen==="title") return [
+    ...nav,
+    hotspot("Back Profile",8,18,9,5,"setProfileScreen('command')"),
+    hotspot("Titles Tab",21,36,26,6,"showNotif('quest','TITLES','Titles selected.')"),
+    hotspot("Badges Tab",54,36,26,6,"showNotif('quest','BADGES','Badges selected.')"),
+    hotspot("E Rank Title",12,50,76,9,"equipProfileTitle('initiate')"),
+    hotspot("Shadow Hunter",12,60,76,9,"equipProfileTitle('iron-will')"),
+    hotspot("Legacy Builder",12,70,76,9,"showNotif('quest','LOCKED TITLE','Reach level 50 to unlock Legacy Builder.')"),
+    hotspot("Heart Hunter",12,80,76,8,"showNotif('quest','LOCKED TITLE','Complete 100 impact actions to unlock Heart of a Hunter.')"),
+    hotspot("Equip Title",25,89,50,7,"equipProfileTitle('initiate')")
+  ];
+  if(screen==="vault") return [
+    ...nav,
+    hotspot("Back Profile",8,14,9,5,"setProfileScreen('command')"),
+    hotspot("Inventory Tab",7,17,20,6,"showNotif('quest','VAULT INVENTORY','Inventory selected.')"),
+    hotspot("Rewards Tab",29,17,20,6,"showNotif('quest','VAULT REWARDS','Rewards selected.')"),
+    hotspot("Collectibles Tab",51,17,20,6,"showNotif('quest','COLLECTIBLES','Collectibles selected.')"),
+    hotspot("Resources Tab",73,17,20,6,"showNotif('quest','RESOURCES','Resources selected.')"),
+    hotspot("View Core Details",44,34,34,6,"showNotif('quest','VOID CORE FRAGMENT','Mythic relic details opened.')"),
+    hotspot("View Gear",78,55,12,4,"openShopScreen('gear')"),
+    hotspot("Gold Row",14,68,30,5,"switchTab('shop')"),
+    hotspot("Consumable Protein",56,67,30,5,"switchTab('nutrition')"),
+    hotspot("Bulk Manage",11,89,23,5,"showNotif('quest','BULK MANAGE','Vault bulk management opened.')"),
+    hotspot("Search Vault",35,89,20,5,"showNotif('quest','VAULT SEARCH','Vault search ready.')"),
+    hotspot("Filter Vault",56,89,20,5,"showNotif('quest','VAULT FILTER','Vault filters opened.')"),
+    hotspot("Sort Vault",78,89,18,5,"showNotif('quest','VAULT SORT','Vault sort opened.')")
+  ];
+  return [
+    ...nav,
+    hotspot("Edit Avatar",22,19,12,10,"setProfileScreen('avatar')"),
+    hotspot("View All Quests",76,33,15,6,"switchTab('quests')"),
+    hotspot("Log Meal Now",64,41,28,6,"switchTab('nutrition')"),
+    hotspot("Quests",7,48,40,9,"switchTab('quests')"),
+    hotspot("Train",51,48,40,9,"switchTab('training')"),
+    hotspot("Nutrition",7,58,40,9,"switchTab('nutrition')"),
+    hotspot("Impact",51,58,40,9,"switchTab('impact')"),
+    hotspot("Vault",7,68,40,9,"setProfileScreen('vault')"),
+    hotspot("Shop",51,68,40,9,"switchTab('shop')"),
+    hotspot("Take Action",22,82,26,5,`switchTab('${nextRoute}')`),
+    hotspot("Activate Focus",70,88,22,5,"showNotif('levelup','FOCUS MODE','Focus mode activated. Lock in and complete the mission.')"),
+    hotspot("Change Title",51,78,40,8,"setProfileScreen('title')")
+  ];
+}
+
+function profileStatePanel(nextRoute="quests",screen=activeProfileScreen){
+  const sessions = getSessionCount();
+  const meals = getMealCount();
+  const owned = state.inventory.owned?.length || 0;
+  const panels = {
+    command:`${liveHeader("HUNTER COMMAND","Priority, shortcuts and profile routes are active.")}
+      <div class="action-grid">
+        <button class="btn cta-blue" onclick="switchTab('${nextRoute}')">TAKE NEXT ACTION</button>
+        <button class="btn" onclick="setProfileScreen('avatar')">EDIT AVATAR</button>
+        <button class="btn" onclick="setProfileScreen('license')">EDIT LICENSE</button>
+        <button class="btn" onclick="setProfileScreen('title')">CHANGE TITLE</button>
+        <button class="btn" onclick="setProfileScreen('vault')">OPEN VAULT</button>
+        <button class="btn" onclick="showNotif('levelup','FOCUS MODE','Focus mode activated. Lock in and complete the mission.')">FOCUS MODE</button>
+      </div>`,
+    avatar:`${liveHeader("EDIT AVATAR","Avatar frame, aura, pose, background and badge actions are live.")}
+      <div class="action-grid">
+        <button class="btn" onclick="showNotif('quest','FRAME SELECTED','Electric avatar frame selected.')">ELECTRIC FRAME</button>
+        <button class="btn" onclick="showNotif('quest','AURA SELECTED','Void cyan aura selected.')">VOID AURA</button>
+        <button class="btn" onclick="generateSystemAvatar()">GENERATE AVATAR</button>
+        <button class="btn cta-blue" onclick="saveAvatarProfile()">SAVE PROFILE</button>
+      </div>`,
+    license:`${liveHeader("EDIT LICENSE",`${esc(displayName())} · ${esc(state.profile.goal||"lean-bulk")} · ${esc(state.profile.trainingLevel||"intermediate")}`)}
+      <div class="action-grid">
+        <button class="btn" onclick="setProfileScreen('title')">RANK TITLE</button>
+        <button class="btn" onclick="switchTab('training')">TRAINING FOCUS</button>
+        <button class="btn" onclick="switchTab('settings')">GOAL SETTINGS</button>
+        <button class="btn cta-blue" onclick="saveLicenseProfile()">SAVE LICENSE</button>
+      </div>`,
+    title:`${liveHeader("TITLE & BADGE",`Active title: ${esc(state.unlocks.activeTitle||"E-Rank Initiate")}`)}
+      <div class="action-grid">
+        <button class="btn" onclick="equipProfileTitle('initiate')">E-RANK INITIATE</button>
+        <button class="btn" onclick="equipProfileTitle('iron-will')">SHADOW HUNTER</button>
+        <button class="btn" onclick="showNotif('quest','LOCKED TITLE','Reach level 50 to unlock Legacy Builder.')">LEGACY BUILDER</button>
+        <button class="btn cta-blue" onclick="setProfileScreen('command')">BACK TO PROFILE</button>
+      </div>`,
+    vault:`${liveHeader("VAULT",`${owned} owned items · ${formatNum(playerPower())} power · ${formatNum(state.economy.gold||0)} gold`)}
+      <div class="action-grid">
+        <button class="btn" onclick="openShopScreen('gear')">VIEW GEAR</button>
+        <button class="btn" onclick="switchTab('shop')">SPEND GOLD</button>
+        <button class="btn" onclick="switchTab('nutrition')">USE CONSUMABLE</button>
+        <button class="btn cta-blue" onclick="setProfileScreen('command')">RETURN TO PROFILE</button>
+      </div>`
+  };
+  return panels[screen] || panels.command;
 }
 
 function renderHunterProfile(){
@@ -4127,8 +4287,10 @@ function renderHunterProfile(){
   const next = getNextAction();
   const nextRoute = next?.type==="nutrition" ? "nutrition" : next?.id==="dq-workout" ? "training" : next ? "quests" : "impact";
   const nextText = next ? `${next.label}: ${formatNum(next.remaining)} ${next.unit} remaining` : "All core obligations clear. Build impact or start a raid.";
+  const profileScreen = activeProfileScreen || "command";
   el.innerHTML = `
-    ${pixelScreen("assets/screens/profile-command.jpg",profileHotspots(nextRoute))}
+    ${pixelScreen(PROFILE_SCREEN_IMAGES[profileScreen] || PROFILE_SCREEN_IMAGES.command,profileHotspots(nextRoute,profileScreen),profileStatePanel(nextRoute,profileScreen))}
+    ${profileScreen==="command" ? `
     ${hunterLicenseCard()}
     <div class="system-card p16 mb12" style="border-color:${threat.color};background:linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,25,45,.36));">
       <div class="flex-between flex-wrap gap8">
@@ -4195,7 +4357,7 @@ function renderHunterProfile(){
       <div style="font-weight:900;margin-bottom:10px;">PUBLIC LAUNCH READINESS</div>
       <div style="color:#9cadbd;font-size:12px;line-height:1.7;">Local progression, inventory, guild contribution, impact ledger, export/import and AI nutrition tools are active. Live subscriptions, account sync and verified charity payout rails are the remaining external integrations.</div>
       <div class="flex gap8 flex-wrap" style="margin-top:12px;"><button class="btn btn-gold" onclick="handleExport()">EXPORT BACKUP</button><button class="btn" onclick="switchTab('settings')">SETTINGS</button></div>
-    </div>`;
+    </div>` : ""}`;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -4855,7 +5017,7 @@ function equipItem(id){
 }
 
 const SHOP_SCREEN_IMAGES = {
-  main:"assets/screens/shop.png",
+  main:"assets/screens/shop-command.jpg",
   detail:"assets/screens/shop-s02-item-detail.jpg",
   confirm:"assets/screens/shop-s03-purchase-confirm.jpg",
   acquired:"assets/screens/shop-s03-item-acquired.jpg",

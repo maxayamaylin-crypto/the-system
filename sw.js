@@ -1,4 +1,4 @@
-const CACHE = "system-v4-11-impact-pack";
+const CACHE = "system-v4-12-command-profile-pack";
 const FILES = [
   "./",
   "./the-system.html",
@@ -24,6 +24,16 @@ const FILES = [
   "./assets/screens/nutrition-n10-progress.jpg",
   "./assets/screens/training-workout.jpg",
   "./assets/screens/profile-command.jpg",
+  "./assets/screens/profile-p01-command.jpg",
+  "./assets/screens/profile-p02-edit-avatar.jpg",
+  "./assets/screens/profile-p03-edit-license.jpg",
+  "./assets/screens/profile-p04-title-badge.jpg",
+  "./assets/screens/profile-p08-vault.jpg",
+  "./assets/screens/quest-q01-command.jpg",
+  "./assets/screens/train-command.jpg",
+  "./assets/screens/nutrition-command.jpg",
+  "./assets/screens/impact-command.jpg",
+  "./assets/screens/shop-command.jpg",
   "./assets/screens/train-t01-main.jpg",
   "./assets/screens/train-t02-split-selector.jpg",
   "./assets/screens/train-t03-upper-lower.jpg",
