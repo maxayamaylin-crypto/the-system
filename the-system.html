@@ -943,7 +943,7 @@ const SHOP_ITEMS = [
   {id:"training-elixir",name:"Training Elixir",cat:"boosts",rarity:"UNCOMMON",price:1000,desc:"+10% XP on your next completed quest.",bonus:"+10% XP next quest",consumable:true},
   {id:"iron-boots",name:"Iron Boots",cat:"gear",rarity:"RARE",price:1250,desc:"Steps quest cosmetic and movement badge.",bonus:"+ movement badge"},
   {id:"d-rank-emblem",name:"D-Rank Emblem",cat:"badges",rarity:"RARE",price:1500,desc:"Profile badge unlocked at D Rank.",bonus:"D-Rank badge",rank:"D"},
-  {id:"shadow-katana",name:"Void Katana",cat:"gear",rarity:"LEGENDARY",price:5000,desc:"Legendary cosmetic weapon for your license.",bonus:"+ legendary loadout"},
+  {id:"shadow-katana",name:"Shadow Katana",cat:"gear",rarity:"LEGENDARY",price:15000,desc:"A blade forged in the void. Drains weakness, empowers the awakened.",bonus:"+25 STR · +15 AGI · +10 VIT"},
   {id:"guild-banner",name:"Guild Banner",cat:"cosmetics",rarity:"EPIC",price:2500,desc:"Guild profile banner cosmetic.",bonus:"+ guild style"},
   {id:"protein-core",name:"Protein Core",cat:"badges",rarity:"UNCOMMON",price:800,desc:"Nutrition discipline badge.",bonus:"+ nutrition badge"},
   {id:"dungeon-key",name:"Dungeon Key",cat:"boosts",rarity:"RARE",price:1200,desc:"Unlocks a special challenge slot.",bonus:"+ special challenge"}
@@ -1040,6 +1040,7 @@ let activeQuestId = "dq-workout";
 let questProgressDraft = 10;
 let activeDungeonScreen = "main";
 let activeDungeonId = "iron-gate";
+let activeShopScreen = "main";
 let currentTab = "hub";
 let editingEx = null; // {dayKey, section, idx}
 let activeTrainingScreen = "main";
@@ -3949,7 +3950,9 @@ function renderHunterProfile(){
 // TABS
 // ═══════════════════════════════════════════════════════════
 function switchTab(tab){
+  const prevTab = currentTab;
   currentTab=tab;
+  if(tab==="shop" && prevTab!=="shop" && activeShopScreen==="vault") activeShopScreen="main";
   updatePixelMode(tab);
   updateScreenSubtitle(tab);
   renderBottomNav(tab);
@@ -4531,7 +4534,10 @@ function addVaultProof(contractId){
 }
 function renderVault(){
   ensureStateShape();
+  activeShopScreen = "vault";
   const el = document.getElementById("vault-content");
+  el.innerHTML = pixelScreen(SHOP_SCREEN_IMAGES.vault,shopHotspots("vault"),shopStatePanel("vault"));
+  return;
   const threat = getThreatReport();
   el.innerHTML = `
     <div class="panel glow p20 mb12"><div class="br"></div><div class="bl"></div>
@@ -4595,28 +4601,271 @@ function equipItem(id){
   saveNonWorkout();
   refreshCurrentView();
 }
-function renderShop(){
-  ensureStateShape();
-  const el = document.getElementById("shop-content");
-  const featured = SHOP_ITEMS.find(i=>i.id==="shadow-katana") || SHOP_ITEMS[0];
-  const itemIds = ["shadow-cloak","focus-ring","iron-boots","training-elixir"];
-  const h = [
+
+const SHOP_SCREEN_IMAGES = {
+  main:"assets/screens/shop.png",
+  detail:"assets/screens/shop-s02-item-detail.jpg",
+  confirm:"assets/screens/shop-s03-purchase-confirm.jpg",
+  acquired:"assets/screens/shop-s03-item-acquired.jpg",
+  gear:"assets/screens/shop-s04-gear-inventory.jpg",
+  boosts:"assets/screens/shop-s05-boosts.jpg",
+  cosmetics:"assets/screens/shop-s06-cosmetics.jpg",
+  loadout:"assets/screens/shop-s07-loadout.jpg",
+  compare:"assets/screens/shop-s08-compare.jpg",
+  cart:"assets/screens/shop-s09-cart.jpg",
+  vault:"assets/screens/shop-s10-vault.jpg"
+};
+
+function setShopScreen(screen){
+  activeShopScreen = screen || "main";
+  renderShop();
+}
+
+function openShopScreen(screen){
+  activeShopScreen = screen || "main";
+  switchTab("shop");
+}
+
+function shopBottomHotspots(){
+  return [
     hotspot("Hub",18,91,11,5.5,"switchTab('hub')"),
     hotspot("Train",33,91,12,5.5,"switchTab('training')"),
     hotspot("Quests",50,91,12,5.5,"switchTab('quests')"),
-    hotspot("Shop",65,91,12,5.5,"switchTab('shop')"),
-    hotspot("Profile",82,91,12,5.5,"switchTab('status')"),
-    hotspot("Add Gold",73,5.2,8,4,"addDemoGold()"),
-    hotspot("Cart",82,4.7,10,6,"showNotif('quest','HUNTER CART','Cart and checkout are ready for store integration. Purchases currently use earned Gold.')"),
-    hotspot("Buy Featured",42,28.2,20,3.8,`buyItem('${featured.id}')`),
-    hotspot("View Featured",63,28.2,25,3.8,`buyItem('${featured.id}');equipItem('${featured.id}')`),
-    hotspot("Buy Armor",16,50.2,17,3.4,`buyItem('${itemIds[0]}')`),
-    hotspot("Buy Ring",36,50.2,17,3.4,`buyItem('${itemIds[1]}')`),
-    hotspot("Buy Boots",55,50.2,17,3.4,`buyItem('${itemIds[2]}')`),
-    hotspot("Buy Elixir",74,50.2,17,3.4,`buyItem('${itemIds[3]}')`),
-    hotspot("Change Title",63,84.2,25,3.3,"switchTab('awakening')")
+    hotspot("Shop",65,91,12,5.5,"activeShopScreen='main';switchTab('shop')"),
+    hotspot("Profile",82,91,12,5.5,"switchTab('status')")
   ];
-  el.innerHTML = pixelScreen("assets/screens/shop.png",h,shopLivePanel());
+}
+
+function purchaseShadowKatana(){
+  const before = ownsItem("shadow-katana");
+  buyItem("shadow-katana");
+  if(ownsItem("shadow-katana") || before){
+    equipItem("shadow-katana");
+    activeShopScreen = "acquired";
+    renderShop();
+  }
+}
+
+function addShadowKatanaToCart(){
+  state.inventory.cart = state.inventory.cart || [];
+  if(!state.inventory.cart.includes("shadow-katana")) state.inventory.cart.push("shadow-katana");
+  addAudit("cart-add","Added Shadow Katana to cart",{item:"shadow-katana"});
+  saveNonWorkout();
+  setShopScreen("cart");
+  showNotif("quest","ADDED TO CART","Shadow Katana added to checkout.");
+}
+
+function completeCartPurchase(){
+  const ids = ["shadow-katana","shadow-cloak","focus-ring","training-elixir"];
+  const total = 24700;
+  if(!spendGold(total,"Cart checkout")) return showNotif("penalty","INSUFFICIENT GOLD",`Cart checkout costs ${formatNum(total)} Gold.`);
+  ids.forEach(id=>{
+    const item = SHOP_ITEMS.find(i=>i.id===id);
+    if(item && (!ownsItem(id) || item.consumable)){
+      state.inventory.owned.push({id:item.id,qty:item.consumable?2:undefined,acquiredAt:new Date().toISOString()});
+      state.inventory.purchaseHistory.unshift({id:Date.now()+"-"+item.id,itemId:item.id,name:item.name,price:item.price,at:new Date().toISOString(),rarity:item.rarity});
+    }
+  });
+  state.inventory.cart = [];
+  state.inventory.purchaseHistory = state.inventory.purchaseHistory.slice(0,80);
+  addAudit("cart-checkout","Completed shop cart checkout",{items:ids,total});
+  saveNonWorkout();
+  activeShopScreen = "acquired";
+  renderShop();
+  showNotif("levelup","CART PURCHASE COMPLETE",`4 items acquired.\n\n-${formatNum(total)} Gold`);
+}
+
+function useBoostItem(id="training-elixir"){
+  const item = SHOP_ITEMS.find(i=>i.id===id) || SHOP_ITEMS.find(i=>i.id==="training-elixir");
+  addAudit("boost-used",`Used ${item?.name||"Boost"}`,{item:id});
+  addXP(75,"Boost used");
+  saveNonWorkout();
+  renderShop();
+  showNotif("levelup","BOOST ACTIVATED",`${item?.name||"Boost"} activated.\n\n+75 XP test reward`);
+}
+
+function salvageShopItem(){
+  addGold(150,"Salvaged spare item");
+  addAudit("item-salvaged","Salvaged spare inventory item",{gold:150});
+  saveNonWorkout();
+  renderShop();
+  showNotif("quest","ITEM SALVAGED","+150 Gold returned from spare item.");
+}
+
+function shopHotspots(screen=activeShopScreen){
+  const nav = shopBottomHotspots();
+  if(screen==="detail") return [
+    ...nav,
+    hotspot("Back To Shop",16,18,8,5,"setShopScreen('main')"),
+    hotspot("Add Gold",73,18,8,4,"addDemoGold()"),
+    hotspot("Cart",82,17,10,6,"setShopScreen('cart')"),
+    hotspot("Compare Item",18,83,16,6,"setShopScreen('compare')"),
+    hotspot("Buy Now",42,83,30,6,"setShopScreen('confirm')"),
+    hotspot("Add To Cart",72,83,22,6,"addShadowKatanaToCart()")
+  ];
+  if(screen==="confirm") return [
+    ...nav,
+    hotspot("Close Confirm",74,32,8,5,"setShopScreen('main')"),
+    hotspot("Confirm Purchase",25,63,55,6,"purchaseShadowKatana()"),
+    hotspot("Cancel Purchase",25,69,55,5,"setShopScreen('main')")
+  ];
+  if(screen==="acquired") return [
+    ...nav,
+    hotspot("View Loadout",18,78,68,6,"setShopScreen('loadout')"),
+    hotspot("Continue Shopping",18,85,68,6,"setShopScreen('main')")
+  ];
+  if(screen==="gear") return [
+    ...nav,
+    hotspot("All Items",20,21,18,4,"setShopScreen('main')"),
+    hotspot("Gear Tab",39,21,18,4,"setShopScreen('gear')"),
+    hotspot("Boosts Tab",58,21,18,4,"setShopScreen('boosts')"),
+    hotspot("Cosmetics Tab",78,21,20,4,"setShopScreen('cosmetics')"),
+    hotspot("Cart",82,16,10,6,"setShopScreen('cart')"),
+    hotspot("Featured Katana",18,38,15,16,"setShopScreen('detail')"),
+    hotspot("Armor Compare",35,59,15,16,"setShopScreen('compare')"),
+    hotspot("Filter Gear",78,47,14,4,"showNotif('quest','GEAR FILTER','Gear filters opened.')")
+  ];
+  if(screen==="boosts") return [
+    ...nav,
+    hotspot("All Items",20,21,18,4,"setShopScreen('main')"),
+    hotspot("Gear Tab",39,21,18,4,"setShopScreen('gear')"),
+    hotspot("Boosts Tab",58,21,18,4,"setShopScreen('boosts')"),
+    hotspot("Cosmetics Tab",78,21,20,4,"setShopScreen('cosmetics')"),
+    hotspot("Buy Featured Boost",62,36,25,5,"buyItem('training-elixir')"),
+    hotspot("Buy Training Elixir",20,55,22,5,"buyItem('training-elixir')"),
+    hotspot("Buy Dungeon Key",67,68,22,5,"buyItem('dungeon-key')"),
+    hotspot("Use Stamina Flask",18,85,12,5,"useBoostItem('training-elixir')"),
+    hotspot("Use XP Boost",56,85,12,5,"useBoostItem('training-elixir')")
+  ];
+  if(screen==="cosmetics") return [
+    ...nav,
+    hotspot("All Items",20,21,18,4,"setShopScreen('main')"),
+    hotspot("Gear Tab",39,21,18,4,"setShopScreen('gear')"),
+    hotspot("Boosts Tab",58,21,18,4,"setShopScreen('boosts')"),
+    hotspot("Cosmetics Tab",78,21,20,4,"setShopScreen('cosmetics')"),
+    hotspot("Preview Set",38,40,25,5,"showNotif('quest','COSMETIC PREVIEW','Void Hunter set preview active.')"),
+    hotspot("Equip Outfit",58,54,15,5,"buyItem('shadow-cloak');equipItem('shadow-cloak')"),
+    hotspot("Preview Sentinel",76,54,15,5,"showNotif('quest','COSMETIC PREVIEW','Silver Sentinel preview selected.')"),
+    hotspot("Reset Preview",78,82,15,5,"showNotif('quest','PREVIEW RESET','Cosmetic preview reset.')")
+  ];
+  if(screen==="loadout") return [
+    ...nav,
+    hotspot("Back Shop",16,20,8,5,"setShopScreen('main')"),
+    hotspot("Loadout Select",70,20,18,5,"showNotif('quest','LOADOUT','Loadout selector opened.')"),
+    hotspot("Weapon Slot",20,33,22,20,"setShopScreen('detail')"),
+    hotspot("Armor Slot",48,33,22,20,"setShopScreen('compare')"),
+    hotspot("Edit Loadout",20,72,25,5,"showNotif('quest','EDIT LOADOUT','Tap an owned item to replace a slot.')"),
+    hotspot("Auto Equip",48,72,25,5,"autoEquipLoadout()"),
+    hotspot("Save Preset",74,72,25,5,"saveLoadoutPreset()"),
+    hotspot("Owned Item Compare",21,83,18,9,"setShopScreen('compare')")
+  ];
+  if(screen==="compare") return [
+    ...nav,
+    hotspot("Back Loadout",16,20,8,5,"setShopScreen('loadout')"),
+    hotspot("Equip Candidate",25,80,28,7,"equipComparedItem()"),
+    hotspot("Salvage Candidate",55,80,28,7,"salvageShopItem()"),
+    hotspot("Back Compare",80,80,16,7,"setShopScreen('loadout')")
+  ];
+  if(screen==="cart") return [
+    ...nav,
+    hotspot("Back Shop",16,20,8,5,"setShopScreen('main')"),
+    hotspot("Add Gold",73,18,8,4,"addDemoGold()"),
+    hotspot("Remove Item",78,31,10,5,"showNotif('quest','CART UPDATED','Item removed from checkout preview.')"),
+    hotspot("Save For Later",35,82,25,5,"showNotif('quest','SAVED FOR LATER','Cart saved for later.')"),
+    hotspot("Complete Purchase",62,82,30,5,"completeCartPurchase()")
+  ];
+  if(screen==="vault") return [
+    ...nav,
+    hotspot("Owned Vault",20,22,20,5,"showNotif('quest','VAULT','Owned items selected.')"),
+    hotspot("Equipped Vault",41,22,20,5,"openShopScreen('loadout')"),
+    hotspot("Materials Vault",62,22,20,5,"showNotif('quest','MATERIALS','Materials view selected.')"),
+    hotspot("Locked Vault",82,22,20,5,"showNotif('quest','LOCKED ITEMS','Locked item view selected.')"),
+    hotspot("Search Vault",28,29,40,5,"showNotif('quest','VAULT SEARCH','Vault search ready.')"),
+    hotspot("Filter Vault",56,29,18,5,"showNotif('quest','VAULT FILTER','Vault filters opened.')"),
+    hotspot("Sort Vault",78,29,22,5,"showNotif('quest','VAULT SORT','Sort by rarity selected.')"),
+    hotspot("Vault Katana",20,50,18,14,"openShopScreen('detail')"),
+    hotspot("Vault Armor",40,50,18,14,"openShopScreen('loadout')"),
+    hotspot("Salvage Junk",22,83,24,6,"salvageShopItem()"),
+    hotspot("Lock Item",47,84,14,5,"showNotif('quest','ITEM LOCKED','Selected item locked.')"),
+    hotspot("Unlock Item",58,84,14,5,"showNotif('quest','ITEM UNLOCKED','Selected item unlocked.')"),
+    hotspot("Favorite Item",82,84,16,5,"showNotif('quest','FAVORITE','Item marked as favourite.')")
+  ];
+  return [
+    ...nav,
+    hotspot("Add Gold",73,5.2,8,4,"addDemoGold()"),
+    hotspot("Cart",82,4.7,10,6,"setShopScreen('cart')"),
+    hotspot("All Items",20,18.5,18,4,"setShopScreen('main')"),
+    hotspot("Gear Tab",39,18.5,18,4,"setShopScreen('gear')"),
+    hotspot("Boosts Tab",58,18.5,18,4,"setShopScreen('boosts')"),
+    hotspot("Cosmetics Tab",78,18.5,20,4,"setShopScreen('cosmetics')"),
+    hotspot("Featured Item",18,27,69,18,"setShopScreen('detail')"),
+    hotspot("View Item",62,39,26,5,"setShopScreen('detail')"),
+    hotspot("Buy Shadow Katana",55,39,16,5,"setShopScreen('confirm')"),
+    hotspot("Night Stalker Armor",18,52,18,18,"setShopScreen('compare')"),
+    hotspot("Focus Ring",40,52,18,18,"setShopScreen('loadout')"),
+    hotspot("Hunter Boots",60,52,18,18,"setShopScreen('loadout')"),
+    hotspot("Training Elixir",80,52,18,18,"setShopScreen('boosts')"),
+    hotspot("Loadout",18,72,70,12,"setShopScreen('loadout')"),
+    hotspot("Hunter Profile",18,86,30,6,"switchTab('status')"),
+    hotspot("Change Title",62,86,25,6,"switchTab('awakening')")
+  ];
+}
+
+function shopStatePanel(screen=activeShopScreen){
+  const owned = new Set((state.inventory.owned||[]).map(i=>i.id));
+  const base = `${formatNum(state.economy.gold||0)} Gold · ${state.inventory.owned.length} owned`;
+  const panels = {
+    main:`${liveHeader("HUNTER SHOP",base)}<div class="action-grid"><button class="btn" onclick="setShopScreen('detail')">VIEW KATANA</button><button class="btn" onclick="setShopScreen('gear')">GEAR</button><button class="btn" onclick="setShopScreen('boosts')">BOOSTS</button><button class="btn" onclick="setShopScreen('cosmetics')">COSMETICS</button><button class="btn" onclick="setShopScreen('cart')">CART</button><button class="btn" onclick="setShopScreen('vault')">VAULT</button></div>`,
+    detail:`${liveHeader("ITEM DETAIL","Shadow Katana · Legendary · 15,000 Gold")}<div class="action-grid"><button class="btn" onclick="setShopScreen('compare')">COMPARE</button><button class="btn btn-gold" onclick="setShopScreen('confirm')">BUY NOW</button><button class="btn" onclick="addShadowKatanaToCart()">ADD CART</button></div>`,
+    confirm:`${liveHeader("CONFIRM PURCHASE","Permanent purchase · equip immediately.")}<div class="action-grid"><button class="btn btn-gold" onclick="purchaseShadowKatana()">CONFIRM</button><button class="btn btn-ghost" onclick="setShopScreen('main')">CANCEL</button></div>`,
+    acquired:`${liveHeader("ITEM ACQUIRED",owned.has("shadow-katana")?"Shadow Katana owned and equipped.":"Purchase preview.")}<div class="action-grid"><button class="btn btn-gold" onclick="setShopScreen('loadout')">VIEW LOADOUT</button><button class="btn" onclick="setShopScreen('main')">CONTINUE</button></div>`,
+    gear:`${liveHeader("GEAR INVENTORY","Weapons, armor, rings, boots and accessories.")}<div class="action-grid"><button class="btn" onclick="setShopScreen('detail')">FEATURED</button><button class="btn" onclick="setShopScreen('compare')">COMPARE</button><button class="btn" onclick="setShopScreen('loadout')">LOADOUT</button></div>`,
+    boosts:`${liveHeader("BOOSTS","Consumables and active effects.")}<div class="action-grid"><button class="btn btn-gold" onclick="buyItem('training-elixir')">BUY ELIXIR</button><button class="btn" onclick="useBoostItem('training-elixir')">USE BOOST</button><button class="btn" onclick="setShopScreen('main')">BACK</button></div>`,
+    cosmetics:`${liveHeader("COSMETICS","Outfits, auras, frames, skins, emotes and titles.")}<div class="action-grid"><button class="btn btn-gold" onclick="buyItem('shadow-cloak');equipItem('shadow-cloak')">EQUIP SET</button><button class="btn" onclick="switchTab('awakening')">TITLES</button><button class="btn" onclick="setShopScreen('main')">BACK</button></div>`,
+    loadout:`${liveHeader("LOADOUT MANAGEMENT",`Equipped ${Object.keys(state.inventory.equipped||{}).length}/6 slots`)}<div class="action-grid"><button class="btn" onclick="autoEquipLoadout()">AUTO EQUIP</button><button class="btn btn-gold" onclick="saveLoadoutPreset()">SAVE PRESET</button><button class="btn" onclick="setShopScreen('compare')">COMPARE</button></div>`,
+    compare:`${liveHeader("EQUIP COMPARISON","Candidate item improves power score.")}<div class="action-grid"><button class="btn cta-blue" onclick="equipComparedItem()">EQUIP</button><button class="btn btn-red" onclick="salvageShopItem()">SALVAGE</button><button class="btn" onclick="setShopScreen('loadout')">BACK</button></div>`,
+    cart:`${liveHeader("CART & CHECKOUT","4 items · limited-time discount applied.")}<div class="action-grid"><button class="btn btn-gold" onclick="completeCartPurchase()">COMPLETE PURCHASE</button><button class="btn" onclick="setShopScreen('main')">SAVE FOR LATER</button><button class="btn btn-red" onclick="state.inventory.cart=[];saveNonWorkout();setShopScreen('main')">REMOVE</button></div>`,
+    vault:`${liveHeader("HUNTER VAULT","Owned items, materials, locked items and salvage actions.")}<div class="action-grid"><button class="btn" onclick="openShopScreen('loadout')">EQUIPPED</button><button class="btn" onclick="salvageShopItem()">SALVAGE</button><button class="btn" onclick="openShopScreen('main')">SHOP</button></div>`
+  };
+  return panels[screen] || panels.main;
+}
+
+function autoEquipLoadout(){
+  ["shadow-katana","shadow-cloak","focus-ring","iron-boots"].forEach(id=>{
+    if(ownsItem(id)){
+      const item = SHOP_ITEMS.find(i=>i.id===id);
+      const slot = item.cat==="cosmetics" ? "cosmetic" : item.cat==="gear" ? id.split("-").pop() : item.cat;
+      state.inventory.equipped[slot] = id;
+    }
+  });
+  addAudit("loadout-auto-equip","Auto-equipped best owned loadout",state.inventory.equipped);
+  saveNonWorkout();
+  renderShop();
+  showNotif("levelup","AUTO EQUIP COMPLETE","Best owned gear assigned to loadout.");
+}
+
+function saveLoadoutPreset(){
+  state.inventory.presets = state.inventory.presets || [];
+  state.inventory.presets.unshift({id:Date.now(),name:"Loadout 1",items:{...(state.inventory.equipped||{})},savedAt:new Date().toISOString()});
+  state.inventory.presets = state.inventory.presets.slice(0,5);
+  addAudit("loadout-preset","Saved loadout preset",{name:"Loadout 1"});
+  saveNonWorkout();
+  showNotif("quest","PRESET SAVED","Loadout 1 saved.");
+}
+
+function equipComparedItem(){
+  if(!ownsItem("shadow-cloak")) buyItem("shadow-cloak");
+  equipItem("shadow-cloak");
+  activeShopScreen = "loadout";
+  renderShop();
+  showNotif("levelup","ITEM EQUIPPED","Night Stalker Armor candidate equipped.");
+}
+
+function renderShop(){
+  ensureStateShape();
+  const el = document.getElementById("shop-content");
+  const screen = activeShopScreen || "main";
+  el.innerHTML = pixelScreen(SHOP_SCREEN_IMAGES[screen] || SHOP_SCREEN_IMAGES.main,shopHotspots(screen),shopStatePanel(screen));
   return;
   const owned = new Set((state.inventory.owned||[]).map(i=>i.id));
   el.innerHTML = `

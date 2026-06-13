@@ -1,4 +1,4 @@
-const CACHE = "system-v4-9-social-pack";
+const CACHE = "system-v4-10-shop-pack";
 const FILES = [
   "./",
   "./the-system.html",
@@ -62,7 +62,17 @@ const FILES = [
   "./assets/screens/dungeon-d02-shadow-gate.jpg",
   "./assets/screens/dungeon-d03-void-gate-locked.jpg",
   "./assets/screens/dungeon-d04-world-boss.jpg",
-  "./assets/screens/dungeon-d05-raid-prep.jpg"
+  "./assets/screens/dungeon-d05-raid-prep.jpg",
+  "./assets/screens/shop-s02-item-detail.jpg",
+  "./assets/screens/shop-s03-purchase-confirm.jpg",
+  "./assets/screens/shop-s03-item-acquired.jpg",
+  "./assets/screens/shop-s04-gear-inventory.jpg",
+  "./assets/screens/shop-s05-boosts.jpg",
+  "./assets/screens/shop-s06-cosmetics.jpg",
+  "./assets/screens/shop-s07-loadout.jpg",
+  "./assets/screens/shop-s08-compare.jpg",
+  "./assets/screens/shop-s09-cart.jpg",
+  "./assets/screens/shop-s10-vault.jpg"
 ];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
