@@ -1,4 +1,4 @@
-const CACHE = "system-v4-13-polish-economy-pack";
+const CACHE = "system-v4-14-unified-screen-pack";
 const FILES = [
   "./",
   "./the-system.html",
@@ -7,6 +7,16 @@ const FILES = [
   "./assets/screens/quests.png",
   "./assets/screens/shop.png",
   "./assets/screens/impact.png",
+  "./assets/screens/new-hub-social.jpg",
+  "./assets/screens/new-quests-command.jpg",
+  "./assets/screens/new-train-main.jpg",
+  "./assets/screens/new-train-session.jpg",
+  "./assets/screens/new-nutrition-main.jpg",
+  "./assets/screens/new-nutrition-archive.jpg",
+  "./assets/screens/new-shop-main.jpg",
+  "./assets/screens/new-impact-main.jpg",
+  "./assets/screens/new-profile-command.jpg",
+  "./assets/screens/new-dungeon-gates.jpg",
   "./assets/screens/nutrition-overview.jpg",
   "./assets/screens/nutrition-archive.jpg",
   "./assets/screens/nutrition-scan.jpg",

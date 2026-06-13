@@ -1322,6 +1322,17 @@ function avatarRing(extra=""){
 function hotspot(label,left,top,width,height,action){
   return `<button class="pixel-hotspot" aria-label="${esc(label)}" title="${esc(label)}" style="left:${left}%;top:${top}%;width:${width}%;height:${height}%;" onclick="${action}">${esc(label)}</button>`;
 }
+function unifiedBottomHotspots(active="hub"){
+  return [
+    hotspot("Quests",0.5,92.3,13.0,7.4,"switchTab('quests')"),
+    hotspot("Train",14.3,92.3,13.0,7.4,"switchTab('training')"),
+    hotspot("Hub",28.1,92.3,13.0,7.4,"switchTab('hub')"),
+    hotspot("Nutrition",41.8,92.3,13.8,7.4,"switchTab('nutrition')"),
+    hotspot("Shop",56.2,92.3,13.0,7.4,"switchTab('shop')"),
+    hotspot("Impact",70.0,92.3,13.0,7.4,"switchTab('impact')"),
+    hotspot("Profile",83.8,92.3,15.0,7.4,"switchTab('status')")
+  ];
+}
 function pixelScreen(src,hotspots=[],liveText=""){
   return `<div class="pixel-screen"><img src="${src}" alt="THE SYSTEM interface"/>${hotspots.join("")}</div>${liveText?`<div class="functional-layer">${liveText}</div>`:""}`;
 }
@@ -1371,7 +1382,7 @@ function questLivePanel(){
     <div class="system-card p12"><div class="live-list">${qRows}</div></div>`;
 }
 const QUEST_SCREEN_IMAGES = {
-  main:"assets/screens/quest-q01-command.jpg",
+  main:"assets/screens/new-quests-command.jpg",
   detail:"assets/screens/quest-q03-detail.jpg",
   addProgress:"assets/screens/quest-q04-add-progress.jpg",
   advanced:"assets/screens/quest-q04-advanced-progress.jpg",
@@ -1387,13 +1398,7 @@ function setQuestScreen(screen,questId){
 
 function questById(id=activeQuestId){return QUESTS.find(q=>q.id===id) || QUESTS.find(q=>q.id==="dq-workout") || QUESTS[0];}
 function questBottomHotspots(){
-  return [
-    hotspot("Hub",15,90,13,6,"switchTab('hub')"),
-    hotspot("Quests",30,90,17,6,"switchTab('quests')"),
-    hotspot("Train",49,90,15,6,"switchTab('training')"),
-    hotspot("Dungeons",65,90,17,6,"switchTab('dungeons')"),
-    hotspot("Profile",83,90,14,6,"switchTab('status')")
-  ];
+  return unifiedBottomHotspots("quests");
 }
 function questHotspots(screen=activeQuestScreen){
   const nav = questBottomHotspots();
@@ -1453,20 +1458,24 @@ function questHotspots(screen=activeQuestScreen){
   ];
   return [
     ...nav,
-    hotspot("Streak Alert",18,18,68,7,"setQuestScreen('streak')"),
-    hotspot("Push-Up Power",24,25.7,48,3.2,"setQuestScreen('detail','dq-workout')"),
-    hotspot("Push-Up Add",78,25.7,11,3.2,"setQuestScreen('addProgress','dq-workout')"),
-    hotspot("Leg Day",24,30.2,48,3.2,"setQuestScreen('detail','dq-workout')"),
-    hotspot("Core Stability",24,34.9,48,3.2,"setQuestScreen('advanced','dq-coding')"),
-    hotspot("Flexibility Flow",24,39.7,48,3.2,"setQuestScreen('advanced','dq-reading')"),
-    hotspot("Hydration Check",24,44.5,48,3.2,"setQuestScreen('detail','dq-water')"),
-    hotspot("Hydration Add",78,44.5,11,3.2,"updateQuestProgress('dq-water',0.5)"),
-    hotspot("Weekly Tracker",18,50.5,68,8,"setQuestScreen('weekly')"),
-    hotspot("Iron Gate",18,72.7,19,3.4,"setDungeonScreen('iron')"),
-    hotspot("Shadow Gate",43,72.7,19,3.4,"setDungeonScreen('shadow')"),
-    hotspot("Void Gate",68,72.7,19,3.4,"setDungeonScreen('void')"),
-    hotspot("World Boss",82,78.1,8,4,"setDungeonScreen('world')"),
-    hotspot("Start Raid",16,84,68,5.2,"setDungeonScreen('world')")
+    hotspot("Notifications",82,9.5,6,5,"setHubScreen('notifications');switchTab('hub')"),
+    hotspot("Messages",91,9.5,7,5,"setHubScreen('messages');switchTab('hub')"),
+    hotspot("View Profile",75,21,20,5,"switchTab('status')"),
+    hotspot("Streak Alert",3,27,94,5,"setQuestScreen('streak')"),
+    hotspot("Quest 1 Detail",4,35,62,6,"setQuestScreen('detail','dq-workout')"),
+    hotspot("Quest 1 Add",90,35,7,6,"setQuestScreen('addProgress','dq-workout')"),
+    hotspot("Quest 2 Detail",4,41,62,6,"setQuestScreen('detail','dq-water')"),
+    hotspot("Quest 2 Add",90,41,7,6,"setQuestScreen('addProgress','dq-water')"),
+    hotspot("Quest 3 Detail",4,47,62,6,"setQuestScreen('detail','dq-coding')"),
+    hotspot("Quest 3 Add",90,47,7,6,"setQuestScreen('addProgress','dq-coding')"),
+    hotspot("View All Daily Quests",35,53,30,4,"setQuestScreen('detail','dq-workout')"),
+    hotspot("Weekly Tracker",3,56,94,12,"setQuestScreen('weekly')"),
+    hotspot("Iron Gate",3,70,30,13,"setDungeonScreen('iron')"),
+    hotspot("Shadow Gate",35,70,30,13,"setDungeonScreen('shadow')"),
+    hotspot("Void Gate",67,70,30,13,"setDungeonScreen('void')"),
+    hotspot("World Boss",3,84,94,5,"setDungeonScreen('world')"),
+    hotspot("Start Raid",3,89,70,4,"setDungeonScreen('world')"),
+    hotspot("Find Team",75,89,22,4,"setHubScreen('addHunter');switchTab('hub')")
   ];
 }
 function questStatePanel(screen=activeQuestScreen){
@@ -1563,7 +1572,7 @@ function dungeonLivePanel(){
     <button class="btn cta-blue" onclick="claimWorldBoss()">START WORLD BOSS</button>`;
 }
 const DUNGEON_SCREEN_IMAGES = {
-  main:"assets/screens/quests.png",
+  main:"assets/screens/new-dungeon-gates.jpg",
   iron:"assets/screens/dungeon-d01-iron-gate.jpg",
   shadow:"assets/screens/dungeon-d02-shadow-gate.jpg",
   void:"assets/screens/dungeon-d03-void-gate-locked.jpg",
@@ -1577,13 +1586,7 @@ function setDungeonScreen(screen,id){
   else renderDungeons();
 }
 function dungeonBottomHotspots(){
-  return [
-    hotspot("Hub",15,90,13,6,"switchTab('hub')"),
-    hotspot("Quests",30,90,17,6,"switchTab('quests')"),
-    hotspot("Train",49,90,15,6,"switchTab('training')"),
-    hotspot("Dungeons",65,90,17,6,"switchTab('dungeons')"),
-    hotspot("Profile",83,90,14,6,"switchTab('status')")
-  ];
+  return unifiedBottomHotspots("quests");
 }
 function dungeonHotspots(screen=activeDungeonScreen){
   const nav = dungeonBottomHotspots();
@@ -1619,11 +1622,12 @@ function dungeonHotspots(screen=activeDungeonScreen){
   ];
   return [
     ...nav,
-    hotspot("Iron Gate",18,72.7,19,3.4,"setDungeonScreen('iron','iron-gate')"),
-    hotspot("Shadow Gate",43,72.7,19,3.4,"setDungeonScreen('shadow','wolf-den')"),
-    hotspot("Void Gate",68,72.7,19,3.4,"setDungeonScreen('void','void-gate')"),
-    hotspot("World Boss",82,78.1,8,4,"setDungeonScreen('world')"),
-    hotspot("Start Raid",16,84,68,5.2,"setDungeonScreen('world')")
+    hotspot("Iron Gate",2,29,31,33,"setDungeonScreen('iron','iron-gate')"),
+    hotspot("Shadow Gate",34.5,29,31,33,"setDungeonScreen('shadow','wolf-den')"),
+    hotspot("Void Gate",67,29,31,33,"setDungeonScreen('void','void-gate')"),
+    hotspot("World Boss Event",2,64,96,18,"setDungeonScreen('world')"),
+    hotspot("Join Battle",76,80,20,6,"setDungeonScreen('world')"),
+    hotspot("Gate Energy",3,83,35,8,"showNotif('quest','GATE ENERGY','Gate energy refills over time and powers raid entries.')")
   ];
 }
 function dungeonStatePanel(screen=activeDungeonScreen){
@@ -1665,7 +1669,7 @@ function impactLivePanel(){
 }
 
 const IMPACT_SCREEN_IMAGES = {
-  main:"assets/screens/impact-command.jpg",
+  main:"assets/screens/new-impact-main.jpg",
   causeDetail:"assets/screens/impact-i02-cause-detail.jpg",
   chooseCause:"assets/screens/impact-i03-choose-cause.jpg",
   pledge:"assets/screens/impact-i04-pledge-builder.jpg",
@@ -1684,13 +1688,7 @@ function setImpactScreen(screen){
 }
 
 function impactBottomHotspots(){
-  return [
-    hotspot("Quests",18,91,12,5.5,"switchTab('quests')"),
-    hotspot("Train",34,91,12,5.5,"switchTab('training')"),
-    hotspot("Hub",49,91,12,5.5,"switchTab('hub')"),
-    hotspot("Impact",64,91,12,5.5,"setImpactScreen('main')"),
-    hotspot("Profile",80,91,12,5.5,"switchTab('status')")
-  ];
+  return unifiedBottomHotspots("impact");
 }
 
 function selectImpactCause(cause){
@@ -1882,16 +1880,17 @@ function impactHotspots(screen=activeImpactScreen){
   ];
   return [
     ...nav,
-    hotspot("Notifications",70,5.4,7,5,"showNotif('quest','NOTIFICATIONS','No new impact alerts.')"),
-    hotspot("Messages",77,5.4,8,5,"showNotif('quest','MESSAGES','Impact squad messages will appear here.')"),
-    hotspot("Learn More",18,21.8,18,4,"setImpactScreen('causeDetail')"),
-    hotspot("Cause Card",16,13,70,20,"setImpactScreen('causeDetail')"),
-    hotspot("Your Impact",16,33,70,14,"setImpactScreen('ledger')"),
-    hotspot("View Impact",66,42.4,21,4,"setImpactScreen('leaderboard')"),
-    hotspot("Full Impact Leaderboard",18,65,67,3.5,"setImpactScreen('leaderboard')"),
-    hotspot("Impact Rewards",59,80.6,28,3.4,"setImpactScreen('rewards')"),
-    hotspot("Your Contribution",16,74,30,10,"setImpactScreen('ledger')"),
-    hotspot("Complete Mission",16,86,68,5.2,"setImpactScreen('missions')")
+    hotspot("Notifications",82,10,6,5,"setHubScreen('notifications');switchTab('hub')"),
+    hotspot("Messages",91,10,7,5,"setHubScreen('messages');switchTab('hub')"),
+    hotspot("Cause Card",3,17,94,20,"setImpactScreen('causeDetail')"),
+    hotspot("View Cause",76,28,18,6,"setImpactScreen('causeDetail')"),
+    hotspot("Your Impact",3,39,94,13,"setImpactScreen('ledger')"),
+    hotspot("Community Impact",3,53,94,16,"setImpactScreen('leaderboard')"),
+    hotspot("View Leaderboard",75,54,20,5,"setImpactScreen('leaderboard')"),
+    hotspot("Guild Contributions",3,70,94,12,"setImpactScreen('leaderboard')"),
+    hotspot("Impact Rewards",3,82,94,8,"setImpactScreen('rewards')"),
+    hotspot("Browse Causes",67,89,28,5,"setImpactScreen('chooseCause')"),
+    hotspot("Make An Impact",3,89,62,5,"setImpactScreen('missions')")
   ];
 }
 
@@ -2075,7 +2074,7 @@ function claimPartnerRewards(){
 }
 
 const HUB_SCREEN_IMAGES = {
-  main:"assets/screens/hub.png",
+  main:"assets/screens/new-hub-social.jpg",
   friends:"assets/screens/hub-h02-friends.jpg",
   addHunter:"assets/screens/hub-h03-add-hunter.jpg",
   friendProfile:"assets/screens/hub-h04-friend-profile.jpg",
@@ -2102,13 +2101,7 @@ function setHubScreen(screen){
 }
 
 function hubBottomHotspots(){
-  return [
-    hotspot("Quests",18,89.5,12,6,"switchTab('quests')"),
-    hotspot("Train",32,89.5,14,6,"switchTab('training')"),
-    hotspot("Hub",47,89.5,13,6,"activeHubScreen='main';switchTab('hub')"),
-    hotspot("Shop",62,89.5,14,6,"switchTab('shop')"),
-    hotspot("Profile",78,89.5,14,6,"switchTab('status')")
-  ];
+  return unifiedBottomHotspots("hub");
 }
 
 function hubHotspots(screen=activeHubScreen){
@@ -2328,21 +2321,20 @@ function hubHotspots(screen=activeHubScreen){
   ];
   return [
     ...nav,
-    hotspot("Notifications",69,5.1,7,5,"setHubScreen('notifications')"),
-    hotspot("Messages",76,5.1,8,5,"setHubScreen('messages')"),
-    hotspot("View License",70,18.1,18,4.5,"setHubScreen('license')"),
-    hotspot("Friends",17,24.2,21,3.8,"showFriendsPanel()"),
-    hotspot("Leaderboard",40,24.2,22,3.8,"setHubScreen('leaderboard')"),
-    hotspot("Guild Hall",64,24.2,22,3.8,"showGuildHall()"),
-    hotspot("View Raid",66,35.4,20,4,"setHubScreen('raidDetail')"),
-    hotspot("Double XP Details",64,41.8,21,4,"setHubScreen('systemChat')"),
-    hotspot("Full Leaderboard",20,61.1,30,3.4,"setHubScreen('leaderboard')"),
-    hotspot("Guild Hall Card",58,62.8,28,3.3,"showGuildHall()"),
-    hotspot("Invite Friends",17,68.4,22,5,"setHubScreen('addHunter')"),
-    hotspot("Add Hunter",17,75,22,5,"setHubScreen('addHunter')"),
-    hotspot("Partner Push",40,68.0,46,12,"setHubScreen('coop')"),
-    hotspot("Quick Actions",82,74.0,10,10,"setHubScreen('quickActions')"),
-    hotspot("Impact",17,81.6,69,6.4,"switchTab('impact')")
+    hotspot("Notifications",82,9.5,6,5,"setHubScreen('notifications')"),
+    hotspot("Messages",91,9.5,7,5,"setHubScreen('messages')"),
+    hotspot("View Profile",75,23,20,5,"switchTab('status')"),
+    hotspot("Friends",3,28,30,5,"showFriendsPanel()"),
+    hotspot("Leaderboard",34,28,31,5,"setHubScreen('leaderboard')"),
+    hotspot("Guild Hall",66,28,31,5,"showGuildHall()"),
+    hotspot("View Raid",75,42,20,5,"setHubScreen('raidDetail')"),
+    hotspot("Top Hunters",4,45,42,16,"setHubScreen('leaderboard')"),
+    hotspot("My Guild",51,45,45,16,"showGuildHall()"),
+    hotspot("Invite Friends",3,63,30,6,"setHubScreen('addHunter')"),
+    hotspot("Add Hunter",34,63,30,6,"setHubScreen('addHunter')"),
+    hotspot("Find Hunters",66,63,30,6,"setHubScreen('addHunter')"),
+    hotspot("Co-op Challenge",4,70,92,10,"setHubScreen('coop')"),
+    hotspot("Social Progress",4,81,92,9,"claimHubMissionRewards()")
   ];
 }
 
@@ -2561,9 +2553,9 @@ function setNutritionView(view){
 }
 function nutritionScreenSrc(){
   return {
-    overview:"assets/screens/nutrition-command.jpg",
+    overview:"assets/screens/new-nutrition-main.jpg",
     diary:"assets/screens/nutrition-n02-diary.jpg",
-    archive:"assets/screens/nutrition-n03-archive.jpg",
+    archive:"assets/screens/new-nutrition-archive.jpg",
     recipe:"assets/screens/nutrition-n04-recipe-detail.jpg",
     barcode:"assets/screens/nutrition-n05-barcode-scan.jpg",
     result:"assets/screens/nutrition-n06-barcode-result.jpg",
@@ -2574,13 +2566,7 @@ function nutritionScreenSrc(){
   }[activeNutritionView] || "assets/screens/nutrition-n01-overview.jpg";
 }
 function nutritionBottomHotspots(){
-  return [
-    hotspot("Hub",17,91,12,5.5,"switchTab('hub')"),
-    hotspot("Train",33,91,12,5.5,"switchTab('training')"),
-    hotspot("Quests",49,91,12,5.5,"switchTab('quests')"),
-    hotspot("Nutrition",64,91,14,5.5,"switchTab('nutrition')"),
-    hotspot("Profile",82,91,12,5.5,"switchTab('status')")
-  ];
+  return unifiedBottomHotspots("nutrition");
 }
 function nutritionStatePanel(){
   const totals = getNutritionTotals();
@@ -2606,25 +2592,39 @@ function renderNutritionPixel(){
   const baseNav = nutritionBottomHotspots();
   const viewHotspots = {
     overview:[
-      hotspot("View Profile",70,25.5,22,4,"switchTab('status')"),
-      hotspot("Log Meal",15,47.5,12,6,"setNutritionView('diary')"),
-      hotspot("Scan Food",33,47.5,12,6,"setNutritionView('barcode')"),
-      hotspot("Voice Log",49,47.5,12,6,"setNutritionView('voice')"),
-      hotspot("Plan Meals",65,47.5,12,6,"setNutritionView('archive')"),
-      hotspot("View Diary",82,47.5,12,6,"setNutritionView('diary')"),
-      hotspot("Meal Card Breakfast",16,68,17,12,"setNutritionView('confirm')"),
-      hotspot("Meal Card Lunch",34,68,17,12,"setNutritionView('confirm')"),
-      hotspot("Insights",67,82,20,7,"setNutritionView('progress')")
+      hotspot("Notifications",82,10,6,5,"setHubScreen('notifications');switchTab('hub')"),
+      hotspot("Messages",91,10,7,5,"setHubScreen('messages');switchTab('hub')"),
+      hotspot("View Profile",72,25,22,5,"switchTab('status')"),
+      hotspot("Log Meal",4,47,17,9,"setNutritionView('diary')"),
+      hotspot("Scan Food",22,47,18,9,"setNutritionView('barcode')"),
+      hotspot("Voice Log",41,47,18,9,"setNutritionView('voice')"),
+      hotspot("Plan Meals",60,47,18,9,"setNutritionView('archive')"),
+      hotspot("Nutrition Diary",79,47,17,9,"setNutritionView('diary')"),
+      hotspot("Breakfast Meal",4,62,22,17,"setNutritionView('confirm')"),
+      hotspot("Lunch Meal",27,62,22,17,"setNutritionView('confirm')"),
+      hotspot("Dinner Meal",50,62,22,17,"setNutritionView('confirm')"),
+      hotspot("Snack Meal",73,62,22,17,"setNutritionView('confirm')"),
+      hotspot("View Nutrition Diary",19,79,62,5,"setNutritionView('diary')"),
+      hotspot("Nutrition Streak",4,85,30,7,"setNutritionView('progress')"),
+      hotspot("Recovery Readiness",35,85,30,7,"setNutritionView('progress')"),
+      hotspot("Fuel Quality",66,85,30,7,"setNutritionView('progress')")
     ],
     archive:[
-      hotspot("All",10,22.5,11,3.2,"showNotif('quest','MEAL FILTER','Showing all recipes.')"),
-      hotspot("Featured Recipe",10,31,80,11,"setNutritionView('recipe')"),
-      hotspot("Recipe Card 1",10,55,18,12,"setNutritionView('recipe')"),
-      hotspot("Recipe Card 2",30,55,18,12,"setNutritionView('recipe')"),
-      hotspot("Add To Plan",12,66,17,3,"addMealTemplate(0)"),
-      hotspot("Add To Plan 2",31,66,17,3,"addMealTemplate(1)"),
-      hotspot("View Plan",17,83,28,4,"showNotif('quest','WEEKLY PLAN','Weekly meal plan builder is active through recipe cards.')"),
-      hotspot("View Grocery List",56,83,28,4,"showNotif('quest','GROCERY LIST','Grocery list will sync planned meals in the launch build.')")
+      hotspot("Notifications",82,10,6,5,"setHubScreen('notifications');switchTab('hub')"),
+      hotspot("Messages",91,10,7,5,"setHubScreen('messages');switchTab('hub')"),
+      hotspot("Search Meals",4,16,86,5,"showNotif('quest','MEAL SEARCH','Meal search is ready for live recipe data.')"),
+      hotspot("Filter Meals",92,16,6,5,"showNotif('quest','MEAL FILTER','Meal filters opened.')"),
+      hotspot("All Meals",2,22,10,4,"showNotif('quest','MEAL FILTER','Showing all recipes.')"),
+      hotspot("Featured Recipe",2,29,96,12,"setNutritionView('recipe')"),
+      hotspot("Favourite Meal 1",2,45,22,11,"setNutritionView('recipe')"),
+      hotspot("Favourite Meal 2",26,45,22,11,"setNutritionView('recipe')"),
+      hotspot("Favourite Meal 3",50,45,22,11,"setNutritionView('recipe')"),
+      hotspot("Favourite Meal 4",74,45,22,11,"setNutritionView('recipe')"),
+      hotspot("Archive Meal 1",2,60,31,10,"setNutritionView('recipe')"),
+      hotspot("Archive Meal 2",35,60,31,10,"setNutritionView('recipe')"),
+      hotspot("Archive Meal 3",68,60,30,10,"setNutritionView('recipe')"),
+      hotspot("View Weekly Plan",3,85,43,6,"showNotif('quest','WEEKLY PLAN','Weekly meal plan builder is active through recipe cards.')"),
+      hotspot("View Grocery List",50,85,46,6,"showNotif('quest','GROCERY LIST','Grocery list will sync planned meals in the launch build.')")
     ],
     recipe:[
       hotspot("Back Archive",16,14,7,5,"setNutritionView('archive')"),
@@ -3240,7 +3240,8 @@ function setTrainingDay(k){
 }
 
 const TRAINING_SCREEN_IMAGES = {
-  main:"assets/screens/train-command.jpg",
+  main:"assets/screens/new-train-main.jpg",
+  session:"assets/screens/new-train-session.jpg",
   split:"assets/screens/train-t02-split-selector.jpg",
   upper:"assets/screens/train-t03-upper-lower.jpg",
   ppl:"assets/screens/train-t04-ppl.jpg",
@@ -3275,13 +3276,7 @@ function trainingNavHotspots(){
 }
 
 function trainingBottomHotspots(){
-  return [
-    hotspot("Hub",12.0,94.6,12.0,4.5,"switchTab('hub')"),
-    hotspot("Train",27.0,94.6,13.0,4.5,"switchTab('training')"),
-    hotspot("Quests",43.0,94.6,13.0,4.5,"switchTab('quests')"),
-    hotspot("Shop",60.0,94.6,12.0,4.5,"switchTab('shop')"),
-    hotspot("Profile",77.0,94.6,13.0,4.5,"switchTab('status')")
-  ];
+  return unifiedBottomHotspots("training");
 }
 
 function trainingHotspots(screen=activeTrainingScreen){
@@ -3324,10 +3319,29 @@ function trainingHotspots(screen=activeTrainingScreen){
     ...trainingBottomHotspots(),
     hotspot("Back To Train",27.0,86.5,46.0,6.0,"setTrainingScreen('main')")
   ];
+  if(screen==="session") return [
+    ...trainingBottomHotspots(),
+    hotspot("Back To Train",4.0,14.0,9.0,6.0,"setTrainingScreen('main')"),
+    hotspot("Workout Tab",4.0,27.0,22.0,5.0,"showNotif('quest','WORKOUT VIEW','Workout logging view active.')"),
+    hotspot("Overview Tab",26.0,27.0,22.0,5.0,"showNotif('quest','SESSION OVERVIEW','Session overview selected.')"),
+    hotspot("Muscle Map",48.0,27.0,22.0,5.0,"showNotif('quest','MUSCLE MAP','Muscle map selected.')"),
+    hotspot("Notes Tab",70.0,27.0,14.0,5.0,"showNotif('quest','NOTES','Workout notes opened.')"),
+    hotspot("Edit Workout",77.0,27.0,20.0,5.0,"setTrainingScreen('custom','custom')"),
+    hotspot("Add Chest Exercise",38.0,51.0,28.0,4.0,"addExerciseToSection('CHEST')"),
+    hotspot("Add Shoulder Exercise",38.0,67.0,28.0,4.0,"addExerciseToSection('SHOULDERS')"),
+    hotspot("Add Triceps Exercise",38.0,81.0,28.0,4.0,"addExerciseToSection('TRICEPS')"),
+    hotspot("Timer",68.0,85.0,12.0,5.0,"showNotif('quest','TIMER','Rest timer started.')"),
+    hotspot("Log Session",14.0,89.0,72.0,6.0,`startLogSession('${activeTrainingDay}')`)
+  ];
   return [
     ...common,
-    hotspot("Open Split Selector",10.0,20.0,22.0,2.2,"setTrainingScreen('split')"),
-    hotspot("Log Session",14.3,31.5,43.0,5.3,`startLogSession('${activeTrainingDay}')`),
+    hotspot("PPL Split",3.0,16.5,19.0,6.5,"setTrainingScreen('ppl','ppl')"),
+    hotspot("Upper Lower Split",23.0,16.5,19.0,6.5,"setTrainingScreen('upper','upper')"),
+    hotspot("Full Body Split",43.0,16.5,17.0,6.5,"setTrainingScreen('fullbody','fullbody')"),
+    hotspot("Custom Split",78.0,16.5,18.0,6.5,"setTrainingScreen('custom','custom')"),
+    hotspot("View Session Details",6.0,38.0,28.0,6.0,"setTrainingScreen('session')"),
+    hotspot("Enter Training",4.0,85.5,43.0,7.5,"setTrainingScreen('session')"),
+    hotspot("Edit Split",50.0,85.5,45.0,7.5,"setTrainingScreen('custom','custom')"),
     hotspot("Edit Chest Section",75.0,43.0,7.0,4.0,"openSectionEditor('CHEST')"),
     hotspot("Edit Back Section",75.0,54.0,7.0,4.0,"openSectionEditor('BACK')"),
     hotspot("Edit Biceps Section",75.0,64.5,7.0,4.0,"openSectionEditor('BICEPS')"),
@@ -4110,7 +4124,7 @@ function renderStatus(){
 }
 
 const PROFILE_SCREEN_IMAGES = {
-  command:"assets/screens/profile-p01-command.jpg",
+  command:"assets/screens/new-profile-command.jpg",
   avatar:"assets/screens/profile-p02-edit-avatar.jpg",
   license:"assets/screens/profile-p03-edit-license.jpg",
   title:"assets/screens/profile-p04-title-badge.jpg",
@@ -4123,14 +4137,7 @@ function setProfileScreen(screen){
 }
 
 function profileBottomHotspots(){
-  return [
-    hotspot("Quests Tab",9.5,94.4,12.0,4.8,"switchTab('quests')"),
-    hotspot("Train Tab",24.0,94.4,12.0,4.8,"switchTab('training')"),
-    hotspot("Hub Tab",39.0,94.4,12.0,4.8,"switchTab('hub')"),
-    hotspot("Shop Tab",55.0,94.4,12.0,4.8,"switchTab('shop')"),
-    hotspot("Impact Tab",70.0,94.4,12.0,4.8,"switchTab('impact')"),
-    hotspot("Profile Tab",84.0,94.4,12.0,4.8,"setProfileScreen('command')")
-  ];
+  return unifiedBottomHotspots("status");
 }
 
 function saveAvatarProfile(){
@@ -4231,18 +4238,25 @@ function profileHotspots(nextRoute="quests",screen=activeProfileScreen){
   ];
   return [
     ...nav,
-    hotspot("Edit Avatar",22,19,12,10,"setProfileScreen('avatar')"),
-    hotspot("View All Quests",76,33,15,6,"switchTab('quests')"),
-    hotspot("Log Meal Now",64,41,28,6,"switchTab('nutrition')"),
-    hotspot("Quests",7,48,40,9,"switchTab('quests')"),
-    hotspot("Train",51,48,40,9,"switchTab('training')"),
-    hotspot("Nutrition",7,58,40,9,"switchTab('nutrition')"),
-    hotspot("Impact",51,58,40,9,"switchTab('impact')"),
-    hotspot("Vault",7,68,40,9,"setProfileScreen('vault')"),
-    hotspot("Shop",51,68,40,9,"switchTab('shop')"),
-    hotspot("Take Action",22,82,26,5,`switchTab('${nextRoute}')`),
-    hotspot("Activate Focus",70,88,22,5,"showNotif('levelup','FOCUS MODE','Focus mode activated. Lock in and complete the mission.')"),
-    hotspot("Change Title",51,78,40,8,"setProfileScreen('title')")
+    hotspot("Notifications",82,10,6,5,"setHubScreen('notifications');switchTab('hub')"),
+    hotspot("Messages",91,10,7,5,"setHubScreen('messages');switchTab('hub')"),
+    hotspot("View Priorities",70,23,25,6,"switchTab('quests')"),
+    hotspot("Daily Quest Meal",3,34,18,9,"switchTab('nutrition')"),
+    hotspot("Daily Quest Train",22,34,18,9,"switchTab('training')"),
+    hotspot("Daily Quest Water",41,34,18,9,"switchTab('nutrition')"),
+    hotspot("Daily Quest Complete",60,34,18,9,"switchTab('quests')"),
+    hotspot("Daily Impact",79,34,18,9,"switchTab('impact')"),
+    hotspot("Enter Gate",66,46,28,7,"switchTab('dungeons')"),
+    hotspot("Quests",3,56,30,8,"switchTab('quests')"),
+    hotspot("Train",35,56,30,8,"switchTab('training')"),
+    hotspot("Nutrition",67,56,30,8,"switchTab('nutrition')"),
+    hotspot("Impact",3,65,30,8,"switchTab('impact')"),
+    hotspot("Vault",35,65,30,8,"setProfileScreen('vault')"),
+    hotspot("Shop",67,65,30,8,"switchTab('shop')"),
+    hotspot("Start Training",4,83,27,6,"switchTab('training')"),
+    hotspot("Mission Streak",36,76,27,13,"switchTab('quests')"),
+    hotspot("End Focus Mode",71,86,22,5,"showNotif('levelup','FOCUS MODE ENDED','Focus mode switched off.')"),
+    hotspot("Edit Avatar",8,18,14,9,"setProfileScreen('avatar')")
   ];
 }
 
@@ -5033,7 +5047,7 @@ function equipItem(id){
 }
 
 const SHOP_SCREEN_IMAGES = {
-  main:"assets/screens/shop-command.jpg",
+  main:"assets/screens/new-shop-main.jpg",
   detail:"assets/screens/shop-s02-item-detail.jpg",
   confirm:"assets/screens/shop-s03-purchase-confirm.jpg",
   acquired:"assets/screens/shop-s03-item-acquired.jpg",
@@ -5057,13 +5071,7 @@ function openShopScreen(screen){
 }
 
 function shopBottomHotspots(){
-  return [
-    hotspot("Hub",18,91,11,5.5,"switchTab('hub')"),
-    hotspot("Train",33,91,12,5.5,"switchTab('training')"),
-    hotspot("Quests",50,91,12,5.5,"switchTab('quests')"),
-    hotspot("Shop",65,91,12,5.5,"activeShopScreen='main';switchTab('shop')"),
-    hotspot("Profile",82,91,12,5.5,"switchTab('status')")
-  ];
+  return unifiedBottomHotspots("shop");
 }
 
 function purchaseShadowKatana(){
@@ -5234,22 +5242,23 @@ function shopHotspots(screen=activeShopScreen){
   ];
   return [
     ...nav,
-    hotspot("Gold Balance",73,5.2,8,4,"showNotif('quest','GOLD BALANCE','Gold is earned from completed missions and spent in the shop.')"),
-    hotspot("Cart",82,4.7,10,6,"setShopScreen('cart')"),
-    hotspot("All Items",20,18.5,18,4,"setShopScreen('main')"),
-    hotspot("Gear Tab",39,18.5,18,4,"setShopScreen('gear')"),
-    hotspot("Boosts Tab",58,18.5,18,4,"setShopScreen('boosts')"),
-    hotspot("Cosmetics Tab",78,18.5,20,4,"setShopScreen('cosmetics')"),
-    hotspot("Featured Item",18,27,69,18,"setShopScreen('detail')"),
-    hotspot("View Item",62,39,26,5,"setShopScreen('detail')"),
-    hotspot("Buy Shadow Katana",55,39,16,5,"setShopScreen('confirm')"),
-    hotspot("Night Stalker Armor",18,52,18,18,"setShopScreen('compare')"),
-    hotspot("Focus Ring",40,52,18,18,"setShopScreen('loadout')"),
-    hotspot("Hunter Boots",60,52,18,18,"setShopScreen('loadout')"),
-    hotspot("Training Elixir",80,52,18,18,"setShopScreen('boosts')"),
-    hotspot("Loadout",18,72,70,12,"setShopScreen('loadout')"),
-    hotspot("Hunter Profile",18,86,30,6,"switchTab('status')"),
-    hotspot("Change Title",62,86,25,6,"switchTab('awakening')")
+    hotspot("Gold Balance",39,10,12,5,"showNotif('quest','GOLD BALANCE','Gold is earned from completed missions and spent in the shop.')"),
+    hotspot("XP Balance",52,10,16,5,"showNotif('quest','XP BALANCE','XP tracks level progress and unlock requirements.')"),
+    hotspot("Power Balance",80,10,16,5,"showNotif('quest','POWER SCORE','Power is driven by training, level and equipped loadout.')"),
+    hotspot("Gear Tab",3,18,30,5,"setShopScreen('gear')"),
+    hotspot("Boosts Tab",35,18,30,5,"setShopScreen('boosts')"),
+    hotspot("Cosmetics Tab",67,18,30,5,"setShopScreen('cosmetics')"),
+    hotspot("Featured Item",3,25,94,22,"setShopScreen('detail')"),
+    hotspot("View Details",65,40,25,6,"setShopScreen('detail')"),
+    hotspot("Shop Item 1",3,50,18,18,"setShopScreen('detail')"),
+    hotspot("Shop Item 2",22,50,18,18,"setShopScreen('compare')"),
+    hotspot("Shop Item 3",41,50,18,18,"setShopScreen('compare')"),
+    hotspot("Shop Item 4",60,50,18,18,"setShopScreen('loadout')"),
+    hotspot("Shop Item 5",79,50,18,18,"setShopScreen('loadout')"),
+    hotspot("Equipped Loadout",3,72,94,13,"setShopScreen('loadout')"),
+    hotspot("Daily Deals",3,86,28,6,"setShopScreen('cart')"),
+    hotspot("Loyalty Points",35,86,28,6,"showNotif('quest','LOYALTY POINTS','Loyalty points will reward consistent subscriptions and missions.')"),
+    hotspot("VIP Discount",67,86,28,6,"showNotif('quest','VIP DISCOUNT','VIP discount active for this preview.')")
   ];
 }
 
