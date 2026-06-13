@@ -526,21 +526,28 @@ body::before{
 .scan-showcase::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.12),rgba(0,0,0,.75));}
 .scan-showcase-inner{position:absolute;inset:auto 12px 12px;z-index:1;color:#e8f4ff;}
 body.pixel-mode{background:#000;}
-body.pixel-mode #app{max-width:960px;padding:12px 12px 18px;}
+body.pixel-mode #app{
+  width:min(100%,430px);
+  max-width:430px;
+  min-height:100vh;
+  padding:0;
+  background:#000;
+  border:0;
+  box-shadow:none;
+}
+body.pixel-mode #topbar,
+body.pixel-mode #player-strip,
 body.pixel-mode #tabs{
-  position:sticky;
-  top:0;
-  left:auto;
-  bottom:auto;
-  transform:none;
-  width:100%;
-  height:auto;
-  margin:0 0 12px;
-  padding:5px;
-  border:1px solid rgba(0,170,255,.35);
-  border-radius:9px;
-  background:linear-gradient(180deg,rgba(4,16,31,.96),rgba(1,7,15,.96));
-  box-shadow:0 0 22px rgba(0,120,255,.18),inset 0 0 18px rgba(0,170,255,.08);
+  display:none;
+}
+body.pixel-mode .tab-content.active{
+  display:block;
+}
+body.pixel-mode .pixel-screen{
+  margin:0;
+}
+body.pixel-mode .functional-layer{
+  display:none;
 }
 body.pixel-mode .tab-btn{
   min-height:34px;
@@ -1505,6 +1512,8 @@ function claimWeeklyQuestTier(tier){
   state.meta.weeklyClaims = state.meta.weeklyClaims || {};
   const key = `tier-${tier}-${weekKey()}`;
   if(state.meta.weeklyClaims[key]) return showNotif("quest","ALREADY CLAIMED",`${tier} quest tier already claimed.`);
+  const completed = QUESTS.filter(q=>state.dailyProgress.quests[q.id]?.completed).length;
+  if(completed < tier) return showNotif("penalty","TIER LOCKED",`Complete ${tier} quests before claiming this reward. Current progress: ${completed}/${tier}.`);
   state.meta.weeklyClaims[key] = true;
   const xp = tier >= 20 ? 500 : tier >= 15 ? 250 : 100;
   const gold = tier >= 20 ? 250 : tier >= 15 ? 100 : 50;
@@ -1515,6 +1524,13 @@ function claimWeeklyQuestTier(tier){
   showNotif("levelup","WEEKLY REWARD CLAIMED",`Tier ${tier}\n\n+${xp} XP · +${gold} Gold`);
 }
 function claimWeeklyQuestBonus(type){
+  state.meta.weeklyClaims = state.meta.weeklyClaims || {};
+  const key = `bonus-${type}-${weekKey()}`;
+  if(state.meta.weeklyClaims[key]) return showNotif("quest","ALREADY CLAIMED",`${type.toUpperCase()} bonus already claimed.`);
+  const completed = QUESTS.filter(q=>state.dailyProgress.quests[q.id]?.completed).length;
+  const required = type==="streak" ? 5 : QUESTS.filter(q=>!q.optional).length;
+  if(completed < required) return showNotif("penalty","BONUS LOCKED",`Complete ${required} qualifying quests before claiming this bonus. Current progress: ${completed}/${required}.`);
+  state.meta.weeklyClaims[key] = true;
   const xp = type==="time" ? 150 : 0;
   const gold = type==="streak" ? 75 : 0;
   if(xp) addXP(xp,"AGI");
@@ -1727,6 +1743,9 @@ function activateImpactPact(){
 
 function completeImpactPackMission(){
   ensureStateShape();
+  if(!state.impact.pledge?.active) return showNotif("penalty","MISSION NOT ACTIVE","Activate an impact pact before claiming mission completion rewards.");
+  const already = state.auditLog.some(a=>a.type==="impact-mission-complete" && a.extra?.mission==="7-Day Hydration Rescue" && weekKey(a.at)===weekKey());
+  if(already) return showNotif("quest","MISSION ALREADY CLAIMED","This impact mission has already been completed this week.");
   state.impact.missionsCompleted = (state.impact.missionsCompleted||0) + 1;
   addImpact(2500,"7-Day Hydration Rescue");
   addGold(250,"Impact mission");
@@ -1950,10 +1969,7 @@ function completeIntro(){
   document.getElementById("intro-sequence")?.classList.remove("show");
 }
 function addDemoGold(){
-  addGold(500,"Founder test grant");
-  saveNonWorkout();
-  refreshCurrentView();
-  showNotif("levelup","GOLD ADDED","+500 Gold added for local testing.");
+  showNotif("penalty","TEST GRANT DISABLED","Gold can only be earned through completed quests, sessions, raids, impact missions, or legitimate admin tooling.");
 }
 function showFriendsPanel(){
   ensureStateShape();
@@ -5091,19 +5107,31 @@ function completeCartPurchase(){
 
 function useBoostItem(id="training-elixir"){
   const item = SHOP_ITEMS.find(i=>i.id===id) || SHOP_ITEMS.find(i=>i.id==="training-elixir");
+  const owned = (state.inventory.owned||[]).find(i=>i.id===item?.id);
+  if(!item || !owned) return showNotif("penalty","BOOST NOT OWNED","Purchase or earn this boost before using it.");
+  if(owned.qty !== undefined){
+    owned.qty -= 1;
+    if(owned.qty <= 0) state.inventory.owned = state.inventory.owned.filter(i=>i!==owned);
+  }
+  state.inventory.activeBoosts = state.inventory.activeBoosts || [];
+  state.inventory.activeBoosts.unshift({id:item.id,name:item.name,startedAt:new Date().toISOString(),effect:item.bonus});
   addAudit("boost-used",`Used ${item?.name||"Boost"}`,{item:id});
-  addXP(75,"Boost used");
   saveNonWorkout();
   renderShop();
-  showNotif("levelup","BOOST ACTIVATED",`${item?.name||"Boost"} activated.\n\n+75 XP test reward`);
+  showNotif("quest","BOOST ACTIVATED",`${item.name} activated.\n\n${item.bonus}`);
 }
 
 function salvageShopItem(){
-  addGold(150,"Salvaged spare item");
-  addAudit("item-salvaged","Salvaged spare inventory item",{gold:150});
+  const duplicate = (state.inventory.owned||[]).find((item,idx,arr)=>arr.findIndex(x=>x.id===item.id)!==idx);
+  if(!duplicate) return showNotif("penalty","NO DUPLICATE ITEM","Only duplicate owned items can be salvaged.");
+  const shopItem = SHOP_ITEMS.find(i=>i.id===duplicate.id);
+  const refund = Math.max(50, Math.round((shopItem?.price||500) * 0.2));
+  state.inventory.owned = state.inventory.owned.filter(i=>i!==duplicate);
+  addGold(refund,"Salvaged duplicate item");
+  addAudit("item-salvaged","Salvaged duplicate inventory item",{item:duplicate.id,gold:refund});
   saveNonWorkout();
   renderShop();
-  showNotif("quest","ITEM SALVAGED","+150 Gold returned from spare item.");
+  showNotif("quest","ITEM SALVAGED",`Duplicate item salvaged.\n\n+${refund} Gold returned.`);
 }
 
 function shopHotspots(screen=activeShopScreen){
@@ -5111,7 +5139,7 @@ function shopHotspots(screen=activeShopScreen){
   if(screen==="detail") return [
     ...nav,
     hotspot("Back To Shop",16,18,8,5,"setShopScreen('main')"),
-    hotspot("Add Gold",73,18,8,4,"addDemoGold()"),
+    hotspot("Gold Balance",73,18,8,4,"showNotif('quest','GOLD BALANCE','Gold is earned from completed missions and spent in the shop.')"),
     hotspot("Cart",82,17,10,6,"setShopScreen('cart')"),
     hotspot("Compare Item",18,83,16,6,"setShopScreen('compare')"),
     hotspot("Buy Now",42,83,30,6,"setShopScreen('confirm')"),
@@ -5183,7 +5211,7 @@ function shopHotspots(screen=activeShopScreen){
   if(screen==="cart") return [
     ...nav,
     hotspot("Back Shop",16,20,8,5,"setShopScreen('main')"),
-    hotspot("Add Gold",73,18,8,4,"addDemoGold()"),
+    hotspot("Gold Balance",73,18,8,4,"showNotif('quest','GOLD BALANCE','Gold is earned from completed missions and spent in the shop.')"),
     hotspot("Remove Item",78,31,10,5,"showNotif('quest','CART UPDATED','Item removed from checkout preview.')"),
     hotspot("Save For Later",35,82,25,5,"showNotif('quest','SAVED FOR LATER','Cart saved for later.')"),
     hotspot("Complete Purchase",62,82,30,5,"completeCartPurchase()")
@@ -5206,7 +5234,7 @@ function shopHotspots(screen=activeShopScreen){
   ];
   return [
     ...nav,
-    hotspot("Add Gold",73,5.2,8,4,"addDemoGold()"),
+    hotspot("Gold Balance",73,5.2,8,4,"showNotif('quest','GOLD BALANCE','Gold is earned from completed missions and spent in the shop.')"),
     hotspot("Cart",82,4.7,10,6,"setShopScreen('cart')"),
     hotspot("All Items",20,18.5,18,4,"setShopScreen('main')"),
     hotspot("Gear Tab",39,18.5,18,4,"setShopScreen('gear')"),
@@ -5268,7 +5296,7 @@ function saveLoadoutPreset(){
 }
 
 function equipComparedItem(){
-  if(!ownsItem("shadow-cloak")) buyItem("shadow-cloak");
+  if(!ownsItem("shadow-cloak")) return showNotif("penalty","ITEM NOT OWNED","Buy or earn Night Stalker Armor before equipping it.");
   equipItem("shadow-cloak");
   activeShopScreen = "loadout";
   renderShop();
