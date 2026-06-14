@@ -1,4 +1,4 @@
-const CACHE = "system-v4-14-unified-screen-pack";
+const CACHE = "system-v4-15-interaction-state-pack";
 const FILES = [
   "./",
   "./the-system.html",
@@ -17,6 +17,15 @@ const FILES = [
   "./assets/screens/new-impact-main.jpg",
   "./assets/screens/new-profile-command.jpg",
   "./assets/screens/new-dungeon-gates.jpg",
+  "./assets/screens/new-global-notifications.jpg",
+  "./assets/screens/new-global-messages.jpg",
+  "./assets/screens/new-quick-actions.jpg",
+  "./assets/screens/new-reward-mission-complete.jpg",
+  "./assets/screens/new-confirmation-modals.jpg",
+  "./assets/screens/new-friend-request-sent.jpg",
+  "./assets/screens/new-shop-item-acquired.jpg",
+  "./assets/screens/new-nutrition-food-logged.jpg",
+  "./assets/screens/new-training-complete.jpg",
   "./assets/screens/nutrition-overview.jpg",
   "./assets/screens/nutrition-archive.jpg",
   "./assets/screens/nutrition-scan.jpg",

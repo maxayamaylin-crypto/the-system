@@ -950,7 +950,7 @@ const SHOP_ITEMS = [
   {id:"training-elixir",name:"Training Elixir",cat:"boosts",rarity:"UNCOMMON",price:1000,desc:"+10% XP on your next completed quest.",bonus:"+10% XP next quest",consumable:true},
   {id:"iron-boots",name:"Iron Boots",cat:"gear",rarity:"RARE",price:1250,desc:"Steps quest cosmetic and movement badge.",bonus:"+ movement badge"},
   {id:"d-rank-emblem",name:"D-Rank Emblem",cat:"badges",rarity:"RARE",price:1500,desc:"Profile badge unlocked at D Rank.",bonus:"D-Rank badge",rank:"D"},
-  {id:"shadow-katana",name:"Shadow Katana",cat:"gear",rarity:"LEGENDARY",price:15000,desc:"A blade forged in the void. Drains weakness, empowers the awakened.",bonus:"+25 STR · +15 AGI · +10 VIT"},
+  {id:"shadow-katana",name:"Void Katana",cat:"gear",rarity:"EPIC",price:2500,desc:"A blade forged from stabilized void energy. Cuts through matter and fate.",bonus:"+2450 ATK · +1250 DEF · +6.5% CRIT"},
   {id:"guild-banner",name:"Guild Banner",cat:"cosmetics",rarity:"EPIC",price:2500,desc:"Guild profile banner cosmetic.",bonus:"+ guild style"},
   {id:"protein-core",name:"Protein Core",cat:"badges",rarity:"UNCOMMON",price:800,desc:"Nutrition discipline badge.",bonus:"+ nutrition badge"},
   {id:"dungeon-key",name:"Dungeon Key",cat:"boosts",rarity:"RARE",price:1200,desc:"Unlocks a special challenge slot.",bonus:"+ special challenge"}
@@ -1992,16 +1992,19 @@ function inviteFriend(){
 }
 function addHunter(){
   ensureStateShape();
-  const recruitId = "hunter-"+Date.now();
-  const recruit = {id:recruitId,name:`HUNTER ${String(state.social.friendsList.length+1).padStart(2,"0")}`,level:playerLevel()-1,rank:state.player.rank,power:Math.max(12000,playerPower()-850),status:"NEW",workouts:0};
-  state.social.friendsList.unshift(recruit);
-  state.social.guildMembers.push({id:recruit.id,name:recruit.name,role:"Recruit",contribution:250});
-  state.social.friends = Math.max((state.social.friends||24) + 1,state.social.friendsList.length);
-  state.social.guildPoints += 250;
-  state.social.partnerPush = Math.min(30,(state.social.partnerPush||18)+1);
+  state.social.pendingRequestsSent = state.social.pendingRequestsSent || [];
+  const existing = state.social.pendingRequestsSent.find(request => request.name === "SHADOWBLADE");
+  if(!existing){
+    const recruit = {id:"request-"+Date.now(),name:"SHADOWBLADE",level:Math.max(1,playerLevel()-1),rank:"A",power:98760,status:"REQUEST SENT"};
+    state.social.pendingRequestsSent.unshift(recruit);
+    addAudit("friend-request-sent",`Friend request sent to ${recruit.name}`,{name:recruit.name});
+  }
   saveNonWorkout();
-  refreshCurrentView();
-  showNotif("quest","HUNTER ADDED",`${recruit.name} joined ${state.social.guildName}.\n\nGuild Points +250\nPartner Push ${state.social.partnerPush}/30`);
+  if(currentTab === "hub"){
+    activeHubScreen = "requestSent";
+    renderHub();
+  }
+  showNotif("quest",existing ? "REQUEST ALREADY SENT" : "REQUEST SENT","Shadowblade has your friend request. Rewards unlock after the connection is accepted or a co-op challenge is completed.");
 }
 
 function socialFriendChallenge(name="NIGHTSTRIDE"){
@@ -2085,12 +2088,13 @@ const HUB_SCREEN_IMAGES = {
   coop:"assets/screens/hub-h09-coop-challenge.jpg",
   license:"assets/screens/hub-h10-license.jpg",
   createGuild:"assets/screens/hub-h11-create-guild.jpg",
-  notifications:"assets/screens/hub-g02-notifications.jpg",
-  messages:"assets/screens/hub-g03-messages.jpg",
+  notifications:"assets/screens/new-global-notifications.jpg",
+  messages:"assets/screens/new-global-messages.jpg",
   systemChat:"assets/screens/hub-g03-system-chat.jpg",
-  quickActions:"assets/screens/hub-g04-quick-actions.jpg",
-  missionComplete:"assets/screens/hub-g05-mission-complete.jpg",
-  confirmation:"assets/screens/hub-g06-confirmation.jpg",
+  quickActions:"assets/screens/new-quick-actions.jpg",
+  missionComplete:"assets/screens/new-reward-mission-complete.jpg",
+  confirmation:"assets/screens/new-confirmation-modals.jpg",
+  requestSent:"assets/screens/new-friend-request-sent.jpg",
   purchase:"assets/screens/hub-g06-purchase-confirmation.jpg",
   sync:"assets/screens/hub-g09-sync-complete.jpg"
 };
@@ -2301,6 +2305,12 @@ function hubHotspots(screen=activeHubScreen){
     hotspot("Claim Rewards",28,61.5,44,5.5,"claimHubMissionRewards()"),
     hotspot("View Summary",28,67.5,44,5,"showNotif('quest','MISSION SUMMARY','Rewards: +500 XP · +250 Gold · +120 Guild XP · +50 Impact Points · Wolf Initiate badge.')")
   ];
+  if(screen==="requestSent") return [
+    ...nav,
+    hotspot("Close Request Sent",76,35.5,8,5,"setHubScreen('addHunter')"),
+    hotspot("View Profile",17,65.0,66,5.5,"setHubScreen('friendProfile')"),
+    hotspot("Continue Searching",17,72.0,66,5.5,"setHubScreen('addHunter')")
+  ];
   if(screen==="confirmation") return [
     ...nav,
     hotspot("Cancel Save",27,34.0,24,5.5,"setHubScreen('main')"),
@@ -2386,8 +2396,18 @@ function markHubNotificationsRead(){
 }
 
 function acceptFriendRequest(){
-  addHunter();
+  ensureStateShape();
+  const recruit = {id:"friend-"+Date.now(),name:"NIGHTSTRIDE",level:39,rank:"E",power:10540,status:"ONLINE",workouts:142};
+  const alreadyFriend = state.social.friendsList.some(friend => friend.name === recruit.name);
+  if(!alreadyFriend){
+    state.social.friendsList.unshift(recruit);
+    state.social.friends = Math.max((state.social.friends||24) + 1,state.social.friendsList.length);
+    addAudit("friend-request-accepted",`Friend request accepted from ${recruit.name}`,{name:recruit.name});
+    saveNonWorkout();
+  }
   activeHubScreen = "notifications";
+  renderHub();
+  showNotif("quest","FRIEND REQUEST ACCEPTED",`${recruit.name} has joined your network.`);
 }
 
 function joinHubRaid(){
@@ -2562,6 +2582,7 @@ function nutritionScreenSrc(){
     photo:"assets/screens/nutrition-n07-photo-scan.jpg",
     voice:"assets/screens/nutrition-n08-voice-log.jpg",
     confirm:"assets/screens/nutrition-n09-confirmation.jpg",
+    logged:"assets/screens/new-nutrition-food-logged.jpg",
     progress:"assets/screens/nutrition-n10-progress.jpg"
   }[activeNutritionView] || "assets/screens/nutrition-n01-overview.jpg";
 }
@@ -2582,6 +2603,7 @@ function nutritionStatePanel(){
     voice:`${liveHeader("VOICE LOG","Parsed grilled chicken, rice and Greek yogurt.")}<div class="action-grid"><button class="btn btn-green" onclick="logVoiceMeal()">CONFIRM LOG</button><button class="btn" onclick="setNutritionView('confirm')">EDIT ITEMS</button><button class="btn btn-ghost" onclick="setNutritionView('overview')">CANCEL</button></div>`,
     diary:`${liveHeader("FUEL DIARY",base)}<div class="action-grid"><button class="btn" onclick="setNutritionView('confirm')">MANUAL LOG</button><button class="btn" onclick="setNutritionView('barcode')">BARCODE</button><button class="btn" onclick="setNutritionView('photo')">PHOTO</button><button class="btn" onclick="setNutritionView('voice')">VOICE</button><button class="btn" onclick="setNutritionView('archive')">ADD RECIPE</button></div>`,
     confirm:`${liveHeader("FOOD CONFIRMATION","Edit serving, slot and notes before saving.")}<div class="action-grid"><button class="btn cta-blue" onclick="saveConfirmedNutrition()">SAVE TO DIARY</button><button class="btn" onclick="duplicateConfirmedNutrition()">DUPLICATE</button><button class="btn btn-green" onclick="logNutritionRecipe();setNutritionView('archive')">ADD ANOTHER</button><button class="btn btn-red" onclick="setNutritionView('diary')">CANCEL</button></div>`,
+    logged:`${liveHeader("FOOD LOGGED","Meal saved to diary and rewards calculated.")}<div class="action-grid"><button class="btn cta-blue" onclick="setNutritionView('diary')">VIEW DIARY</button><button class="btn" onclick="setNutritionView('archive')">LOG ANOTHER</button><button class="btn btn-ghost" onclick="setNutritionView('overview')">DONE</button></div>`,
     progress:`${liveHeader("NUTRITION PROGRESS","Weekly macro trends and AI insights.")}<div class="action-grid"><button class="btn" onclick="showNotif('quest','DAILY VIEW','Daily nutrition progress selected.')">DAILY</button><button class="btn cta-blue" onclick="showNotif('quest','WEEKLY VIEW','Weekly nutrition progress selected.')">WEEKLY</button><button class="btn" onclick="showNotif('quest','MONTHLY VIEW','Monthly nutrition progress selected.')">MONTHLY</button><button class="btn btn-gold" onclick="adaptNutritionTargets()">ADAPT TARGETS</button></div>`
   };
   return panels[activeNutritionView] || panels.overview;
@@ -2700,6 +2722,11 @@ function renderNutritionPixel(){
       hotspot("Duplicate Item",54,80,34,6,"duplicateConfirmedNutrition()"),
       hotspot("Cancel Confirm",18,86,34,6,"setNutritionView('diary')"),
       hotspot("Add Another Food",54,86,34,6,"logNutritionRecipe();setNutritionView('archive')")
+    ],
+    logged:[
+      hotspot("View Diary",18,72,30,6,"setNutritionView('diary')"),
+      hotspot("Log Another",51,72,30,6,"setNutritionView('archive')"),
+      hotspot("Food Logged Card",20,30,60,36,"setNutritionView('diary')")
     ],
     progress:[
       hotspot("Daily",12,18.4,20,3.6,"showNotif('quest','PROGRESS VIEW','Daily nutrition progress selected.')"),
@@ -3250,7 +3277,7 @@ const TRAINING_SCREEN_IMAGES = {
   custom:"assets/screens/train-t07-custom-builder.jpg",
   section:"assets/screens/train-t08-edit-section.jpg",
   exercise:"assets/screens/train-t09-edit-exercise.jpg",
-  complete:"assets/screens/train-t10-session-complete.jpg"
+  complete:"assets/screens/new-training-complete.jpg"
 };
 
 function setTrainingScreen(screen,template){
@@ -3317,7 +3344,9 @@ function trainingHotspots(screen=activeTrainingScreen){
   ];
   if(screen==="complete") return [
     ...trainingBottomHotspots(),
-    hotspot("Back To Train",27.0,86.5,46.0,6.0,"setTrainingScreen('main')")
+    hotspot("Back To Train",3.0,86.0,46.0,6.0,"setTrainingScreen('main')"),
+    hotspot("View Progress",51.0,86.0,46.0,6.0,"switchTab('progress')"),
+    hotspot("View PRs",76.0,64.0,18.0,5.0,"switchTab('progress')")
   ];
   if(screen==="session") return [
     ...trainingBottomHotspots(),
@@ -3949,7 +3978,7 @@ function logNutritionMealObject(meal, source="nutrition"){
   state.nutritionLog.meals.push({...meal,id:Date.now(),source});
   addAudit("meal-logged", `Meal logged: ${meal.name}`, meal);
   saveNonWorkout();
-  activeNutritionView = "diary";
+  activeNutritionView = "logged";
   renderNutrition();
   showNotif("quest","MEAL LOGGED",`${meal.name}\n\n+${meal.calories} kcal · +${meal.protein}g protein`);
 }
@@ -4395,6 +4424,14 @@ function renderHunterProfile(){
 // ═══════════════════════════════════════════════════════════
 function switchTab(tab){
   const prevTab = currentTab;
+  if(tab===prevTab){
+    if(tab==="hub") activeHubScreen = "main";
+    if(tab==="quests") activeQuestScreen = "main";
+    if(tab==="nutrition") activeNutritionView = "overview";
+    if(tab==="shop") activeShopScreen = "main";
+    if(tab==="impact") activeImpactScreen = "main";
+    if(tab==="profile") activeProfileScreen = "command";
+  }
   currentTab=tab;
   if(tab==="shop" && prevTab!=="shop" && activeShopScreen==="vault") activeShopScreen="main";
   updatePixelMode(tab);
@@ -5050,7 +5087,7 @@ const SHOP_SCREEN_IMAGES = {
   main:"assets/screens/new-shop-main.jpg",
   detail:"assets/screens/shop-s02-item-detail.jpg",
   confirm:"assets/screens/shop-s03-purchase-confirm.jpg",
-  acquired:"assets/screens/shop-s03-item-acquired.jpg",
+  acquired:"assets/screens/new-shop-item-acquired.jpg",
   gear:"assets/screens/shop-s04-gear-inventory.jpg",
   boosts:"assets/screens/shop-s05-boosts.jpg",
   cosmetics:"assets/screens/shop-s06-cosmetics.jpg",
@@ -5087,10 +5124,10 @@ function purchaseShadowKatana(){
 function addShadowKatanaToCart(){
   state.inventory.cart = state.inventory.cart || [];
   if(!state.inventory.cart.includes("shadow-katana")) state.inventory.cart.push("shadow-katana");
-  addAudit("cart-add","Added Shadow Katana to cart",{item:"shadow-katana"});
+  addAudit("cart-add","Added Void Katana to cart",{item:"shadow-katana"});
   saveNonWorkout();
   setShopScreen("cart");
-  showNotif("quest","ADDED TO CART","Shadow Katana added to checkout.");
+  showNotif("quest","ADDED TO CART","Void Katana added to checkout.");
 }
 
 function completeCartPurchase(){
@@ -5161,8 +5198,8 @@ function shopHotspots(screen=activeShopScreen){
   ];
   if(screen==="acquired") return [
     ...nav,
-    hotspot("View Loadout",18,78,68,6,"setShopScreen('loadout')"),
-    hotspot("Continue Shopping",18,85,68,6,"setShopScreen('main')")
+    hotspot("View Loadout",7,85,43,6,"setShopScreen('loadout')"),
+    hotspot("Continue Shopping",52,85,43,6,"setShopScreen('main')")
   ];
   if(screen==="gear") return [
     ...nav,
@@ -5267,9 +5304,9 @@ function shopStatePanel(screen=activeShopScreen){
   const base = `${formatNum(state.economy.gold||0)} Gold · ${state.inventory.owned.length} owned`;
   const panels = {
     main:`${liveHeader("HUNTER SHOP",base)}<div class="action-grid"><button class="btn" onclick="setShopScreen('detail')">VIEW KATANA</button><button class="btn" onclick="setShopScreen('gear')">GEAR</button><button class="btn" onclick="setShopScreen('boosts')">BOOSTS</button><button class="btn" onclick="setShopScreen('cosmetics')">COSMETICS</button><button class="btn" onclick="setShopScreen('cart')">CART</button><button class="btn" onclick="setShopScreen('vault')">VAULT</button></div>`,
-    detail:`${liveHeader("ITEM DETAIL","Shadow Katana · Legendary · 15,000 Gold")}<div class="action-grid"><button class="btn" onclick="setShopScreen('compare')">COMPARE</button><button class="btn btn-gold" onclick="setShopScreen('confirm')">BUY NOW</button><button class="btn" onclick="addShadowKatanaToCart()">ADD CART</button></div>`,
+    detail:`${liveHeader("ITEM DETAIL","Void Katana · Epic · 2,500 Gold")}<div class="action-grid"><button class="btn" onclick="setShopScreen('compare')">COMPARE</button><button class="btn btn-gold" onclick="setShopScreen('confirm')">BUY NOW</button><button class="btn" onclick="addShadowKatanaToCart()">ADD CART</button></div>`,
     confirm:`${liveHeader("CONFIRM PURCHASE","Permanent purchase · equip immediately.")}<div class="action-grid"><button class="btn btn-gold" onclick="purchaseShadowKatana()">CONFIRM</button><button class="btn btn-ghost" onclick="setShopScreen('main')">CANCEL</button></div>`,
-    acquired:`${liveHeader("ITEM ACQUIRED",owned.has("shadow-katana")?"Shadow Katana owned and equipped.":"Purchase preview.")}<div class="action-grid"><button class="btn btn-gold" onclick="setShopScreen('loadout')">VIEW LOADOUT</button><button class="btn" onclick="setShopScreen('main')">CONTINUE</button></div>`,
+    acquired:`${liveHeader("ITEM ACQUIRED",owned.has("shadow-katana")?"Void Katana owned and equipped.":"Purchase preview.")}<div class="action-grid"><button class="btn btn-gold" onclick="setShopScreen('loadout')">VIEW LOADOUT</button><button class="btn" onclick="setShopScreen('main')">CONTINUE</button></div>`,
     gear:`${liveHeader("GEAR INVENTORY","Weapons, armor, rings, boots and accessories.")}<div class="action-grid"><button class="btn" onclick="setShopScreen('detail')">FEATURED</button><button class="btn" onclick="setShopScreen('compare')">COMPARE</button><button class="btn" onclick="setShopScreen('loadout')">LOADOUT</button></div>`,
     boosts:`${liveHeader("BOOSTS","Consumables and active effects.")}<div class="action-grid"><button class="btn btn-gold" onclick="buyItem('training-elixir')">BUY ELIXIR</button><button class="btn" onclick="useBoostItem('training-elixir')">USE BOOST</button><button class="btn" onclick="setShopScreen('main')">BACK</button></div>`,
     cosmetics:`${liveHeader("COSMETICS","Outfits, auras, frames, skins, emotes and titles.")}<div class="action-grid"><button class="btn btn-gold" onclick="buyItem('shadow-cloak');equipItem('shadow-cloak')">EQUIP SET</button><button class="btn" onclick="switchTab('awakening')">TITLES</button><button class="btn" onclick="setShopScreen('main')">BACK</button></div>`,
