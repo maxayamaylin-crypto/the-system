@@ -488,7 +488,7 @@ body::before{
 .pixel-screen{position:relative;width:100%;line-height:0;overflow:hidden;}
 .pixel-screen img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none;}
 .pixel-hotspot{position:absolute;display:block;border:0;background:rgba(0,0,0,0);color:transparent;cursor:pointer;padding:0;z-index:4;}
-.pixel-nav-hotspot{z-index:12;}
+.pixel-nav-hotspot{z-index:999;}
 .pixel-hotspot:focus{outline:1px solid rgba(19,216,255,.8);outline-offset:2px;}
 .pixel-live{position:absolute;left:50%;top:7.3%;transform:translateX(-50%);z-index:3;min-width:120px;padding:3px 8px;border:1px solid rgba(19,216,255,.55);border-radius:999px;background:rgba(0,5,14,.72);color:#13d8ff;font-family:monospace;font-size:10px;line-height:1.2;text-align:center;box-shadow:0 0 12px rgba(0,170,255,.28);pointer-events:none;}
 .functional-layer{line-height:1.35;padding:12px;background:linear-gradient(180deg,#020812,#061427 38%,#020812);border-top:1px solid rgba(19,216,255,.45);}
@@ -1336,18 +1336,18 @@ function hotspot(label,left,top,width,height,action,className=""){
   return `<button class="${esc(classes)}" aria-label="${esc(label)}" title="${esc(label)}" style="left:${left}%;top:${top}%;width:${width}%;height:${height}%;" onclick="${action}">${esc(label)}</button>`;
 }
 function unifiedBottomHotspots(active="hub"){
-  return [
-    hotspot("Quests",0.5,92.3,13.0,7.4,"switchTab('quests')","pixel-nav-hotspot"),
-    hotspot("Train",14.3,92.3,13.0,7.4,"switchTab('training')","pixel-nav-hotspot"),
-    hotspot("Hub",28.1,92.3,13.0,7.4,"switchTab('hub')","pixel-nav-hotspot"),
-    hotspot("Nutrition",41.8,92.3,13.8,7.4,"switchTab('nutrition')","pixel-nav-hotspot"),
-    hotspot("Shop",56.2,92.3,13.0,7.4,"switchTab('shop')","pixel-nav-hotspot"),
-    hotspot("Impact",70.0,92.3,13.0,7.4,"switchTab('impact')","pixel-nav-hotspot"),
-    hotspot("Profile",83.8,92.3,15.0,7.4,"switchTab('status')","pixel-nav-hotspot")
-  ];
+  const navTop = 91.2;
+  const navHeight = 8.8;
+  const navWidth = 100 / BOTTOM_TABS.length;
+  return BOTTOM_TABS.map(([tab,,label],index)=>{
+    const left = index * navWidth;
+    return hotspot(label,left,navTop,navWidth,navHeight,`switchTab('${tab}')`,"pixel-nav-hotspot");
+  });
 }
 function pixelScreen(src,hotspots=[],liveText=""){
-  return `<div class="pixel-screen"><img src="${src}" alt="THE SYSTEM interface"/>${hotspots.join("")}</div>${liveText?`<div class="functional-layer">${liveText}</div>`:""}`;
+  const navHotspots = hotspots.filter(h=>h.includes("pixel-nav-hotspot"));
+  const screenHotspots = hotspots.filter(h=>!h.includes("pixel-nav-hotspot"));
+  return `<div class="pixel-screen"><img src="${src}" alt="THE SYSTEM interface"/>${screenHotspots.join("")}${navHotspots.join("")}</div>${liveText?`<div class="functional-layer">${liveText}</div>`:""}`;
 }
 function refreshCurrentView(){
   if(currentTab==="hub") renderHub();
