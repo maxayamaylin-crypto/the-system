@@ -485,9 +485,10 @@ body::before{
 .intro-lines{font-family:monospace;color:#9fdff0;font-size:12px;line-height:2;text-align:left;margin:0 0 18px 18px;}
 @keyframes scanLine{0%{top:0;}100%{top:100%;}}
 @keyframes introPulse{0%,100%{opacity:.45;filter:brightness(1);}50%{opacity:1;filter:brightness(1.45);}}
-.pixel-screen{position:relative;width:100%;line-height:0;}
+.pixel-screen{position:relative;width:100%;line-height:0;overflow:hidden;}
 .pixel-screen img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none;}
 .pixel-hotspot{position:absolute;display:block;border:0;background:rgba(0,0,0,0);color:transparent;cursor:pointer;padding:0;z-index:4;}
+.pixel-nav-hotspot{z-index:12;}
 .pixel-hotspot:focus{outline:1px solid rgba(19,216,255,.8);outline-offset:2px;}
 .pixel-live{position:absolute;left:50%;top:7.3%;transform:translateX(-50%);z-index:3;min-width:120px;padding:3px 8px;border:1px solid rgba(19,216,255,.55);border-radius:999px;background:rgba(0,5,14,.72);color:#13d8ff;font-family:monospace;font-size:10px;line-height:1.2;text-align:center;box-shadow:0 0 12px rgba(0,170,255,.28);pointer-events:none;}
 .functional-layer{line-height:1.35;padding:12px;background:linear-gradient(180deg,#020812,#061427 38%,#020812);border-top:1px solid rgba(19,216,255,.45);}
@@ -1319,18 +1320,30 @@ function screenTitle(subtitle){
 function avatarRing(extra=""){
   return `<div class="avatar-ring ${extra}">${state.profile.avatar?`<img src="${state.profile.avatar}" alt="Hunter avatar"/>`:""}</div>`;
 }
-function hotspot(label,left,top,width,height,action){
-  return `<button class="pixel-hotspot" aria-label="${esc(label)}" title="${esc(label)}" style="left:${left}%;top:${top}%;width:${width}%;height:${height}%;" onclick="${action}">${esc(label)}</button>`;
+const BOTTOM_TABS = [
+  ["quests","▤","QUESTS"],
+  ["training","▥","TRAIN"],
+  ["hub","●●","HUB"],
+  ["nutrition","●","NUTRITION"],
+  ["shop","🛒","SHOP"],
+  ["impact","◉","IMPACT"],
+  ["status","⬡","PROFILE"]
+];
+const VALID_TABS = new Set(["hub","quests","training","dungeons","shop","impact","nutrition","progress","coach","awakening","vault","status","settings"]);
+
+function hotspot(label,left,top,width,height,action,className=""){
+  const classes = ["pixel-hotspot", className].filter(Boolean).join(" ");
+  return `<button class="${esc(classes)}" aria-label="${esc(label)}" title="${esc(label)}" style="left:${left}%;top:${top}%;width:${width}%;height:${height}%;" onclick="${action}">${esc(label)}</button>`;
 }
 function unifiedBottomHotspots(active="hub"){
   return [
-    hotspot("Quests",0.5,92.3,13.0,7.4,"switchTab('quests')"),
-    hotspot("Train",14.3,92.3,13.0,7.4,"switchTab('training')"),
-    hotspot("Hub",28.1,92.3,13.0,7.4,"switchTab('hub')"),
-    hotspot("Nutrition",41.8,92.3,13.8,7.4,"switchTab('nutrition')"),
-    hotspot("Shop",56.2,92.3,13.0,7.4,"switchTab('shop')"),
-    hotspot("Impact",70.0,92.3,13.0,7.4,"switchTab('impact')"),
-    hotspot("Profile",83.8,92.3,15.0,7.4,"switchTab('status')")
+    hotspot("Quests",0.5,92.3,13.0,7.4,"switchTab('quests')","pixel-nav-hotspot"),
+    hotspot("Train",14.3,92.3,13.0,7.4,"switchTab('training')","pixel-nav-hotspot"),
+    hotspot("Hub",28.1,92.3,13.0,7.4,"switchTab('hub')","pixel-nav-hotspot"),
+    hotspot("Nutrition",41.8,92.3,13.8,7.4,"switchTab('nutrition')","pixel-nav-hotspot"),
+    hotspot("Shop",56.2,92.3,13.0,7.4,"switchTab('shop')","pixel-nav-hotspot"),
+    hotspot("Impact",70.0,92.3,13.0,7.4,"switchTab('impact')","pixel-nav-hotspot"),
+    hotspot("Profile",83.8,92.3,15.0,7.4,"switchTab('status')","pixel-nav-hotspot")
   ];
 }
 function pixelScreen(src,hotspots=[],liveText=""){
@@ -1508,6 +1521,11 @@ function confirmQuestDraft(){
 }
 function completeQuestFromDetail(){
   const q = questById();
+  const progress = state.dailyProgress.quests[q.id]?.value || 0;
+  if(progress < q.target){
+    addAudit("quest-complete-blocked",`Manual complete blocked for ${q.name}`,{questId:q.id,progress,target:q.target});
+    return showNotif("penalty","PROGRESS REQUIRED","Use the quest progress controls or connected app actions before marking this quest complete.");
+  }
   updateQuestProgress(q.id,q.target,"set");
   activeQuestScreen = "main";
   renderQuests();
@@ -1654,11 +1672,17 @@ function beginPreparedRaid(){
   activeDungeonScreen = "main";
 }
 function joinWorldBossFromScreen(){
-  addAudit("world-boss-join","Joined world boss event",{boss:"shadow-beast"});
-  addImpact(25,"World boss participation");
+  state.dungeons.worldBoss = state.dungeons.worldBoss || {};
+  state.dungeons.worldBoss.active = {
+    id: "ravenous-gorm",
+    joinedAt: new Date().toISOString(),
+    status: "queued",
+    contribution: state.dungeons.worldBoss.active?.contribution || 0
+  };
+  addAudit("world-boss-join","Joined world boss event",{boss:"ravenous-gorm"});
   saveNonWorkout();
   setDungeonScreen("world");
-  showNotif("quest","WORLD BOSS JOINED","+25 Impact Points · contribution recorded.");
+  showNotif("quest","WORLD BOSS QUEUED","You joined the world boss event. Rewards unlock after contribution is recorded.");
 }
 function impactLivePanel(){
   const personal = state.economy.impactPoints || 0;
@@ -1742,6 +1766,10 @@ function activateImpactPact(){
 function completeImpactPackMission(){
   ensureStateShape();
   if(!state.impact.pledge?.active) return showNotif("penalty","MISSION NOT ACTIVE","Activate an impact pact before claiming mission completion rewards.");
+  if(!state.dailyProgress.quests["dq-water"]?.completed){
+    addAudit("impact-mission-blocked","Hydration mission completion blocked until water quest is complete",{mission:"7-Day Hydration Rescue"});
+    return showNotif("penalty","MISSION PROOF REQUIRED","Complete today's hydration quest before claiming this impact mission.");
+  }
   const already = state.auditLog.some(a=>a.type==="impact-mission-complete" && a.extra?.mission==="7-Day Hydration Rescue" && weekKey(a.at)===weekKey());
   if(already) return showNotif("quest","MISSION ALREADY CLAIMED","This impact mission has already been completed this week.");
   state.impact.missionsCompleted = (state.impact.missionsCompleted||0) + 1;
@@ -1942,11 +1970,10 @@ function economyHeader(){
   </div>`;
 }
 function renderBottomNav(active=currentTab){
-  const nav = [["hub","●●","HUB"],["training","▥","TRAIN"],["quests","▤","QUESTS"],["nutrition","●","NUTRITION"],["shop","🛒","SHOP"],["status","⬡","PROFILE"]];
   const el = document.getElementById("tabs");
   if(!el) return;
   const activeAlias = active==="dungeons" ? "quests" : active;
-  el.innerHTML = nav.map(([tab,icon,label])=>`<button class="tab-btn ${tab===activeAlias?"active":""}" data-tab="${tab}" aria-label="${label}" onclick="switchTab('${tab}')"><small>${icon}</small>${label}</button>`).join("");
+  el.innerHTML = BOTTOM_TABS.map(([tab,icon,label])=>`<button class="tab-btn ${tab===activeAlias?"active":""}" data-tab="${tab}" aria-label="${label}" onclick="switchTab('${tab}')"><small>${icon}</small>${label}</button>`).join("");
 }
 function updateScreenSubtitle(tab=currentTab){
   const labels = {hub:"SOCIAL HUB",quests:"QUESTS",training:"TRAIN",dungeons:"DUNGEONS",shop:"HUNTER SHOP",impact:"HUNTERS FOR GOOD",status:"PROFILE",nutrition:"NUTRITION",progress:"PROGRESS",coach:"COACH",awakening:"AWAKENING",vault:"VAULT",settings:"SETTINGS"};
@@ -1972,8 +1999,6 @@ function addDemoGold(){
 }
 function showFriendsPanel(){
   ensureStateShape();
-  state.social.friends = Math.max(state.social.friends||24,state.social.friendsList.length);
-  saveNonWorkout();
   setHubScreen("friends");
 }
 function showGuildHall(){
@@ -1983,12 +2008,10 @@ function showGuildHall(){
 function inviteFriend(){
   ensureStateShape();
   state.social.invitesSent += 1;
-  state.social.friends = (state.social.friends||24) + 1;
-  addGold(50,"Friend invite");
-  addImpact(25,"Friend invite");
+  addAudit("friend-invite","Friend invite sent",{invites:state.social.invitesSent});
   saveNonWorkout();
   refreshCurrentView();
-  showNotif("levelup","FRIEND INVITED",`Invite sent.\n\n+1 Friend · +50 Gold · +25 Impact Points\nTotal invites: ${state.social.invitesSent}`);
+  showNotif("quest","INVITE SENT",`Invite sent.\n\nRewards unlock when the hunter accepts or completes a co-op mission with you.\nTotal invites: ${state.social.invitesSent}`);
 }
 function addHunter(){
   ensureStateShape();
@@ -2008,11 +2031,10 @@ function addHunter(){
 }
 
 function socialFriendChallenge(name="NIGHTSTRIDE"){
-  state.social.partnerPush = Math.min(30,(state.social.partnerPush||18)+1);
   addAudit("friend-challenge",`Challenge invite sent to ${name}`,{name});
   saveNonWorkout();
   setHubScreen("coop");
-  showNotif("quest","CO-OP CHALLENGE",`${name} invited to Partner Push.\n\nPartner progress ${state.social.partnerPush}/30`);
+  showNotif("quest","CO-OP CHALLENGE",`${name} invited to Partner Push.\n\nProgress increases after a logged partner session, not from the invite.`);
 }
 
 function sendSocialMessage(name="NIGHTSTRIDE"){
@@ -2025,7 +2047,7 @@ function sendSocialMessage(name="NIGHTSTRIDE"){
 function joinFeaturedGuild(name="IRON WOLVES"){
   state.social.guildName = name;
   state.social.guildLevel = Math.max(state.social.guildLevel||7,7);
-  state.social.guildPoints = Math.max(state.social.guildPoints||0,128450);
+  state.social.guildPoints = state.social.guildPoints || 0;
   addAudit("guild-joined",`Joined guild: ${name}`,{name});
   saveNonWorkout();
   setHubScreen("guildHall");
@@ -2034,14 +2056,15 @@ function joinFeaturedGuild(name="IRON WOLVES"){
 
 function createGuildFromPack(){
   const name = "Prime Hunters";
+  const cost = 100;
+  if(!spendGold(cost,"Guild creation")) return showNotif("penalty","INSUFFICIENT GOLD",`Creating a guild costs ${cost} Gold.`);
   state.social.guildName = name;
   state.social.guildLevel = 1;
-  state.social.guildPoints = Math.max(state.social.guildPoints||0,5000);
-  state.economy.gold = Math.max(0,(state.economy.gold||0)-100);
-  addAudit("guild-created",`Created guild: ${name}`,{name,cost:100});
+  state.social.guildPoints = 0;
+  addAudit("guild-created",`Created guild: ${name}`,{name,cost});
   saveNonWorkout();
   setHubScreen("guildHall");
-  showNotif("levelup","GUILD CREATED",`${name} created.\n\n-100 Gold · Guild Hall unlocked.`);
+  showNotif("levelup","GUILD CREATED",`${name} created.\n\n-${cost} Gold · Guild Hall unlocked.`);
 }
 
 function invitePartner(){
@@ -2053,16 +2076,15 @@ function invitePartner(){
 }
 
 function startPartnerSession(){
-  state.social.partnerPush = Math.min(30,(state.social.partnerPush||18)+1);
-  addXP(120,"Partner Push session");
-  addGold(40,"Partner Push session");
-  addAudit("partner-session","Started Partner Push session",{progress:state.social.partnerPush});
+  state.social.activePartnerSession = {id:"partner-"+Date.now(),partner:"IRONWILL",startedAt:new Date().toISOString(),status:"active"};
+  addAudit("partner-session-started","Partner Push session started",{partner:"IRONWILL"});
   saveNonWorkout();
   refreshCurrentView();
-  showNotif("levelup","PARTNER SESSION STARTED",`Partner Push ${state.social.partnerPush}/30\n\n+120 XP · +40 Gold`);
+  showNotif("quest","PARTNER SESSION STARTED","Log the workout session to advance Partner Push and unlock rewards.");
 }
 
 function claimPartnerRewards(){
+  if((state.social.partnerPush||0) < 30) return showNotif("penalty","REWARD LOCKED",`Partner Push is ${state.social.partnerPush||0}/30. Complete the challenge before claiming rewards.`);
   const key = `partner-push-${dateKey()}`;
   state.meta.claimedRewards = state.meta.claimedRewards || {};
   if(state.meta.claimedRewards[key]) return showNotif("quest","ALREADY CLAIMED","Partner Push rewards already claimed today.");
@@ -2411,10 +2433,11 @@ function acceptFriendRequest(){
 }
 
 function joinHubRaid(){
-  state.social.guildPoints = (state.social.guildPoints||0) + 6890;
-  addAudit("guild-raid-joined","Joined Shadow Colosseum raid",{guildPoints:6890});
+  state.social.activeRaid = {id:"nightwraith-behemoth",name:"Nightwraith Behemoth",joinedAt:new Date().toISOString(),status:"queued"};
+  addAudit("guild-raid-joined","Joined Nightwraith Behemoth raid queue",{raid:"nightwraith-behemoth"});
   saveNonWorkout();
-  setHubScreen("missionComplete");
+  setHubScreen("raidDetail");
+  showNotif("quest","RAID QUEUED","Raid entry confirmed. Guild points unlock after the raid is cleared.");
 }
 
 function showFriendMessage(name){
@@ -2433,6 +2456,10 @@ function openNutritionScanFromHub(){
 }
 
 function claimHubMissionRewards(){
+  if(!state.social.hubMissionComplete){
+    addAudit("hub-mission-locked","Attempted to claim incomplete hub mission",{});
+    return showNotif("penalty","MISSION INCOMPLETE","Complete the linked social objective before claiming these rewards.");
+  }
   const key = `hub-mission-${dateKey()}`;
   state.meta.claimedRewards = state.meta.claimedRewards || {};
   if(state.meta.claimedRewards[key]) return showNotif("quest","ALREADY CLAIMED","This mission reward has already been claimed today.");
@@ -2470,11 +2497,11 @@ function buyShadowKey(){
   setHubScreen("sync");
 }
 function completeImpactMission(){
-  addImpact(250,"Impact mission");
-  addGold(100,"Impact mission");
+  state.impact.activeMission = state.impact.activeMission || {id:"daily-impact",startedAt:new Date().toISOString(),progress:0,target:1,status:"active"};
+  addAudit("impact-mission-started","Impact mission opened",{mission:state.impact.activeMission.id});
   saveNonWorkout();
   refreshCurrentView();
-  showNotif("levelup","MISSION COMPLETE","+250 Impact Points · +100 Gold\n\nContribution recorded in your impact ledger.");
+  showNotif("quest","IMPACT MISSION ACTIVE","Impact rewards unlock after the mission requirements are completed and logged.");
 }
 function getNutritionTotals(){
   const meals = state.nutritionLog.meals || [];
@@ -3040,7 +3067,8 @@ function closeNotif(){
 // ═══════════════════════════════════════════════════════════
 function addXP(amount, statKey){
   state.player.totalXp += amount;
-  if(statKey) state.player.stats[statKey]++;
+  const validStats = new Set(["STR","AGI","INT","VIT","PER"]);
+  if(validStats.has(statKey)) state.player.stats[statKey]++;
   // Determine rank from totalXp
   let newRank = "E";
   for(const r of RANKS){ if(state.player.totalXp >= RANK_THRESHOLDS[r]) newRank = r; }
@@ -3745,6 +3773,7 @@ function cancelLog(){logMode=false;logDay=null;logData={};renderTrainingContent(
 
 function submitLog(){
   const w = state.workouts[logDay];
+  if(!w) return showNotif("penalty","NO SESSION SELECTED","Choose a workout before submitting a training log.");
   const allEx = Object.entries(w.sections).flatMap(([sec,exs])=>exs.map(ex=>({...ex,section:sec})));
   const exercises = {};
   allEx.forEach(ex=>{
@@ -3756,14 +3785,27 @@ function submitLog(){
     }));
     exercises[ex.id]={sets};
   });
+  const completedSets = Object.values(exercises).flatMap(entry=>entry.sets).filter(set=>{
+    const reps = Number(set.reps);
+    return Number.isFinite(reps) && reps > 0;
+  });
+  if(completedSets.length === 0){
+    return showNotif("penalty","SESSION EMPTY","Log reps for at least one working set before claiming training rewards.");
+  }
   const date = new Date().toLocaleDateString("en-GB");
   if(!state.sessions[logDay]) state.sessions[logDay]=[];
-  state.sessions[logDay].push({date,exercises});
-  addAudit("session-logged", `Training session logged: ${w.label}`, {day:logDay});
+  state.sessions[logDay].push({date,exercises,completedSets:completedSets.length});
+  addAudit("session-logged", `Training session logged: ${w.label}`, {day:logDay,completedSets:completedSets.length});
   addGold(150, "Training session");
   addImpact(50, "Training session");
   state.social.guildPoints = (state.social.guildPoints||0) + 75;
   addAudit("guild-xp", "Guild XP +75: Training session", {amount:75, day:logDay});
+  if(state.social.activePartnerSession?.status === "active"){
+    state.social.partnerPush = Math.min(30,(state.social.partnerPush||18)+1);
+    state.social.activePartnerSession.status = "completed";
+    state.social.activePartnerSession.completedAt = new Date().toISOString();
+    addAudit("partner-session-complete","Partner Push advanced from logged workout",{progress:state.social.partnerPush});
+  }
   // Mark gym quest done
   updateQuestProgress("dq-workout",1);
   addXP(200,"STR");
@@ -3975,12 +4017,29 @@ function addMealTemplate(idx){
 
 function logNutritionMealObject(meal, source="nutrition"){
   if(!state.nutritionLog.meals) state.nutritionLog.meals=[];
-  state.nutritionLog.meals.push({...meal,id:Date.now(),source});
-  addAudit("meal-logged", `Meal logged: ${meal.name}`, meal);
+  const normalized = {
+    name: meal.name || "Logged Meal",
+    calories: Math.max(0, Number(meal.calories)||0),
+    protein: Math.max(0, Number(meal.protein)||0),
+    carbs: Math.max(0, Number(meal.carbs)||0),
+    fat: Math.max(0, Number(meal.fat)||0),
+    sugar: Math.max(0, Number(meal.sugar)||0),
+    fiber: Math.max(0, Number(meal.fiber)||0),
+    slot: meal.slot || meal.mealSlot || "Lunch",
+    image: meal.image || foodImageFor(meal.name || ""),
+    id: Date.now(),
+    loggedAt: new Date().toISOString(),
+    source
+  };
+  if(normalized.calories <= 0 && normalized.protein <= 0) return showNotif("penalty","MEAL NEEDS DATA","Add calories or protein before logging this meal.");
+  state.nutritionLog.meals.push(normalized);
+  state.nutritionLog.lastLoggedAt = normalized.loggedAt;
+  state.nutritionLog.fullLogComplete = state.nutritionLog.meals.length >= 3;
+  addAudit("meal-logged", `Meal logged: ${normalized.name}`, normalized);
   saveNonWorkout();
   activeNutritionView = "logged";
   renderNutrition();
-  showNotif("quest","MEAL LOGGED",`${meal.name}\n\n+${meal.calories} kcal · +${meal.protein}g protein`);
+  showNotif("quest","MEAL LOGGED",`${normalized.name}\n\n+${normalized.calories} kcal · +${normalized.protein}g protein`);
 }
 
 function logNutritionRecipe(){
@@ -4422,23 +4481,42 @@ function renderHunterProfile(){
 // ═══════════════════════════════════════════════════════════
 // TABS
 // ═══════════════════════════════════════════════════════════
+function resetTabScreen(tab){
+  if(tab==="hub") activeHubScreen = "main";
+  if(tab==="quests") activeQuestScreen = "main";
+  if(tab==="training") activeTrainingScreen = "main";
+  if(tab==="dungeons") activeDungeonScreen = "main";
+  if(tab==="nutrition") activeNutritionView = "overview";
+  if(tab==="shop") activeShopScreen = "main";
+  if(tab==="impact") activeImpactScreen = "main";
+  if(tab==="status") activeProfileScreen = "command";
+}
+
 function switchTab(tab){
-  const prevTab = currentTab;
-  if(tab===prevTab){
-    if(tab==="hub") activeHubScreen = "main";
-    if(tab==="quests") activeQuestScreen = "main";
-    if(tab==="nutrition") activeNutritionView = "overview";
-    if(tab==="shop") activeShopScreen = "main";
-    if(tab==="impact") activeImpactScreen = "main";
-    if(tab==="profile") activeProfileScreen = "command";
+  if(!VALID_TABS.has(tab)){
+    addAudit("invalid-route",`Blocked invalid tab route: ${tab}`,{tab});
+    tab = "hub";
   }
+  const prevTab = currentTab;
+  if(tab===prevTab) resetTabScreen(tab);
   currentTab=tab;
   if(tab==="shop" && prevTab!=="shop" && activeShopScreen==="vault") activeShopScreen="main";
   updatePixelMode(tab);
   updateScreenSubtitle(tab);
   renderBottomNav(tab);
   document.querySelectorAll(".tab-content").forEach(el=>el.classList.remove("active"));
-  document.getElementById(`tab-${tab}`).classList.add("active");
+  const target = document.getElementById(`tab-${tab}`);
+  if(!target){
+    addAudit("missing-tab",`Missing tab container: ${tab}`,{tab});
+    currentTab = "hub";
+    updatePixelMode("hub");
+    updateScreenSubtitle("hub");
+    renderBottomNav("hub");
+    document.getElementById("tab-hub")?.classList.add("active");
+    renderHub();
+    return;
+  }
+  target.classList.add("active");
   if(tab==="hub") renderHub();
   if(tab==="quests") renderQuests();
   if(tab==="training"){renderTrainingTabs();renderTrainingContent();}
@@ -5131,23 +5209,24 @@ function addShadowKatanaToCart(){
 }
 
 function completeCartPurchase(){
-  const ids = ["shadow-katana","shadow-cloak","focus-ring","training-elixir"];
-  const total = 24700;
+  const ids = [...new Set(state.inventory.cart || [])];
+  if(!ids.length) return showNotif("penalty","CART EMPTY","Add an item before completing checkout.");
+  const items = ids.map(id=>SHOP_ITEMS.find(i=>i.id===id)).filter(Boolean);
+  const total = items.reduce((sum,item)=>sum + (item.price||0),0);
   if(!spendGold(total,"Cart checkout")) return showNotif("penalty","INSUFFICIENT GOLD",`Cart checkout costs ${formatNum(total)} Gold.`);
-  ids.forEach(id=>{
-    const item = SHOP_ITEMS.find(i=>i.id===id);
-    if(item && (!ownsItem(id) || item.consumable)){
+  items.forEach(item=>{
+    if(!ownsItem(item.id) || item.consumable){
       state.inventory.owned.push({id:item.id,qty:item.consumable?2:undefined,acquiredAt:new Date().toISOString()});
       state.inventory.purchaseHistory.unshift({id:Date.now()+"-"+item.id,itemId:item.id,name:item.name,price:item.price,at:new Date().toISOString(),rarity:item.rarity});
     }
   });
   state.inventory.cart = [];
   state.inventory.purchaseHistory = state.inventory.purchaseHistory.slice(0,80);
-  addAudit("cart-checkout","Completed shop cart checkout",{items:ids,total});
+  addAudit("cart-checkout","Completed shop cart checkout",{items:items.map(item=>item.id),total});
   saveNonWorkout();
   activeShopScreen = "acquired";
   renderShop();
-  showNotif("levelup","CART PURCHASE COMPLETE",`4 items acquired.\n\n-${formatNum(total)} Gold`);
+  showNotif("levelup","CART PURCHASE COMPLETE",`${items.length} item${items.length===1?"":"s"} acquired.\n\n-${formatNum(total)} Gold`);
 }
 
 function useBoostItem(id="training-elixir"){
