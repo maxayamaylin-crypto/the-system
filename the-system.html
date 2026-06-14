@@ -486,8 +486,8 @@ body::before{
 @keyframes scanLine{0%{top:0;}100%{top:100%;}}
 @keyframes introPulse{0%,100%{opacity:.45;filter:brightness(1);}50%{opacity:1;filter:brightness(1.45);}}
 .pixel-screen{position:relative;width:100%;line-height:0;overflow:hidden;}
-.pixel-screen img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none;}
-.pixel-hotspot{position:absolute;display:block;border:0;background:rgba(0,0,0,0);color:transparent;cursor:pointer;padding:0;z-index:4;}
+.pixel-screen img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none;pointer-events:none;}
+.pixel-hotspot{position:absolute;display:block;border:0;background:rgba(0,0,0,0.001);color:transparent;cursor:pointer;padding:0;z-index:4;pointer-events:auto;touch-action:manipulation;}
 .pixel-nav-hotspot{z-index:999;}
 .pixel-hotspot:focus{outline:1px solid rgba(19,216,255,.8);outline-offset:2px;}
 .pixel-live{position:absolute;left:50%;top:7.3%;transform:translateX(-50%);z-index:3;min-width:120px;padding:3px 8px;border:1px solid rgba(19,216,255,.55);border-radius:999px;background:rgba(0,5,14,.72);color:#13d8ff;font-family:monospace;font-size:10px;line-height:1.2;text-align:center;box-shadow:0 0 12px rgba(0,170,255,.28);pointer-events:none;}
@@ -1335,13 +1335,17 @@ function hotspot(label,left,top,width,height,action,className=""){
   const classes = ["pixel-hotspot", className].filter(Boolean).join(" ");
   return `<button class="${esc(classes)}" aria-label="${esc(label)}" title="${esc(label)}" style="left:${left}%;top:${top}%;width:${width}%;height:${height}%;" onclick="${action}">${esc(label)}</button>`;
 }
+function navHotspot(label,left,top,width,height,route){
+  const classes = "pixel-hotspot pixel-nav-hotspot";
+  return `<button class="${classes}" data-route="${esc(route)}" aria-label="${esc(label)}" title="${esc(label)}" style="left:${left}%;top:${top}%;width:${width}%;height:${height}%;" onclick="switchTab('${esc(route)}')">${esc(label)}</button>`;
+}
 function unifiedBottomHotspots(active="hub"){
-  const navTop = 91.2;
-  const navHeight = 8.8;
+  const navTop = 84.5;
+  const navHeight = 8.0;
   const navWidth = 100 / BOTTOM_TABS.length;
   return BOTTOM_TABS.map(([tab,,label],index)=>{
     const left = index * navWidth;
-    return hotspot(label,left,navTop,navWidth,navHeight,`switchTab('${tab}')`,"pixel-nav-hotspot");
+    return navHotspot(label,left,navTop,navWidth,navHeight,tab);
   });
 }
 function pixelScreen(src,hotspots=[],liveText=""){
@@ -2469,6 +2473,8 @@ function claimHubMissionRewards(){
   state.social.guildPoints = (state.social.guildPoints||0) + 120;
   addImpact(50,"Hub mission complete");
   if(!state.unlocks.achievements.includes("wolf-initiate")) state.unlocks.achievements.push("wolf-initiate");
+  state.social.hubMissionComplete = false;
+  state.social.lastHubMissionClaimedAt = new Date().toISOString();
   addAudit("hub-mission-complete","Hub mission rewards claimed",{xp:500,gold:250,guildXp:120,impact:50});
   saveNonWorkout();
   setHubScreen("sync");
@@ -3061,6 +3067,9 @@ function closeNotif(){
   clearTimeout(notifTimer);
   document.getElementById("notif-overlay").classList.remove("show");
 }
+document.addEventListener("keydown",e=>{
+  if(e.key === "Escape") closeNotif();
+});
 
 // ═══════════════════════════════════════════════════════════
 // XP & RANK
@@ -3804,11 +3813,12 @@ function submitLog(){
     state.social.partnerPush = Math.min(30,(state.social.partnerPush||18)+1);
     state.social.activePartnerSession.status = "completed";
     state.social.activePartnerSession.completedAt = new Date().toISOString();
+    state.social.hubMissionComplete = true;
+    state.social.lastHubMissionCompletedAt = new Date().toISOString();
     addAudit("partner-session-complete","Partner Push advanced from logged workout",{progress:state.social.partnerPush});
   }
-  // Mark gym quest done
+  // Mark gym quest done. The quest system handles its configured XP/stat reward.
   updateQuestProgress("dq-workout",1);
-  addXP(200,"STR");
   activeTrainingScreen = "complete";
   logMode=false; logDay=null; logData={};
   saveNonWorkout();
@@ -4531,6 +4541,23 @@ function switchTab(tab){
   if(tab==="status") renderStatus();
   if(tab==="settings") renderSettings();
 }
+let lastPixelNavRoute = "";
+let lastPixelNavAt = 0;
+function routePixelNavEvent(e){
+  const btn = e.target.closest?.(".pixel-nav-hotspot");
+  if(!btn) return;
+  const route = btn.dataset.route;
+  if(!route) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const now = Date.now();
+  if(e.type === "click" && lastPixelNavRoute === route && now - lastPixelNavAt < 450) return;
+  lastPixelNavRoute = route;
+  lastPixelNavAt = now;
+  switchTab(route);
+}
+document.addEventListener("pointerdown",routePixelNavEvent,true);
+document.addEventListener("click",routePixelNavEvent,true);
 
 // ═══════════════════════════════════════════════════════════
 // SAVE / EXPORT / IMPORT
