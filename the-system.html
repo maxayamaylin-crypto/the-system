@@ -1788,6 +1788,7 @@ function completeImpactPackMission(){
 
 function resolveImpactPact(){
   ensureStateShape();
+  if(!state.impact.pledge?.active) return showNotif("penalty","NO ACTIVE PACT","Activate an accountability pact before resolving it. Impact points are only awarded once per pact.");
   state.impact.pactsResolved = (state.impact.pactsResolved||0) + 1;
   state.impact.pledge.active = false;
   addImpact(80,"Pact resolved donation");
@@ -3818,12 +3819,15 @@ function submitLog(){
     addAudit("partner-session-complete","Partner Push advanced from logged workout",{progress:state.social.partnerPush});
   }
   // Mark gym quest done. The quest system handles its configured XP/stat reward.
+  const xpBefore = state.player.totalXp;
   updateQuestProgress("dq-workout",1);
+  const xpGained = Math.max(0, state.player.totalXp - xpBefore);
   activeTrainingScreen = "complete";
   logMode=false; logDay=null; logData={};
   saveNonWorkout();
   renderTrainingContent();
-  showNotif("quest","TRAINING SESSION LOGGED","+200 XP · +150 Gold\n+75 Guild XP · +50 Impact Points");
+  const xpLine = xpGained > 0 ? `+${xpGained} XP · ` : "";
+  showNotif("quest","TRAINING SESSION LOGGED",`${xpLine}+150 Gold\n+75 Guild XP · +50 Impact Points`);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -4270,6 +4274,11 @@ function saveLicenseProfile(){
 
 function equipProfileTitle(titleId="initiate"){
   const title = TITLE_RULES.find(t=>t.id===titleId) || TITLE_RULES[0];
+  const earned = state.unlocks.titles.includes(title.id) || (typeof title.check === "function" && title.check());
+  if(!earned){
+    addAudit("title-equip-blocked",`Attempted to equip locked title: ${title.name}`,{titleId:title.id});
+    return showNotif("penalty","TITLE LOCKED",`${title.name}\n\n${title.desc}\n\nUnlock this title before equipping it.`);
+  }
   if(!state.unlocks.titles.includes(title.id)) state.unlocks.titles.push(title.id);
   state.unlocks.activeTitle = title.name;
   addAudit("title-equipped",`Title equipped: ${title.name}`,{titleId:title.id});
